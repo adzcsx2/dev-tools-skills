@@ -7,38 +7,22 @@
   },
   "plugins": [
     {
-      "name": "dev-tools",
-      "source": "./plugins/dev-tools",
-      "description": "Cross-platform development tools: git push workflow (dt:push), plugin management (dt:update-remote-plugins), and multi-language code annotation (dt:code-note).",
+      "name": "dev-tools-skills",
+      "source": "./",
+      "description": "All-in-one development toolkit: git push (dt:push), plugin management (dt:update-remote-plugins), code annotation (dt:code-note), Android tools (adt:*), and Flutter tools (fdt:*).",
       "version": "1.0.0",
       "skills": [
         "./skills/push",
         "./skills/update-remote-plugins",
-        "./skills/code-note"
-      ]
-    },
-    {
-      "name": "android-dev-tools",
-      "source": "./plugins/android-dev-tools",
-      "description": "Android development toolkit: project initialization, build optimization, documentation, i18n, foldable screen, and UI automation testing.",
-      "version": "2.15.0",
-      "skills": [
+        "./skills/code-note",
         "./skills/init-android",
         "./skills/gradle-build-performance",
-        "./skills/update-docs",
+        "./skills/update-docs-android",
         "./skills/android-i18n",
         "./skills/android-fold-adapter",
-        "./skills/auto-ui-test"
-      ]
-    },
-    {
-      "name": "flutter-dev-tools",
-      "source": "./plugins/flutter-dev-tools",
-      "description": "Flutter development toolkit: project initialization, documentation generation, and more.",
-      "version": "1.1.0",
-      "skills": [
+        "./skills/auto-ui-test",
         "./skills/init-flutter",
-        "./skills/update-docs"
+        "./skills/update-docs-flutter"
       ]
     }
   ]
