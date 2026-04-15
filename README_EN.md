@@ -22,7 +22,7 @@ cd dev-tools-skills
 
 For selective installation, see `./install.sh --help`.
 
-Installation also registers a global `/init` prompt for VS Code Copilot so the same init workflow can be triggered in any project.
+Installation also registers a global `/dt:init` prompt for VS Code Copilot so the same init workflow can be triggered in any project.
 
 ## Included Skills
 
@@ -30,7 +30,7 @@ Installation also registers a global `/init` prompt for VS Code Copilot so the s
 
 | Skill                      | Description                                                                                                        |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `/init`                    | Universal project init: detect the real stack and generate or optimize CLAUDE.md plus Copilot project instructions |
+| `dt:init`                  | Universal project init: detect the real stack and generate or optimize CLAUDE.md plus Copilot project instructions |
 | `dt:push`                  | One-push release workflow: auto stage, pull, per-file commit, push                                                 |
 | `dt:update-remote-plugins` | Plugin management: audit skills, update configs, sync to local                                                     |
 | `dt:code-note`             | Multi-language code annotation: auto-detect language and apply comment style                                       |
@@ -58,12 +58,12 @@ dev-tools-skills/
 ├── .github/
 │   ├── copilot-instructions.md
 │   └── prompts/
-│       └── init.prompt.md
+│       └── init.prompt.md        # VS Code Copilot /dt:init
 ├── .claude-plugin/
 │   ├── marketplace.json
 │   └── plugin.json
 ├── skills/
-│   ├── init/
+│   ├── init/                     # dt:init
 │   ├── push/
 │   ├── update-remote-plugins/
 │   ├── code-note/

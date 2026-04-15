@@ -1,4 +1,4 @@
-﻿# init
+﻿# dt:init
 
 统一的跨技术栈项目初始化入口。基于真实代码和配置生成或优化 CLAUDE.md、Copilot 项目级指令，并输出简洁的代码库 onboarding 摘要。
 
@@ -16,7 +16,7 @@
 ## 用法
 
 ```bash
-/init
+/dt:init
 ```
 
 ---

@@ -53,7 +53,7 @@ function Test-Command($cmd) {
 
 function Get-CategoryDesc($cat) {
     switch ($cat) {
-        "common"  { "Common tools (/init, dt:push, dt:update-remote-plugins, dt:code-note)" }
+        "common"  { "Common tools (dt:init, dt:push, dt:update-remote-plugins, dt:code-note)" }
         "android" { "Android tools (adt:update-docs, adt:gradle-build-performance, etc.)" }
         "flutter" { "Flutter tools (fdt:update-docs)" }
     }

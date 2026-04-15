@@ -21,7 +21,7 @@ This repository contains reusable AI skills and installation assets for Claude C
 
 ## Copilot And Claude Support
 
-- The unified init entrypoint is /init
+- The unified init entrypoint is /dt:init
 - Project-level Copilot guidance should use .github/copilot-instructions.md unless a repo already standardizes on AGENTS.md
 - Avoid maintaining both AGENTS.md and .github/copilot-instructions.md for the same workspace
 

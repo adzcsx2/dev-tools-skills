@@ -54,7 +54,7 @@ has_cmd() { command -v "$1" &>/dev/null; }
 
 category_desc() {
   case "$1" in
-    common)  echo "Common tools (/init, dt:push, dt:update-remote-plugins, dt:code-note)" ;;
+    common)  echo "Common tools (dt:init, dt:push, dt:update-remote-plugins, dt:code-note)" ;;
     android) echo "Android tools (adt:update-docs, adt:gradle-build-performance, etc.)" ;;
     flutter) echo "Flutter tools (fdt:update-docs)" ;;
     *)       echo "" ;;

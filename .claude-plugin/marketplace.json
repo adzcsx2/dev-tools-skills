@@ -9,7 +9,7 @@
     {
       "name": "dev-tools-skills",
       "source": "./",
-      "description": "All-in-one development toolkit: universal project init (/init), git push (dt:push), plugin management (dt:update-remote-plugins), code annotation (dt:code-note), Android tools (adt:*), and Flutter tools (fdt:*).",
+      "description": "All-in-one development toolkit: universal project init (dt:init), git push (dt:push), plugin management (dt:update-remote-plugins), code annotation (dt:code-note), Android tools (adt:*), and Flutter tools (fdt:*).",
       "version": "1.1.0",
       "skills": [
         "./skills/init",

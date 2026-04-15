@@ -1,5 +1,5 @@
 ---
-name: init
+name: dt:init
 description: "Initialize AI project context for any codebase. Detect Android, Flutter, React, Python, Java, Node.js and other stacks from real files, then generate or update CLAUDE.md, Copilot project instructions, a concise onboarding summary, and optional verified checklist docs."
 origin: dev-tools-skills
 ---
@@ -18,7 +18,7 @@ origin: dev-tools-skills
 ## Trigger
 
 ```text
-/init
+/dt:init
 ```
 
 ## When to Use

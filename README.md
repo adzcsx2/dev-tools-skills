@@ -22,7 +22,7 @@ cd dev-tools-skills
 
 选择性安装请查看 `./install.sh --help`。
 
-安装后会额外注册 VS Code Copilot 的全局 `/init` prompt，使你在任意项目里都可以直接执行统一初始化流程。
+安装后会额外注册 VS Code Copilot 的全局 `/dt:init` prompt，使你在任意项目里都可以直接执行统一初始化流程。
 
 ## 包含的 Skills
 
@@ -30,7 +30,7 @@ cd dev-tools-skills
 
 | Skill                      | 描述                                                                      |
 | -------------------------- | ------------------------------------------------------------------------- |
-| `/init`                    | 通用项目初始化：识别真实技术栈并生成/优化 CLAUDE.md 与 Copilot 项目级配置 |
+| `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 CLAUDE.md 与 Copilot 项目级配置 |
 | `dt:push`                  | 一键发布工作流：自动暂存、拉取、逐文件提交、推送                          |
 | `dt:update-remote-plugins` | 插件管理：审计 skill、更新配置、同步到本地                                |
 | `dt:code-note`             | 多语言代码注释：自动检测语言类型并应用对应注释风格                        |
@@ -58,12 +58,12 @@ dev-tools-skills/
 ├── .github/
 │   ├── copilot-instructions.md
 │   └── prompts/
-│       └── init.prompt.md        # VS Code Copilot /init
+│       └── init.prompt.md        # VS Code Copilot /dt:init
 ├── .claude-plugin/
 │   ├── marketplace.json
 │   └── plugin.json
 ├── skills/
-│   ├── init/                     # /init
+│   ├── init/                     # dt:init
 │   ├── push/                   # dt:push
 │   ├── update-remote-plugins/  # dt:update-remote-plugins
 │   ├── code-note/              # dt:code-note
