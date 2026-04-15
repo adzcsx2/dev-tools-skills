@@ -1,7 +1,7 @@
-# 依赖库清单模板
+﻿# 依赖库清单模板
 
-> 这是 init-android skill 使用的模板文件，用于在用户明确要求时生成 docs/checklist/dependencies.md。
-> 本模板只允许输出从 Gradle 配置中真实解析到的依赖。
+> 这是 init skill 使用的模板文件，用于在用户明确要求时生成 docs/checklist/dependencies.md。
+> 本模板只允许输出从构建文件、包管理文件或锁文件中真实解析到的依赖。
 
 ---
 
@@ -11,10 +11,10 @@
 
 ## 生成规则
 
-- 只记录从 build.gradle、build.gradle.kts、版本目录或依赖管理文件中真实解析到的依赖
+- 只记录从 build.gradle、build.gradle.kts、pom.xml、package.json、pnpm-lock.yaml、yarn.lock、pyproject.toml、requirements.txt、pubspec.yaml、Cargo.toml 等真实文件中解析到的依赖
 - 依赖分类是可选的，只有当某类下存在已验证依赖时才输出该分类
 - 未检测到的库不要出现在文档里
-- 不写“推荐”“备选”“可考虑使用”之类的推断性内容
+- 不写推荐、备选、可考虑使用之类的推断性内容
 - 如果版本号无法可靠提取，可以只记录库名和用途
 - 不要为了文档完整性保留空分类或占位示例行
 

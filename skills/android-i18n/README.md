@@ -1,4 +1,4 @@
-# android-i18n
+# adt:android-i18n
 
 审计 Android 项目中的硬编码中文字符串，自动生成 4 种语言的国际化资源（en/ru/zh/zh-rTW），并更新代码使用字符串资源。
 

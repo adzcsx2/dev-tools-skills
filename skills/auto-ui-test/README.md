@@ -1,4 +1,4 @@
-# auto-ui-test
+# adt:auto-ui-test
 
 智能化的 Android 真机 UI 测试工具，根据场景自动选择最优执行方式（Midscene 视觉驱动 / ADB 快速执行 / 混合模式）。
 

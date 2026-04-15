@@ -1,7 +1,7 @@
-# 模块功能清单模板
+﻿# 模块功能清单模板
 
-> 这是 init-android skill 使用的模板文件，用于在用户明确要求时生成 docs/checklist/modules.md。
-> 本模板只允许输出项目中真实存在的模块，不包含任何预设模块示例。
+> 这是 init skill 使用的模板文件，用于在用户明确要求时生成 docs/checklist/modules.md。
+> 本模板只允许输出项目中真实存在的模块、包、应用或 feature。
 
 ---
 
@@ -11,9 +11,9 @@
 
 ## 生成规则
 
-- 仅记录 settings.gradle 或源码目录中真实存在的模块
+- 仅记录 settings.gradle、workspace 配置、monorepo 配置、源码目录或 package 列表中真实存在的模块
 - 每个模块只写真实路径，以及能验证的职责和可复用入口
-- 不得虚构 common-core、common-network、common-ui 等模板模块
+- 不得虚构 common-core、shared-ui、base-service 等模板模块
 - 不得根据行业习惯补充项目中不存在的抽象层
 - 如果某模块职责不清晰，只保留路径和主要入口，不编造说明
 - 职责和可复用入口都是可选字段，缺少可靠信息时可以省略

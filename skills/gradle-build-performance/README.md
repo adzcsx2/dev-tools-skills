@@ -1,4 +1,4 @@
-# gradle-build-performance
+# adt:gradle-build-performance
 
 调试和优化 Android/Gradle 构建性能，适用于构建缓慢、CI/CD 性能问题、构建扫描分析和编译瓶颈排查。
 

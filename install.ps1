@@ -19,6 +19,7 @@ $MarketplaceName = "dev-tools-skills"
 $PluginName = "dev-tools-skills"
 $RepoUrl = "git@github.com:adzcsx2/dev-tools-skills.git"
 $Version = "1.0.0"
+$VSCodePromptsDir = if ($env:VSCODE_USER_PROMPTS_FOLDER) { $env:VSCODE_USER_PROMPTS_FOLDER } else { Join-Path $env:APPDATA "Code\User\prompts" }
 
 # Paths
 $ClaudeDir = if ($env:CLAUDE_DIR) { $env:CLAUDE_DIR } else { Join-Path $env:USERPROFILE ".claude" }
@@ -31,9 +32,9 @@ $InstalledFile = Join-Path $PluginsDir "installed_plugins.json"
 $PluginKey = "${MarketplaceName}@${PluginName}"
 
 # Skill categories
-$CommonSkills = @("push", "update-remote-plugins", "code-note")
-$AndroidSkills = @("init-android", "gradle-build-performance", "update-docs-android", "android-i18n", "android-fold-adapter", "auto-ui-test")
-$FlutterSkills = @("init-flutter", "update-docs-flutter")
+$CommonSkills = @("init", "push", "update-remote-plugins", "code-note")
+$AndroidSkills = @("gradle-build-performance", "update-docs-android", "android-i18n", "android-fold-adapter", "auto-ui-test")
+$FlutterSkills = @("update-docs-flutter")
 
 $AllCategories = @("common", "android", "flutter")
 
@@ -52,9 +53,9 @@ function Test-Command($cmd) {
 
 function Get-CategoryDesc($cat) {
     switch ($cat) {
-        "common"  { "Common tools (dt:push, dt:update-remote-plugins, dt:code-note)" }
-        "android" { "Android tools (adt:init-android, adt:update-docs, adt:gradle-build-performance, etc.)" }
-        "flutter" { "Flutter tools (fdt:init-flutter, fdt:update-docs)" }
+        "common"  { "Common tools (/init, dt:push, dt:update-remote-plugins, dt:code-note)" }
+        "android" { "Android tools (adt:update-docs, adt:gradle-build-performance, etc.)" }
+        "flutter" { "Flutter tools (fdt:update-docs)" }
     }
 }
 
@@ -69,6 +70,28 @@ function Get-SkillsForCategory($cat) {
 function Ensure-Directory($path) {
     if (-not (Test-Path $path)) {
         New-Item -ItemType Directory -Path $path -Force | Out-Null
+    }
+}
+
+function Install-VSCodePrompt {
+    $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.ScriptName }
+    $promptSrc = Join-Path $scriptDir ".github\prompts\init.prompt.md"
+
+    if (-not (Test-Path $promptSrc)) {
+        Write-Warn "VS Code Copilot prompt source not found: $promptSrc"
+        return
+    }
+
+    Ensure-Directory $VSCodePromptsDir
+    Copy-Item $promptSrc (Join-Path $VSCodePromptsDir "init.prompt.md") -Force
+    Write-Ok "Installed VS Code Copilot prompt: $(Join-Path $VSCodePromptsDir 'init.prompt.md')"
+}
+
+function Remove-VSCodePrompt {
+    $promptPath = Join-Path $VSCodePromptsDir "init.prompt.md"
+    if (Test-Path $promptPath) {
+        Remove-Item $promptPath -Force
+        Write-Info "Removed VS Code Copilot prompt: $promptPath"
     }
 }
 
@@ -247,6 +270,7 @@ function Uninstall-All {
     Remove-SettingsPlugin
     Remove-InstalledPlugin
     Remove-MarketplaceRegistration
+    Remove-VSCodePrompt
 
     $cachePath = Join-Path $CacheDir $MarketplaceName
     if (Test-Path $cachePath) {
@@ -379,6 +403,7 @@ function Main {
     # Install
     Install-Marketplace
     Install-Skills $allSkills
+    Install-VSCodePrompt
 
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Green
@@ -390,7 +415,7 @@ function Main {
         Write-Host "  - $skill" -ForegroundColor Green
     }
     Write-Host ""
-    Write-Host "Please restart Claude Code to load the new skills."
+    Write-Host "Please restart Claude Code and reload VS Code Copilot chat to load the new commands."
     Write-Host ""
 }
 

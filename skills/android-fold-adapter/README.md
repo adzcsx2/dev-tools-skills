@@ -1,4 +1,4 @@
-# android-fold-adapter
+# adt:android-fold-adapter
 
 诊断和修复 Android 折叠屏适配问题，包括 Activity 重建、状态丢失、Fragment 引用失效、以及折叠/展开时的布局异常。
 

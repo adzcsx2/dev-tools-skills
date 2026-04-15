@@ -16,6 +16,7 @@ MARKETPLACE_NAME="dev-tools-skills"
 PLUGIN_NAME="dev-tools-skills"
 REPO_URL="git@github.com:adzcsx2/dev-tools-skills.git"
 VERSION="1.0.0"
+VSCODE_PROMPTS_DIR="${VSCODE_USER_PROMPTS_FOLDER:-$HOME/Library/Application Support/Code/User/prompts}"
 
 # Colors
 RED='\033[0;31m'
@@ -36,9 +37,9 @@ INSTALLED_FILE="$PLUGINS_DIR/installed_plugins.json"
 PLUGIN_KEY="${MARKETPLACE_NAME}@${PLUGIN_NAME}"
 
 # Skill categories
-COMMON_SKILLS="push update-remote-plugins code-note"
-ANDROID_SKILLS="init-android gradle-build-performance update-docs-android android-i18n android-fold-adapter auto-ui-test"
-FLUTTER_SKILLS="init-flutter update-docs-flutter"
+COMMON_SKILLS="init push update-remote-plugins code-note"
+ANDROID_SKILLS="gradle-build-performance update-docs-android android-i18n android-fold-adapter auto-ui-test"
+FLUTTER_SKILLS="update-docs-flutter"
 
 # ============================================================
 # Helpers
@@ -53,9 +54,9 @@ has_cmd() { command -v "$1" &>/dev/null; }
 
 category_desc() {
   case "$1" in
-    common)  echo "Common tools (dt:push, dt:update-remote-plugins, dt:code-note)" ;;
-    android) echo "Android tools (adt:init-android, adt:update-docs, adt:gradle-build-performance, etc.)" ;;
-    flutter) echo "Flutter tools (fdt:init-flutter, fdt:update-docs)" ;;
+    common)  echo "Common tools (/init, dt:push, dt:update-remote-plugins, dt:code-note)" ;;
+    android) echo "Android tools (adt:update-docs, adt:gradle-build-performance, etc.)" ;;
+    flutter) echo "Flutter tools (fdt:update-docs)" ;;
     *)       echo "" ;;
   esac
 }
@@ -69,6 +70,28 @@ skills_for_category() {
 }
 
 ensure_dir() { mkdir -p "$1"; }
+
+install_vscode_prompt() {
+  local script_dir="$(cd "$(dirname "$0")" && pwd)"
+  local prompt_src="$script_dir/.github/prompts/init.prompt.md"
+
+  if [ ! -f "$prompt_src" ]; then
+    warn "VS Code Copilot prompt source not found: $prompt_src"
+    return
+  fi
+
+  ensure_dir "$VSCODE_PROMPTS_DIR"
+  cp "$prompt_src" "$VSCODE_PROMPTS_DIR/init.prompt.md"
+  ok "Installed VS Code Copilot prompt: $VSCODE_PROMPTS_DIR/init.prompt.md"
+}
+
+remove_vscode_prompt() {
+  local prompt_path="$VSCODE_PROMPTS_DIR/init.prompt.md"
+  if [ -f "$prompt_path" ]; then
+    rm -f "$prompt_path"
+    info "Removed VS Code Copilot prompt: $prompt_path"
+  fi
+}
 
 # ============================================================
 # JSON operations (jq required)
@@ -230,6 +253,7 @@ uninstall_all() {
   remove_settings_plugin
   remove_installed_plugin
   remove_marketplace_registration
+  remove_vscode_prompt
 
   local cache_path="$CACHE_DIR/$MARKETPLACE_NAME"
   if [ -d "$cache_path" ]; then
@@ -363,6 +387,7 @@ main() {
   # Install
   install_marketplace
   install_skills "$all_selected"
+  install_vscode_prompt
 
   echo -e "${GREEN}========================================${NC}"
   echo -e "${GREEN}  Installation Complete!${NC}"
@@ -373,7 +398,7 @@ main() {
     echo -e "  ${GREEN}- $skill${NC}"
   done
   echo ""
-  echo "Please restart Claude Code to load the new skills."
+  echo "Please restart Claude Code and reload VS Code Copilot chat to load the new commands."
   echo ""
 }
 
