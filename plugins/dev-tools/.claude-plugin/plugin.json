@@ -1,0 +1,10 @@
+{
+  "name": "dev-tools",
+  "description": "Cross-platform development tools: git push workflow, plugin management, and code annotation for Claude Code.",
+  "version": "1.0.0",
+  "author": {
+    "name": "adzcsx2",
+    "url": "https://github.com/adzcsx2"
+  },
+  "skills": ["./skills/"]
+}

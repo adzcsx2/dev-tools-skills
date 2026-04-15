@@ -1,0 +1,10 @@
+{
+  "name": "flutter-dev-tools",
+  "description": "Flutter development toolkit: project initialization, documentation generation, and more.",
+  "version": "1.1.0",
+  "author": {
+    "name": "adzcsx2",
+    "url": "https://github.com/adzcsx2"
+  },
+  "skills": ["./skills/"]
+}

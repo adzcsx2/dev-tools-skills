@@ -1,0 +1,10 @@
+{
+  "name": "android-dev-tools",
+  "description": "Android development toolkit: project initialization, build optimization, documentation, i18n, foldable screen, and UI automation testing.",
+  "version": "2.15.0",
+  "author": {
+    "name": "adzcsx2",
+    "url": "https://github.com/adzcsx2"
+  },
+  "skills": ["./skills/"]
+}
