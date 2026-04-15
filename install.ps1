@@ -2,23 +2,25 @@
 # dev-tools-skills Installer for Windows PowerShell
 # Usage:
 #   .\install.ps1                    # Interactive mode
-#   .\install.ps1 -All               # Install all plugins
-#   .\install.ps1 dev-tools          # Install specific plugins
-#   .\install.ps1 dev-tools android-dev-tools
-#   .\install.ps1 -Uninstall         # Remove installed plugins
+#   .\install.ps1 -All               # Install all skills
+#   .\install.ps1 common             # Common tools only
+#   .\install.ps1 common android     # Common + Android tools
+#   .\install.ps1 -Uninstall         # Remove installed plugin
 # ============================================================
 
 param(
     [switch]$All,
     [switch]$Uninstall,
     [switch]$Help,
-    [string[]]$Plugins = @()
+    [string[]]$Categories = @()
 )
 
 $MarketplaceName = "dev-tools-skills"
+$PluginName = "dev-tools-skills"
 $RepoUrl = "git@github.com:adzcsx2/dev-tools-skills.git"
+$Version = "1.0.0"
 
-# Resolve paths
+# Paths
 $ClaudeDir = if ($env:CLAUDE_DIR) { $env:CLAUDE_DIR } else { Join-Path $env:USERPROFILE ".claude" }
 $PluginsDir = Join-Path $ClaudeDir "plugins"
 $CacheDir = Join-Path $PluginsDir "cache"
@@ -26,19 +28,17 @@ $MarketplaceDir = Join-Path $PluginsDir "marketplaces"
 $SettingsFile = Join-Path $ClaudeDir "settings.json"
 $KnownMktsFile = Join-Path $PluginsDir "known_marketplaces.json"
 $InstalledFile = Join-Path $PluginsDir "installed_plugins.json"
+$PluginKey = "${MarketplaceName}@${PluginName}"
 
-# All available plugins
-$AllPlugins = @("dev-tools", "android-dev-tools", "flutter-dev-tools")
+# Skill categories
+$CommonSkills = @("push", "update-remote-plugins", "code-note")
+$AndroidSkills = @("init-android", "gradle-build-performance", "update-docs-android", "android-i18n", "android-fold-adapter", "auto-ui-test")
+$FlutterSkills = @("init-flutter", "update-docs-flutter")
 
-# Plugin descriptions
-$PluginDesc = @{
-    "dev-tools"           = "Common tools (dt:push, dt:update-remote-plugins, dt:code-note)"
-    "android-dev-tools"   = "Android tools (adt:init-android, adt:update-docs, etc.)"
-    "flutter-dev-tools"   = "Flutter tools (fdt:init-flutter, fdt:update-docs)"
-}
+$AllCategories = @("common", "android", "flutter")
 
 # ============================================================
-# Helper Functions
+# Helpers
 # ============================================================
 
 function Write-Info($msg)  { Write-Host "[INFO] $msg" -ForegroundColor Blue }
@@ -50,16 +50,20 @@ function Test-Command($cmd) {
     return [bool](Get-Command $cmd -ErrorAction SilentlyContinue)
 }
 
-function Get-PluginVersion($pluginName) {
-    $scriptDir = Split-Path -Parent $MyInvocation.ScriptName
-    if (-not $scriptDir) { $scriptDir = $PSScriptRoot }
-    $pluginJson = Join-Path $scriptDir "plugins\$pluginName\.claude-plugin\plugin.json"
-
-    if (Test-Path $pluginJson) {
-        $json = Get-Content $pluginJson -Raw | ConvertFrom-Json
-        return $json.version
+function Get-CategoryDesc($cat) {
+    switch ($cat) {
+        "common"  { "Common tools (dt:push, dt:update-remote-plugins, dt:code-note)" }
+        "android" { "Android tools (adt:init-android, adt:update-docs, adt:gradle-build-performance, etc.)" }
+        "flutter" { "Flutter tools (fdt:init-flutter, fdt:update-docs)" }
     }
-    return "0.0.0"
+}
+
+function Get-SkillsForCategory($cat) {
+    switch ($cat) {
+        "common"  { $CommonSkills }
+        "android" { $AndroidSkills }
+        "flutter" { $FlutterSkills }
+    }
 }
 
 function Ensure-Directory($path) {
@@ -67,10 +71,6 @@ function Ensure-Directory($path) {
         New-Item -ItemType Directory -Path $path -Force | Out-Null
     }
 }
-
-# ============================================================
-# JSON operations
-# ============================================================
 
 function Read-JsonFile($path) {
     if (Test-Path $path) {
@@ -84,97 +84,71 @@ function Write-JsonFile($path, $data) {
 }
 
 # ============================================================
-# Settings.json operations
+# Config operations
 # ============================================================
 
-function Ensure-SettingsPlugin($pluginKey) {
+function Ensure-SettingsPlugin {
     $settings = Read-JsonFile $SettingsFile
-
     if (-not $settings.PSObject.Properties["enabledPlugins"]) {
         $settings | Add-Member -NotePropertyName "enabledPlugins" -NotePropertyValue ([PSCustomObject]@{})
     }
-
-    if (-not $settings.enabledPlugins.PSObject.Properties[$pluginKey]) {
-        $settings.enabledPlugins | Add-Member -NotePropertyName $pluginKey -NotePropertyValue $true
+    if (-not $settings.enabledPlugins.PSObject.Properties[$PluginKey]) {
+        $settings.enabledPlugins | Add-Member -NotePropertyName $PluginKey -NotePropertyValue $true
     } else {
-        $settings.enabledPlugins.$pluginKey = $true
+        $settings.enabledPlugins.$PluginKey = $true
     }
-
     Write-JsonFile $SettingsFile $settings
 }
 
-function Remove-SettingsPlugin($pluginKey) {
+function Remove-SettingsPlugin {
     if (-not (Test-Path $SettingsFile)) { return }
-
     $settings = Read-JsonFile $SettingsFile
-
     if ($settings.PSObject.Properties["enabledPlugins"] -and
-        $settings.enabledPlugins.PSObject.Properties[$pluginKey]) {
-        $settings.enabledPlugins.PSObject.Properties.Remove($pluginKey)
+        $settings.enabledPlugins.PSObject.Properties[$PluginKey]) {
+        $settings.enabledPlugins.PSObject.Properties.Remove($PluginKey)
         Write-JsonFile $SettingsFile $settings
     }
 }
 
-# ============================================================
-# known_marketplaces.json operations
-# ============================================================
-
 function Ensure-MarketplaceRegistration {
     Ensure-Directory $PluginsDir
-
     $mkts = Read-JsonFile $KnownMktsFile
-
     $installLocation = Join-Path $MarketplaceDir $MarketplaceName
     $timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.000Z")
 
     $mkts | Add-Member -NotePropertyName $MarketplaceName -NotePropertyValue (
         [PSCustomObject]@{
-            source = [PSCustomObject]@{
-                source = "git"
-                url    = $RepoUrl
-            }
+            source = [PSCustomObject]@{ source = "git"; url = $RepoUrl }
             installLocation = $installLocation
             lastUpdated     = $timestamp
         }
     ) -Force
-
     Write-JsonFile $KnownMktsFile $mkts
 }
 
 function Remove-MarketplaceRegistration {
     if (-not (Test-Path $KnownMktsFile)) { return }
-
     $mkts = Read-JsonFile $KnownMktsFile
-
     if ($mkts.PSObject.Properties[$MarketplaceName]) {
         $mkts.PSObject.Properties.Remove($MarketplaceName)
         Write-JsonFile $KnownMktsFile $mkts
     }
 }
 
-# ============================================================
-# installed_plugins.json operations
-# ============================================================
-
-function Ensure-InstalledPlugin($pluginName, $version) {
-    $pluginKey = "${MarketplaceName}@${pluginName}"
-    $installPath = Join-Path $CacheDir "$MarketplaceName\$pluginName\$version"
+function Ensure-InstalledPlugin {
+    $installPath = Join-Path $CacheDir "$MarketplaceName\$PluginName\$Version"
     $timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.000Z")
 
     if (-not (Test-Path $InstalledFile)) {
-        @{
-            version = 2
-            plugins = @{}
-        } | ConvertTo-Json -Depth 10 | Set-Content $InstalledFile -Encoding UTF8
+        @{ version = 2; plugins = @{} } | ConvertTo-Json -Depth 10 | Set-Content $InstalledFile -Encoding UTF8
     }
-
     $installed = Read-JsonFile $InstalledFile
 
     $entry = @(
         [PSCustomObject]@{
             scope       = "user"
             installPath = $installPath
-            version     = $version
+            version     = $Version
             installedAt = $timestamp
             lastUpdated = $timestamp
         }
@@ -183,21 +157,16 @@ function Ensure-InstalledPlugin($pluginName, $version) {
     if (-not $installed.PSObject.Properties["plugins"]) {
         $installed | Add-Member -NotePropertyName "plugins" -NotePropertyValue ([PSCustomObject]@{})
     }
-
-    $installed.plugins | Add-Member -NotePropertyName $pluginKey -NotePropertyValue $entry -Force
-
+    $installed.plugins | Add-Member -NotePropertyName $PluginKey -NotePropertyValue $entry -Force
     Write-JsonFile $InstalledFile $installed
 }
 
-function Remove-InstalledPlugin($pluginName) {
+function Remove-InstalledPlugin {
     if (-not (Test-Path $InstalledFile)) { return }
-
-    $pluginKey = "${MarketplaceName}@${pluginName}"
     $installed = Read-JsonFile $InstalledFile
-
     if ($installed.PSObject.Properties["plugins"] -and
-        $installed.plugins.PSObject.Properties[$pluginKey]) {
-        $installed.plugins.PSObject.Properties.Remove($pluginKey)
+        $installed.plugins.PSObject.Properties[$PluginKey]) {
+        $installed.plugins.PSObject.Properties.Remove($PluginKey)
         Write-JsonFile $InstalledFile $installed
     }
 }
@@ -205,36 +174,6 @@ function Remove-InstalledPlugin($pluginName) {
 # ============================================================
 # Core operations
 # ============================================================
-
-function Install-Plugin($pluginName) {
-    $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.ScriptName }
-    $pluginSrc = Join-Path $scriptDir "plugins\$pluginName"
-    $version = Get-PluginVersion $pluginName
-
-    if (-not (Test-Path $pluginSrc)) {
-        Write-Err "Plugin source not found: $pluginSrc"
-        return $false
-    }
-
-    Write-Info "Installing $pluginName v${version}..."
-
-    # Copy to cache
-    $cacheDest = Join-Path $CacheDir "$MarketplaceName\$pluginName\$version"
-    Ensure-Directory $cacheDest
-    Copy-Item -Path "$pluginSrc\*" -Destination $cacheDest -Recurse -Force
-    Write-Ok "Cached to $cacheDest"
-
-    # Register
-    $pluginKey = "${MarketplaceName}@${pluginName}"
-    Ensure-SettingsPlugin $pluginKey
-    Write-Ok "Enabled in settings.json"
-
-    Ensure-InstalledPlugin $pluginName $version
-    Write-Ok "Registered in installed_plugins.json"
-
-    Write-Ok "$pluginName v${version} installed!"
-    return $true
-}
 
 function Install-Marketplace {
     $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.ScriptName }
@@ -266,23 +205,54 @@ function Install-Marketplace {
     Write-Ok "Marketplace registered"
 }
 
-function Uninstall-All {
-    Write-Info "Uninstalling $MarketplaceName plugins..."
+function Install-Skills {
+    param([string[]]$Skills)
 
-    foreach ($pluginName in $AllPlugins) {
-        $pluginKey = "${MarketplaceName}@${pluginName}"
+    $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.ScriptName }
+    $cacheDest = Join-Path $CacheDir "$MarketplaceName\$PluginName\$Version"
 
-        Remove-SettingsPlugin $pluginKey
-        Remove-InstalledPlugin $pluginName
+    Write-Info "Installing skills to cache..."
 
-        $cachePath = Join-Path $CacheDir "$MarketplaceName\$pluginName"
-        if (Test-Path $cachePath) {
-            Remove-Item $cachePath -Recurse -Force
-            Write-Info "Removed cache: $cachePath"
+    Ensure-Directory "$cacheDest\skills"
+    Ensure-Directory "$cacheDest\.claude-plugin"
+
+    # Copy plugin.json
+    $pluginJson = Join-Path $scriptDir ".claude-plugin\plugin.json"
+    if (Test-Path $pluginJson) {
+        Copy-Item $pluginJson "$cacheDest\.claude-plugin\" -Force
+    }
+
+    # Copy selected skills
+    foreach ($skill in $Skills) {
+        $src = Join-Path $scriptDir "skills\$skill"
+        if (Test-Path $src) {
+            Copy-Item -Path $src -Destination "$cacheDest\skills\" -Recurse -Force
+            Write-Ok "Copied skill: $skill"
+        } else {
+            Write-Warn "Skill not found: $skill (skipping)"
         }
     }
 
+    # Register
+    Ensure-SettingsPlugin
+    Write-Ok "Enabled in settings.json"
+
+    Ensure-InstalledPlugin
+    Write-Ok "Registered in installed_plugins.json"
+}
+
+function Uninstall-All {
+    Write-Info "Uninstalling $MarketplaceName..."
+
+    Remove-SettingsPlugin
+    Remove-InstalledPlugin
     Remove-MarketplaceRegistration
+
+    $cachePath = Join-Path $CacheDir $MarketplaceName
+    if (Test-Path $cachePath) {
+        Remove-Item $cachePath -Recurse -Force
+        Write-Info "Removed cache: $cachePath"
+    }
 
     $mktPath = Join-Path $MarketplaceDir $MarketplaceName
     if (Test-Path $mktPath) {
@@ -300,42 +270,34 @@ function Uninstall-All {
 function Interactive-Select {
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "  dev-tools-skills Plugin Installer" -ForegroundColor Cyan
+    Write-Host "  dev-tools-skills Installer" -ForegroundColor Cyan
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "Available plugins:"
+    Write-Host "Select skill categories to install:"
+    Write-Host ""
+    Write-Host "  [1] common  - $(Get-CategoryDesc 'common')" -ForegroundColor Green
+    Write-Host "  [2] android - $(Get-CategoryDesc 'android')" -ForegroundColor Green
+    Write-Host "  [3] flutter - $(Get-CategoryDesc 'flutter')" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  [a] Install ALL" -ForegroundColor Green
+    Write-Host "  [q] Quit" -ForegroundColor Green
     Write-Host ""
 
-    for ($i = 0; $i -lt $AllPlugins.Count; $i++) {
-        $name = $AllPlugins[$i]
-        Write-Host "  [$($i+1)] $name" -ForegroundColor Green
-        Write-Host "      $($PluginDesc[$name])"
-        Write-Host ""
-    }
-
-    Write-Host "  [a] Install ALL plugins" -ForegroundColor Green
-    Write-Host "  [q] Quit without installing" -ForegroundColor Green
-    Write-Host ""
-
-    $choice = Read-Host "Select plugins to install (e.g. 1 2 or a)"
+    $choice = Read-Host "Select (e.g. 1 2 or a)"
 
     switch ($choice) {
-        { $_ -match "^[qQ]$" } {
-            Write-Info "Cancelled."
-            exit 0
-        }
-        { $_ -match "^[aA](ll)?$" } {
-            return $AllPlugins
-        }
+        { $_ -match "^[qQ]$" } { Write-Info "Cancelled."; exit 0 }
+        { $_ -match "^[aA]" }  { return @("common", "android", "flutter") }
         default {
-            $selected = @()
+            $selected = @("common")
             foreach ($num in $choice.Split(" ")) {
-                $idx = [int]$num - 1
-                if ($idx -ge 0 -and $idx -lt $AllPlugins.Count) {
-                    $selected += $AllPlugins[$idx]
+                switch ($num) {
+                    "1" { $selected = @("common") }
+                    "2" { $selected += "android" }
+                    "3" { $selected += "flutter" }
                 }
             }
-            return $selected
+            return $selected | Select-Object -Unique
         }
     }
 }
@@ -349,93 +311,86 @@ function Main {
     Write-Host "dev-tools-skills Installer" -ForegroundColor Cyan
     Write-Host ""
 
-    # Check prerequisites
     if (-not (Test-Command "git")) {
         Write-Err "git is required but not installed."
         exit 1
     }
 
-    # Handle help
     if ($Help) {
-        Write-Host "Usage: .\install.ps1 [OPTIONS] [PLUGIN...]"
+        Write-Host "Usage: .\install.ps1 [OPTIONS] [CATEGORY...]"
         Write-Host ""
         Write-Host "Options:"
-        Write-Host "  -All              Install all plugins"
-        Write-Host "  -Uninstall        Remove all installed plugins"
+        Write-Host "  -All              Install all skill categories"
+        Write-Host "  -Uninstall        Remove installed plugin"
         Write-Host "  -Help             Show this help"
         Write-Host ""
-        Write-Host "Plugins:"
-        foreach ($p in $AllPlugins) {
-            Write-Host "  $p  - $($PluginDesc[$p])"
-        }
+        Write-Host "Categories:"
+        Write-Host "  common   - $(Get-CategoryDesc 'common')"
+        Write-Host "  android  - $(Get-CategoryDesc 'android')"
+        Write-Host "  flutter  - $(Get-CategoryDesc 'flutter')"
         Write-Host ""
         Write-Host "Examples:"
-        Write-Host "  .\install.ps1                              # Interactive mode"
-        Write-Host "  .\install.ps1 -All                         # Install everything"
-        Write-Host "  .\install.ps1 dev-tools                    # Install common tools only"
-        Write-Host "  .\install.ps1 dev-tools android-dev-tools  # Install common + Android tools"
+        Write-Host "  .\install.ps1                    # Interactive mode"
+        Write-Host "  .\install.ps1 -All               # Install everything"
+        Write-Host "  .\install.ps1 common             # Common tools only"
+        Write-Host "  .\install.ps1 common android     # Common + Android tools"
         exit 0
     }
 
-    # Handle uninstall
     if ($Uninstall) {
         Uninstall-All
         exit 0
     }
 
-    # Determine selection
-    $selected = @()
+    # Determine categories
+    $selectedCats = @()
 
     if ($All) {
-        $selected = $AllPlugins
-    } elseif ($Plugins.Count -gt 0) {
-        foreach ($p in $Plugins) {
-            if ($AllPlugins -contains $p) {
-                $selected += $p
+        $selectedCats = @("common", "android", "flutter")
+    } elseif ($Categories.Count -gt 0) {
+        foreach ($c in $Categories) {
+            if ($AllCategories -contains $c) {
+                $selectedCats += $c
             } else {
-                Write-Warn "Unknown plugin: $p (skipping)"
+                Write-Warn "Unknown category: $c (skipping)"
             }
         }
+        if ($selectedCats -notcontains "common") {
+            Write-Warn "Auto-including 'common'"
+            $selectedCats = ,("common") + $selectedCats
+        }
     } else {
-        $selected = Interactive-Select
+        $selectedCats = Interactive-Select
     }
 
-    if ($selected.Count -eq 0) {
-        Write-Err "No plugins selected."
-        exit 1
+    # Collect skills
+    $allSkills = @()
+    foreach ($cat in $selectedCats) {
+        $allSkills += Get-SkillsForCategory $cat
     }
-
-    # Always include dev-tools
-    if ($selected -notcontains "dev-tools") {
-        Write-Warn "Auto-including 'dev-tools' (required for dt:update-remote-plugins)"
-        $selected = ,("dev-tools") + $selected
-    }
+    $allSkills = $allSkills | Select-Object -Unique
 
     Write-Host "Will install:" -ForegroundColor Blue
-    foreach ($p in $selected) {
-        Write-Host "  - $p" -ForegroundColor Green
+    foreach ($cat in $selectedCats) {
+        Write-Host "  - $cat : $(Get-CategoryDesc $cat)" -ForegroundColor Green
     }
     Write-Host ""
 
-    # Install marketplace
+    # Install
     Install-Marketplace
-
-    # Install each plugin
-    foreach ($pluginName in $selected) {
-        Install-Plugin $pluginName
-    }
+    Install-Skills $allSkills
 
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Green
     Write-Host "  Installation Complete!" -ForegroundColor Green
     Write-Host "========================================" -ForegroundColor Green
     Write-Host ""
-    Write-Host "Installed plugins:"
-    foreach ($p in $selected) {
-        Write-Host "  - $p ($($PluginDesc[$p]))" -ForegroundColor Green
+    Write-Host "Installed skills:"
+    foreach ($skill in $allSkills) {
+        Write-Host "  - $skill" -ForegroundColor Green
     }
     Write-Host ""
-    Write-Host "Please restart Claude Code to load the new plugins."
+    Write-Host "Please restart Claude Code to load the new skills."
     Write-Host ""
 }
 
