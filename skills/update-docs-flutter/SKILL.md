@@ -215,8 +215,11 @@ All docs go in `docs/` subdirectories based on their category:
 Generate a detailed update document in `docs/update-list/` for each update:
 
 ### 8.1 Filename Convention
-- Format: `update-YYYY-MM-DD.md`
-- If file exists for today, append number: `update-YYYY-MM-DD-2.md`
+- Base format: `update-YYYY-MM-DD.md`
+- If file exists for today, append number: `update-YYYY-MM-DD-2.md`, `update-YYYY-MM-DD-3.md`, etc.
+- **CRITICAL**: NEVER use `v2`, `v3`, `v2.md` format. Always use `-2`, `-3` (dash + number only)
+- Examples: `update-2026-04-16.md`, `update-2026-04-16-2.md`, `update-2026-04-16-3.md`
+- WRONG: `update-2026-04-16-v2.md`, `update-2026-04-16-v3.md`
 
 ### 8.2 Document Content Structure
 
