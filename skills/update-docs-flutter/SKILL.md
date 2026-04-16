@@ -492,6 +492,183 @@ Update `docs/.doc-metadata.json` with:
 
 ---
 
+## 12. Auto-Update docs/README.md When Structure Changes (CRITICAL)
+
+**每次文档更新后，必须检查并更新 docs/README.md，确保文档索引与实际目录结构一致。**
+
+### 12.1 Detect docs/ Structure Changes
+
+在文档生成完成后，执行以下检查：
+
+```bash
+# 获取当前 docs/ 目录结构
+find docs/ -type f -name "*.md" | sort
+
+# 检查是否存在新的子目录
+find docs/ -type d -mindepth 1 -maxdepth 1
+```
+
+### 12.2 Determine When to Update docs/README.md
+
+**必须更新 docs/README.md 的情况**：
+
+| 触发条件 | 说明 |
+|----------|------|
+| 新增文档子目录 | 如新增 `sdk/`、`api/`、`guide/` 等 |
+| 删除文档子目录 | 目录结构发生变化 |
+| 新增 Markdown 文件 | 在任何子目录中新增 `.md` 文件 |
+| 删除 Markdown 文件 | 文档被移除或重命名 |
+| docs/README.md 不存在 | 首次创建文档索引 |
+
+**检测方法**：
+
+```bash
+# 对比上次更新后的目录结构
+# 方法 1: 检查子目录变化
+CURRENT_DIRS=$(find docs/ -type d -mindepth 1 -maxdepth 1 | wc -l)
+if [ "$CURRENT_DIRS" -ne "$LAST_DIRS_COUNT" ]; then
+  echo "Directory structure changed, need to update README"
+fi
+
+# 方法 2: 检查是否有新的 .md 文件
+git diff --name-only HEAD -- "docs/**/*.md" | grep -v "README.md" | grep -v "CHANGELOG.md" | grep -v "update-list/"
+if [ $? -eq 0 ]; then
+  echo "New markdown files detected, need to update README"
+fi
+```
+
+### 12.3 docs/README.md Structure Template
+
+更新 docs/README.md 时，使用以下模板：
+
+```markdown
+# 文档索引
+
+本目录按内容分类组织，覆盖 [项目类型] 文档、项目文档、API 文档和更新记录。
+
+## 目录结构
+
+\`\`\`
+docs/
+├── guide/          # 指南文档
+├── modules/        # 模块说明
+├── references/     # 参考资料
+├── reports/        # 报告文档
+├── [其他目录]/     # 其他分类
+├── update-list/    # 更新详情
+└── README.md       # 本文件
+\`\`\`
+
+## 建议阅读顺序
+
+**[角色 A]**：[描述]
+1. [link1]
+2. [link2]
+
+**[角色 B]**：[描述]
+1. [link1]
+2. [link2]
+
+---
+
+## 指南文档 (guide/)
+
+面向新用户的入门文档。
+
+- [link](path) - description
+
+---
+
+## 模块文档 (modules/)
+
+SDK 各模块的详细说明。
+
+- [link](path) - description
+
+---
+
+## 参考文档 (references/)
+
+开发过程中的参考资料。
+
+- [link](path) - description
+
+---
+
+## 报告文档 (reports/)
+
+项目各类报告和记录。
+
+- [link](path) - description
+
+---
+
+## [其他分类] ([目录名]/)
+
+[分类说明]
+
+- [link](path) - description
+
+---
+
+## 更新详情 (update-list/)
+
+每次更新的详细内容，可从 [reports/CHANGELOG.md](reports/CHANGELOG.md) 跳转。
+
+---
+
+## 约定
+
+- [项目特定约定]
+
+---
+
+[← 返回项目根目录](../README.md)
+```
+
+### 12.4 Auto-Update Rules
+
+1. **检测新增目录**：扫描 `docs/` 下的一级子目录
+2. **检测新增文件**：扫描每个目录下的 `.md` 文件（排除 `update-list/`）
+3. **生成目录树**：更新 `## 目录结构` 部分
+4. **更新文档列表**：为每个目录生成对应的文档链接列表
+5. **保持阅读顺序**：根据项目类型更新 `## 建议阅读顺序`
+
+### 12.5 Update Metadata
+
+当 docs/README.md 被更新时，同步更新元数据：
+
+```json
+{
+  "documents": {
+    "README.md": {
+      "updatedAt": "2026-04-16T12:30:00Z",
+      "sourceFiles": [],
+      "lastCommit": "current-sha"
+    }
+  }
+}
+```
+
+### 12.6 Example Update Flow
+
+```bash
+# 1. 扫描当前目录结构
+find docs/ -type d -mindepth 1 -maxdepth 1 | sort
+
+# 2. 扫描各目录下的 .md 文件
+for dir in docs/*/; do
+  echo "## $(basename $dir)/"
+  find "$dir" -name "*.md" -not -name "update-list*" | sort
+done
+
+# 3. 对比差异，判断是否需要更新
+# 4. 如果需要，重新生成 docs/README.md
+# 5. 更新元数据
+```
+
+---
+
 ## Analysis Patterns
 
 ### Route Detection
