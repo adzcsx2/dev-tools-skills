@@ -9,7 +9,7 @@
 - 支持 Android、Flutter、React、Python、Java、Node.js 等多种项目
 - 检测真实构建文件、入口点、目录结构和现有编码约定
 - 同时生成或优化 CLAUDE.md 与 Copilot 可读取的项目级配置
-- 建立 `/docs` 文档根目录和标准分类映射，缺失时自动补齐必要目录
+- 建立 `/docs` 文档根目录和标准分类映射，**强制创建缺失的标准分类目录**（plan、design、guide、modules、references、checklist、reports）
 - 默认输出低 token 的 AI 规则文件，而不是长篇项目介绍
 - 保留 Android 和 Flutter 的局部一致性强约束，同时适配其他技术栈
 - 可在明确要求时生成经验证的 API、依赖、模块 checklist 文档
