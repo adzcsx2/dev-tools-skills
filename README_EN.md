@@ -22,6 +22,18 @@ cd dev-tools-skills
 
 For selective installation, see `./install.sh --help`.
 
+`install.sh` and `install.ps1` now clear old cache entries, stale registrations, and the previous marketplace directory before reinstalling the latest version from `.claude-plugin/plugin.json`, so Claude does not keep using an older cached skill.
+
+For cleanup only, use:
+
+```bash
+./uninstall.sh
+```
+
+```powershell
+.\uninstall.ps1
+```
+
 Installation also registers a global `/dt:init` prompt for VS Code Copilot so the same init workflow can be triggered in any project.
 
 ## Included Skills
@@ -32,7 +44,7 @@ Installation also registers a global `/dt:init` prompt for VS Code Copilot so th
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `dt:init`                  | Universal project init: detect the real stack and generate or optimize CLAUDE.md plus Copilot project instructions |
 | `dt:push`                  | One-push release workflow: auto stage, pull, per-file commit, push                                                 |
-| `dt:update-remote-plugins` | Plugin management: audit skills, update configs, sync to local                                                     |
+| `dt:update-remote-plugins` | Remote plugin maintenance: update docs and config, then verify install-based local refresh uses the latest version |
 | `dt:code-note`             | Multi-language code annotation: auto-detect language and apply comment style                                       |
 
 ### Android Tools — `adt:` prefix
@@ -74,12 +86,14 @@ dev-tools-skills/
 │   ├── auto-ui-test/
 │   └── update-docs-flutter/
 ├── install.sh
-└── install.ps1
+├── install.ps1
+├── uninstall.sh
+└── uninstall.ps1
 ```
 
 ## Version
 
-v1.1.0
+v1.1.1
 
 ## License
 

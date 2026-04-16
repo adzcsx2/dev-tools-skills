@@ -1,6 +1,7 @@
 ---
 name: dt:init
-description: "Initialize AI project context for any codebase. Detect Android, Flutter, React, Python, Java, Node.js and other stacks from real files, then generate or update CLAUDE.md, Copilot project instructions, a concise onboarding summary, and optional verified checklist docs."
+description: "Initialize AI project context for any codebase. Detect Android, Flutter, React, Python, Java, Node.js and other stacks from real files, then generate or update CLAUDE.md, Copilot project instructions, a concise onboarding summary, establish a /docs taxonomy, and optionally create verified checklist docs."
+argument-hint: "[optional focus] [--experiment [converge|sync]] [--dry-run]"
 origin: dev-tools-skills
 ---
 
@@ -18,7 +19,7 @@ origin: dev-tools-skills
 ## Trigger
 
 ```text
-/dt:init
+/dt:init [optional focus] [--experiment [converge|sync]] [--dry-run]
 ```
 
 ## When to Use
@@ -28,6 +29,24 @@ origin: dev-tools-skills
 - 需要让 VS Code Copilot 直接读取项目级规则
 - 需要输出可快速浏览的代码库 onboarding 摘要
 - 需要为 Android、Flutter、React、Python、Java、Node.js 等项目建立统一 AI 工作约束
+- 新项目框架搭建后的第一个版本，需要做 AI 友好架构收敛
+- 项目已经采用该架构，但新增了目录、模块或文件结构，需要同步更新 AI 规则与路径映射
+
+## Command Parameters
+
+- 无参数：标准 init。只做侦察、总结和规则文件生成或优化，不允许主动改架构
+- `[optional focus]`：可选关注模块、技术栈或目录范围，但所有结论仍必须由真实代码验证
+- `--experiment converge`：启用 experimental 架构收敛模式，用于新项目第一版或迁移早期对已落地结构做统一
+- `--experiment sync`：启用 experimental 同步更新模式，用于已有 AI 友好架构在新增目录、模块或调用链后做规则与结构同步
+- `--experiment`：只允许使用这个开关名进入 experimental 模式，不接受其他别名
+- `--dry-run`：只输出侦察结果、变更预览、风险、验证项和回滚点，不落盘、不移动文件、不改配置
+
+## Execution Modes
+
+- 标准模式：不带 `--experiment`。按常规 init 流程工作，不允许架构级改动
+- Experimental 模式：只有显式传入 `--experiment` 才能启用，绝不能自动进入
+- 如果只写了 `--experiment`，但没有指定 `converge` 或 `sync`，只有在用户意图和仓库事实都明确时才能推断；无法明确时，必须先澄清
+- Experimental 模式可以修改架构，但仍然必须基于真实代码、单一事实来源、最小必要改动和可验证结果
 
 ## Core Goals
 
@@ -39,6 +58,8 @@ origin: dev-tools-skills
 4. 同时覆盖通用工程约束和技术栈特有约束
 5. 默认输出应低 token、高密度、可执行
 6. 若已有规则文件，优先增量优化，不直接覆盖
+7. Experimental 模式必须显式启用，并且必须先预览、后执行、最后重扫并更新规则
+8. 必须建立并固化 `/docs` 文档分类规则，避免后续 AI 乱建文档目录
 
 ## Required Outputs
 
@@ -47,6 +68,7 @@ origin: dev-tools-skills
 1. 会话内 onboarding 摘要
 2. 项目根目录 CLAUDE.md
 3. Copilot 可读取的项目级配置
+4. `/docs` 文档根目录及必要的分类目录骨架
 
 Copilot 配置规则：
 
@@ -77,12 +99,16 @@ Copilot 配置规则：
    顶层和二级目录，忽略 .git, node_modules, dist, build, target,
    .next, .dart_tool, .gradle, __pycache__, vendor
 
-5. 配置与工具链
+5. 文档目录
+   docs/, doc/, documentation/, wiki/ 及 /docs 下现有分类目录
+   识别语义等价目录，例如 plan/plans、guide/guides、reference/references
+
+6. 配置与工具链
    tsconfig.json, eslint/prettier 配置, analysis_options.yaml,
    pytest.ini, tox.ini, mypy.ini, Dockerfile, docker-compose*,
    .github/workflows/, Makefile, CI 配置
 
-6. 测试结构
+7. 测试结构
    tests/, test/, __tests__/, integration_test/, e2e/, src/test/, src/androidTest/
    *.spec.*, *.test.*, *_test.py, *_test.go
 ```
@@ -183,6 +209,61 @@ Copilot 配置规则：
 - 默认命令：以 package scripts、Makefile、Gradle、Maven、Flutter、Python 工具配置为准
 - 若文档与代码冲突，以代码和构建配置为准
 
+## Phase 3.5 Documentation Taxonomy
+
+必须把项目文档统一收敛到 `/docs` 下，并建立语义优先的分类映射。
+
+### 3.5.1 Docs Root
+
+- 默认文档根目录是 `/docs`
+- 如果仓库没有 `/docs`，需要创建 `/docs`
+- 如果仓库已有 `doc/`、`documentation/`、`wiki/` 等目录，不要直接删除；先判断是否已承担主文档目录职责
+- 只要项目最终仍缺少 `/docs`，就必须创建 `/docs` 作为后续 AI 的标准文档入口
+
+### 3.5.2 Standard Categories
+
+默认至少识别并维护这些标准文档分类语义：
+
+- `plan`：计划、方案、roadmap、todo
+- `design`：设计、架构、ADR、spec
+- `guide`：接入、使用、操作、runbook
+- `api`：接口、协议、contract
+- `modules`：模块说明、目录边界、组件总览
+- `references`：参考资料、术语、索引
+- `checklist`：核对清单、审计清单、初始化清单
+- `reports`：测试、审计、性能、复盘报告
+
+如果用户、团队规范或仓库现状明确存在额外分类语义，也必须纳入分类表；例如用户明确要求 `hello` 是一个文档分类，而项目中没有语义等价目录时，就创建 `/docs/hello`。
+
+### 3.5.3 Semantic Folder Mapping
+
+分类以语义为准，不以字面完全一致为准。
+
+- 如果标准分类已有语义等价目录，则复用现有目录，不再重复创建
+- 例如已有 `/docs/plans`，就不要再创建 `/docs/plan`
+- 例如已有 `/docs/references`，就不要再创建 `/docs/reference`
+- 例如已有 `/docs/guides`，就不要再创建 `/docs/guide`
+- 只有在找不到语义等价目录时，才创建标准目录名
+
+### 3.5.4 Creation Rules
+
+- 若 `/docs` 不存在，创建 `/docs`
+- 若 `/docs` 存在但缺少分类层级，需要补齐必要分类目录
+- 若项目已有分类但命名不完全标准，优先保留原目录并记录映射，不强制重命名
+- 不要因为同时存在 `plan` 和 `plans` 的可能性就创建两个目录
+- 不要在仓库根目录、临时目录或任意子模块下随意散落新文档，除非项目已有明确且稳定的非 `/docs` 约定
+
+### 3.5.5 Future AI Rules
+
+初始化后，生成的 CLAUDE.md 和 Copilot 项目级配置必须显式写入这些规则：
+
+- 新文档默认放在 `/docs` 下
+- 新建文档前，先检查 `/docs` 及其现有分类是否已有语义等价目录
+- 已有语义等价目录时，必须复用，不能再创建同义新目录
+- 只有在分类语义明确且不存在等价目录时，才允许创建新的文档分类目录
+- 默认不要在仓库根目录新增零散 `.md` 文档
+- 如果文档归类语义不明确，先搜索现有文档结构，再决定归档位置
+
 ## Phase 4. Convention Detection
 
 必须检测而不是猜测：
@@ -254,6 +335,146 @@ Copilot 配置规则：
 - 不主动引入新的分层或响应式框架
 - 优先复用现有 controller、service、repository、util、config 入口
 
+## Phase 6.5 Experimental Architecture Mode
+
+本阶段只在显式传入 `--experiment` 时启用，不能自动进入。
+
+### 6.5.1 Submodes
+
+- `converge`：用于新项目第一版、迁移早期或结构混杂阶段，对已落地的目录、模块、依赖和规则入口做架构收敛
+- `sync`：用于已有 AI 友好架构在新增目录、模块、文件结构或调用链后做同步更新，不重新发明架构，只让代码事实与规则文件重新一致
+
+### 6.5.2 Applicability
+
+只有同时满足以下条件时，才允许进入 experimental 模式：
+
+- 仓库中存在真实代码、目录、模块、构建配置或调用链证据
+- 可以判定本次属于 `converge` 或 `sync` 之一
+- 影响范围可描述，且可以给出 dry-run 预览
+- 可以定义最小验证项
+- 用户已显式传入 `--experiment`
+
+### 6.5.3 Forbidden Conditions
+
+出现以下任一情况时，不得执行 experimental 架构改动：
+
+- 用户未传入 `--experiment`
+- 只有口头目标，没有真实代码或构建证据
+- 无法判定 `converge` 还是 `sync`
+- 无法建立单一事实来源
+- 无法给出 dry-run 预览
+- 无法给出回滚说明
+- 任务本质是新增业务功能，而不是结构收敛或同步更新
+- 改动会导致同时维护 AGENTS.md 和 .github/copilot-instructions.md
+- 无法提供任何最小验证路径，且风险高到无法接受
+
+### 6.5.4 Allowed Change Scope
+
+Experimental 模式允许以下改动：
+
+- 源码移动与重命名
+- 模块拆分与合并
+- 构建配置调整
+- 依赖组织整理
+- 导出关系、路径映射、入口索引更新
+- CLAUDE.md 更新
+- AGENTS.md 或 .github/copilot-instructions.md 二选一更新
+- 与架构收敛或同步更新直接相关的测试、文档和配置引用修正
+
+Experimental 模式不允许以下改动：
+
+- 顺带开发无关业务功能
+- 借机重写不相关模块
+- 把局部问题扩大成全仓库无边界重构
+- 在没有代码证据的前提下引入理想化新架构
+
+### 6.5.5 Dry-Run Requirements
+
+只要进入 experimental 模式，就必须先给出 dry-run 预览；`--dry-run` 只是在此基础上停止执行，不落盘。
+
+Dry-run 至少必须包含：
+
+- 拟变更对象
+- 每项变更的代码或配置依据
+- 影响范围
+- 潜在风险
+- 预期收益
+- 最小验证项
+- 回滚点
+
+如果传入 `--dry-run`：
+
+- 只输出侦察结论、变更预览和回滚说明
+- 不创建、不修改、不移动任何文件
+- 不更新 CLAUDE.md
+- 不更新 AGENTS.md
+- 不更新 .github/copilot-instructions.md
+
+### 6.5.6 Execution Order
+
+Experimental 模式必须遵循以下时序：
+
+1. 先完成 Phase 1 到 Phase 6 的常规侦察和局部一致性判断
+2. 判定本次属于 `converge` 或 `sync`
+3. 输出 dry-run 预览
+4. 如果带 `--dry-run`，到此结束，不落盘
+5. 先更新构建与模块声明，再执行源码移动、重命名、拆分或合并
+6. 再更新依赖组织、导出关系、路径映射和相关引用
+7. 完成结构改动后，重新扫描项目事实
+8. 只基于变更后重新扫描的结果，更新 CLAUDE.md 与 Copilot 项目级配置
+9. 完成最小验证
+10. 输出回滚说明、验证结果和 residual risk
+
+### 6.5.7 Config Update Rules
+
+- Claude 侧更新项目根目录 CLAUDE.md
+- Copilot 侧只能更新 AGENTS.md 或 .github/copilot-instructions.md 其中之一
+- 如果项目已存在 AGENTS.md，则只更新 AGENTS.md
+- 如果项目不存在 AGENTS.md，则只更新 .github/copilot-instructions.md
+- 不要同时维护 AGENTS.md 和 .github/copilot-instructions.md
+- Experimental 模式下，所有项目级规则必须基于变更后重新扫描结果生成，不能基于变更前状态写入
+
+### 6.5.8 Rollback Requirements
+
+Experimental 模式必须输出回滚说明。
+
+回滚说明至少包含：
+
+- 回滚单位
+- 受影响文件类型
+- 已移动或重命名的路径
+- 已调整的构建配置
+- 已调整的依赖组织
+- 已更新的 CLAUDE.md 与 Copilot 规则文件
+- 需要反向恢复的关键步骤
+- 无法自动回滚的部分
+
+如果无法自动回滚，必须明确说明：
+
+- 哪些改动只能人工回滚
+- 哪些状态在执行后不可无损恢复
+- 哪些风险需要由用户决定是否接受
+
+### 6.5.9 Minimum Verification
+
+Experimental 模式至少完成以下四层验证：
+
+- 构建层：确认模块声明、源码路径、依赖关系、构建入口未失配
+- 引用层：确认关键 import、导出关系、入口文件、关键调用链未断裂
+- 规则层：确认 CLAUDE.md 与 Copilot 项目级配置和变更后结构一致
+- 范围层：确认没有越界改动到无关业务逻辑或无关目录
+
+如果仓库存在默认验证命令：
+
+- 优先运行项目已有构建、测试、lint 或最小 smoke 验证命令
+- `converge` 模式至少运行一个可代表结构正确性的验证
+- `sync` 模式至少运行与受影响范围相关的最小验证
+
+如果仓库没有可执行验证命令：
+
+- 必须明确说明未验证
+- 不得把“未验证”写成“已通过”
+
 ## Phase 7. Generate Files
 
 ### 7.1 CLAUDE.md
@@ -281,6 +502,21 @@ Copilot 配置规则：
 6. 真实目录结构
 7. 默认构建与测试方式
 8. 文档索引
+9. `/docs` 文档根目录、分类映射和新文档落位规则
+
+Experimental 模式补充要求：
+
+- CLAUDE.md 必须基于变更后重新扫描的结果生成
+- 不得根据变更前结构写入 experimental 规则
+- `converge` 模式写入收敛后的主规则与目录边界
+- `sync` 模式只同步已在代码中稳定出现的结构事实
+
+文档规则补充要求：
+
+- 必须写明 `/docs` 是否为标准文档根目录
+- 必须写明标准分类到现有目录的映射，例如 `plan -> /docs/plans`
+- 必须写明后续新增文档先复用现有映射目录，不能创建同义重复目录
+- 如果初始化阶段新建了缺失分类目录，需要在 CLAUDE.md 中明确列出
 
 ### 7.2 Copilot 项目级配置
 
@@ -290,11 +526,19 @@ Copilot 配置规则：
 - 内容比 CLAUDE.md 更短，但不能丢掉高约束规则
 - 只保留对所有任务都有帮助的规则
 - 不能复制一整份 CLAUDE.md
+- 必须包含精简版文档归档规则：文档放 `/docs`、先查现有分类、避免创建同义目录
 
 如果项目已有 AGENTS.md：
 
 - 优先在 AGENTS.md 中补充同等项目规则
 - 不再新增 .github/copilot-instructions.md
+- 同样要补入文档归档和目录复用规则
+
+Experimental 模式补充要求：
+
+- Copilot 项目级配置必须基于变更后重新扫描结果更新
+- 仍然只能维护 AGENTS.md 或 .github/copilot-instructions.md 之一
+- 不能在 experimental 模式下同时更新两份 Copilot 规则文件
 
 ### 7.3 Onboarding 摘要
 
@@ -308,10 +552,19 @@ Copilot 配置规则：
 - 主要约定
 - 常用命令
 - 我想改哪里该看哪里
+- 文档应该放在哪个 `/docs` 分类目录
+
+如果启用 experimental 模式，摘要还必须额外包含：
+
+- 本次属于 `converge` 还是 `sync`
+- 变更涉及的关键目录或模块
+- 风险点
+- 最小验证结果
+- 回滚说明摘要
 
 ## Phase 8. Optional Checklist Docs
 
-只有用户明确要求时，才生成 docs/checklist 文档。可选模板：
+只有用户明确要求时，才生成 `/docs` 下的 checklist 文档；如果项目已有语义等价目录，如 `/docs/checklists`，则复用该目录，不再创建 `/docs/checklist`。可选模板：
 
 - references/checklist-templates/api.md
 - references/checklist-templates/dependencies.md
@@ -331,6 +584,9 @@ Copilot 配置规则：
 3. 结论必须能在代码或配置中找到证据
 4. 统一流程要服务所有项目，但输出内容必须跟随具体栈变化
 5. 不确定的地方明确写 unknown，优先正确而不是看起来完整
+6. Experimental 模式先做 dry-run，再做结构改动，再做变更后重扫
+7. 能用 `sync` 解决时，不要滥用 `converge`
+8. 文档分类先看语义映射，再决定目录名，不要机械按单数或复数重复建目录
 
 ## Anti-Patterns to Avoid
 
@@ -340,3 +596,12 @@ Copilot 配置规则：
 - 把 CLAUDE.md 写成面向人的长篇项目介绍
 - 把 Copilot 指令文件写成 CLAUDE.md 的完整拷贝
 - 生成任何未经代码验证的 checklist 条目
+- 未传入 `--experiment` 却自动进入 experimental 模式
+- 还在侦察阶段就开始移动文件或改架构
+- 未完成最小验证就先写入 CLAUDE.md 或 Copilot 项目级配置
+- 在 `sync` 模式下顺带做大规模架构重构
+- 在 `converge` 模式下夹带无关业务功能开发
+- 基于变更前状态生成 experimental 规则文件
+- 看到 `/docs/plans` 还额外创建 `/docs/plan`
+- 在已有 `/docs` 分类结构时，仍然把新文档丢到仓库根目录
+- 未检查现有语义等价目录就新建 `/docs` 子目录

@@ -1,24 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ============================================================
-# dev-tools-skills Installer for macOS / Linux
-# Usage:
-#   ./install.sh                    # Interactive mode
-#   ./install.sh --all              # Install all skills
-#   ./install.sh common             # Only common skills (dt:*)
-#   ./install.sh common android     # Common + Android skills
-#   ./install.sh common android flutter
-#   ./install.sh --uninstall        # Remove installed plugin
-# ============================================================
-
 MARKETPLACE_NAME="dev-tools-skills"
-PLUGIN_NAME="dev-tools-skills"
 REPO_URL="git@github.com:adzcsx2/dev-tools-skills.git"
-VERSION="1.0.0"
 VSCODE_PROMPTS_DIR="${VSCODE_USER_PROMPTS_FOLDER:-$HOME/Library/Application Support/Code/User/prompts}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_JSON="$SCRIPT_DIR/.claude-plugin/plugin.json"
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -26,7 +14,6 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-# Paths
 CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
 PLUGINS_DIR="$CLAUDE_DIR/plugins"
 CACHE_DIR="$PLUGINS_DIR/cache"
@@ -34,23 +21,21 @@ MARKETPLACE_DIR="$PLUGINS_DIR/marketplaces"
 SETTINGS_FILE="$CLAUDE_DIR/settings.json"
 KNOWN_MKTS_FILE="$PLUGINS_DIR/known_marketplaces.json"
 INSTALLED_FILE="$PLUGINS_DIR/installed_plugins.json"
-PLUGIN_KEY="${MARKETPLACE_NAME}@${PLUGIN_NAME}"
 
-# Skill categories
+PLUGIN_NAME=""
+VERSION=""
+PLUGIN_KEY=""
+
 COMMON_SKILLS="init push update-remote-plugins code-note"
 ANDROID_SKILLS="gradle-build-performance update-docs-android android-i18n android-fold-adapter auto-ui-test"
 FLUTTER_SKILLS="update-docs-flutter"
-
-# ============================================================
-# Helpers
-# ============================================================
 
 info()  { echo -e "${BLUE}[INFO]${NC} $*"; }
 ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
-has_cmd() { command -v "$1" &>/dev/null; }
+has_cmd() { command -v "$1" >/dev/null 2>&1; }
 
 category_desc() {
   case "$1" in
@@ -69,11 +54,72 @@ skills_for_category() {
   esac
 }
 
-ensure_dir() { mkdir -p "$1"; }
+ensure_dir() {
+  mkdir -p "$1"
+}
+
+require_file() {
+  local path="$1"
+  if [ ! -f "$path" ]; then
+    error "Required file not found: $path"
+    exit 1
+  fi
+}
+
+assert_path_in_claude_dir() {
+  local path="$1"
+  local base="${CLAUDE_DIR%/}"
+  case "$path" in
+    "$base"|"$base"/*) ;;
+    *)
+      error "Refusing to operate outside CLAUDE_DIR: $path"
+      exit 1
+      ;;
+  esac
+}
+
+remove_path_if_exists() {
+  local path="$1"
+  if [ -e "$path" ] || [ -L "$path" ]; then
+    assert_path_in_claude_dir "$path"
+    rm -rf "$path"
+    info "Removed: $path"
+  fi
+}
+
+require_jq() {
+  if ! has_cmd jq; then
+    error "jq is required but not installed."
+    echo "Install with:"
+    echo "  macOS:   brew install jq"
+    echo "  Ubuntu:  sudo apt install jq"
+    echo "  Fedora:  sudo dnf install jq"
+    exit 1
+  fi
+}
+
+load_plugin_metadata() {
+  require_file "$PLUGIN_JSON"
+  PLUGIN_NAME="$(jq -r '.name // empty' "$PLUGIN_JSON")"
+  VERSION="$(jq -r '.version // empty' "$PLUGIN_JSON")"
+
+  if [ -z "$PLUGIN_NAME" ] || [ -z "$VERSION" ] || [ "$PLUGIN_NAME" = "null" ] || [ "$VERSION" = "null" ]; then
+    error "Failed to read plugin metadata from $PLUGIN_JSON"
+    exit 1
+  fi
+
+  PLUGIN_KEY="${MARKETPLACE_NAME}@${PLUGIN_NAME}"
+}
+
+ensure_claude_layout() {
+  ensure_dir "$CLAUDE_DIR"
+  ensure_dir "$PLUGINS_DIR"
+  ensure_dir "$CACHE_DIR"
+  ensure_dir "$MARKETPLACE_DIR"
+}
 
 install_vscode_prompt() {
-  local script_dir="$(cd "$(dirname "$0")" && pwd)"
-  local prompt_src="$script_dir/.github/prompts/init.prompt.md"
+  local prompt_src="$SCRIPT_DIR/.github/prompts/init.prompt.md"
 
   if [ ! -f "$prompt_src" ]; then
     warn "VS Code Copilot prompt source not found: $prompt_src"
@@ -89,37 +135,24 @@ remove_vscode_prompt() {
   local prompt_path="$VSCODE_PROMPTS_DIR/init.prompt.md"
   if [ -f "$prompt_path" ]; then
     rm -f "$prompt_path"
-    info "Removed VS Code Copilot prompt: $prompt_path"
-  fi
-}
-
-# ============================================================
-# JSON operations (jq required)
-# ============================================================
-
-require_jq() {
-  if ! has_cmd jq; then
-    error "jq is required but not installed."
-    echo ""
-    echo "Install with:"
-    echo "  macOS:   brew install jq"
-    echo "  Ubuntu:  sudo apt install jq"
-    echo "  Fedora:  sudo dnf install jq"
-    exit 1
+    info "Removed: $prompt_path"
   fi
 }
 
 ensure_settings_plugin() {
+  ensure_dir "$CLAUDE_DIR"
   if [ ! -f "$SETTINGS_FILE" ]; then
     echo '{}' > "$SETTINGS_FILE"
   fi
-  local tmp=$(jq --arg key "$PLUGIN_KEY" '.enabledPlugins[$key] = true' "$SETTINGS_FILE")
+  local tmp
+  tmp="$(jq --arg key "$PLUGIN_KEY" '.enabledPlugins = (.enabledPlugins // {}) | .enabledPlugins[$key] = true' "$SETTINGS_FILE")"
   echo "$tmp" > "$SETTINGS_FILE"
 }
 
 remove_settings_plugin() {
   if [ -f "$SETTINGS_FILE" ]; then
-    local tmp=$(jq --arg key "$PLUGIN_KEY" 'del(.enabledPlugins[$key])' "$SETTINGS_FILE")
+    local tmp
+    tmp="$(jq --arg key "$PLUGIN_KEY" '.enabledPlugins = (.enabledPlugins // {}) | del(.enabledPlugins[$key])' "$SETTINGS_FILE")"
     echo "$tmp" > "$SETTINGS_FILE"
   fi
 }
@@ -129,9 +162,13 @@ ensure_marketplace_registration() {
   if [ ! -f "$KNOWN_MKTS_FILE" ]; then
     echo '{}' > "$KNOWN_MKTS_FILE"
   fi
+
   local install_location="$MARKETPLACE_DIR/$MARKETPLACE_NAME"
-  local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
-  local tmp=$(jq \
+  local timestamp
+  timestamp="$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")"
+
+  local tmp
+  tmp="$(jq \
     --arg name "$MARKETPLACE_NAME" \
     --arg url "$REPO_URL" \
     --arg location "$install_location" \
@@ -140,139 +177,128 @@ ensure_marketplace_registration() {
       "source": {"source": "git", "url": $url},
       "installLocation": $location,
       "lastUpdated": $ts
-    }' "$KNOWN_MKTS_FILE")
+    }' "$KNOWN_MKTS_FILE")"
   echo "$tmp" > "$KNOWN_MKTS_FILE"
 }
 
 remove_marketplace_registration() {
   if [ -f "$KNOWN_MKTS_FILE" ]; then
-    local tmp=$(jq --arg name "$MARKETPLACE_NAME" 'del(.[$name])' "$KNOWN_MKTS_FILE")
+    local tmp
+    tmp="$(jq --arg name "$MARKETPLACE_NAME" 'del(.[$name])' "$KNOWN_MKTS_FILE")"
     echo "$tmp" > "$KNOWN_MKTS_FILE"
   fi
 }
 
 ensure_installed_plugin() {
-  local install_path="${CACHE_DIR}/${MARKETPLACE_NAME}/${PLUGIN_NAME}/${VERSION}"
-  local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+  local install_path="$CACHE_DIR/$MARKETPLACE_NAME/$PLUGIN_NAME/$VERSION"
+  local timestamp
+  timestamp="$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")"
 
+  ensure_dir "$PLUGINS_DIR"
   if [ ! -f "$INSTALLED_FILE" ]; then
     echo '{"version":2,"plugins":{}}' > "$INSTALLED_FILE"
   fi
-  local tmp=$(jq \
+
+  local tmp
+  tmp="$(jq \
     --arg key "$PLUGIN_KEY" \
     --arg path "$install_path" \
     --arg ver "$VERSION" \
     --arg ts "$timestamp" \
-    '.plugins[$key] = [{
-      "scope": "user",
-      "installPath": $path,
-      "version": $ver,
-      "installedAt": $ts,
-      "lastUpdated": $ts
-    }]' "$INSTALLED_FILE")
+    '.version = (.version // 2) |
+     .plugins = (.plugins // {}) |
+     .plugins[$key] = [{
+       "scope": "user",
+       "installPath": $path,
+       "version": $ver,
+       "installedAt": $ts,
+       "lastUpdated": $ts
+     }]' "$INSTALLED_FILE")"
   echo "$tmp" > "$INSTALLED_FILE"
 }
 
 remove_installed_plugin() {
   if [ -f "$INSTALLED_FILE" ]; then
-    local tmp=$(jq --arg key "$PLUGIN_KEY" 'del(.plugins[$key])' "$INSTALLED_FILE")
+    local tmp
+    tmp="$(jq --arg key "$PLUGIN_KEY" '.plugins = (.plugins // {}) | del(.plugins[$key])' "$INSTALLED_FILE")"
     echo "$tmp" > "$INSTALLED_FILE"
   fi
 }
 
-# ============================================================
-# Core operations
-# ============================================================
+reset_existing_installation() {
+  info "Resetting existing plugin state under $CLAUDE_DIR..."
+  remove_settings_plugin
+  remove_installed_plugin
+  remove_marketplace_registration
+  remove_vscode_prompt
+  remove_path_if_exists "$CACHE_DIR/$MARKETPLACE_NAME/$PLUGIN_NAME"
+  remove_path_if_exists "$MARKETPLACE_DIR/$MARKETPLACE_NAME"
+}
+
+copy_workspace_snapshot() {
+  local target="$1"
+
+  ensure_dir "$target"
+  cp -R "$SCRIPT_DIR/skills" "$target/"
+  cp -R "$SCRIPT_DIR/.claude-plugin" "$target/"
+  if [ -d "$SCRIPT_DIR/.github" ]; then
+    cp -R "$SCRIPT_DIR/.github" "$target/"
+  fi
+
+  for file in README.md README_EN.md CLAUDE.md LICENSE install.sh install.ps1 uninstall.sh uninstall.ps1; do
+    if [ -e "$SCRIPT_DIR/$file" ]; then
+      cp "$SCRIPT_DIR/$file" "$target/"
+    fi
+  done
+}
 
 install_marketplace() {
-  local script_dir="$(cd "$(dirname "$0")" && pwd)"
   local target="$MARKETPLACE_DIR/$MARKETPLACE_NAME"
 
   info "Setting up marketplace: $MARKETPLACE_NAME..."
+  ensure_dir "$MARKETPLACE_DIR"
+  remove_path_if_exists "$target"
 
-  if [ -d "$target/.git" ]; then
-    info "Marketplace exists, pulling latest..."
-    git -C "$target" pull 2>/dev/null || true
+  if git clone "$REPO_URL" "$target" 2>/dev/null; then
+    ok "Cloned marketplace from remote"
   else
-    info "Cloning marketplace..."
-    rm -rf "$target"
-    ensure_dir "$MARKETPLACE_DIR"
-    git clone "$REPO_URL" "$target" 2>/dev/null || {
-      warn "Git clone failed, using local copy..."
-      ensure_dir "$target"
-      cp -r "$script_dir/"* "$target/" 2>/dev/null || true
-      cp "$script_dir/.claude-plugin" "$target/" 2>/dev/null || true
-      cp "$script_dir/.gitignore" "$target/" 2>/dev/null || true
-    }
+    warn "Git clone failed, using local workspace snapshot..."
+    copy_workspace_snapshot "$target"
   fi
-  ok "Marketplace ready at $target"
 
   ensure_marketplace_registration
-  ok "Marketplace registered"
-  echo ""
+  ok "Marketplace ready at $target"
 }
 
 install_skills() {
   local selected_skills="$1"
-  local script_dir="$(cd "$(dirname "$0")" && pwd)"
   local cache_dest="$CACHE_DIR/$MARKETPLACE_NAME/$PLUGIN_NAME/$VERSION"
 
   info "Installing skills to cache..."
-
   ensure_dir "$cache_dest/skills"
   ensure_dir "$cache_dest/.claude-plugin"
 
-  # Copy plugin.json
-  if [ -f "$script_dir/.claude-plugin/plugin.json" ]; then
-    cp "$script_dir/.claude-plugin/plugin.json" "$cache_dest/.claude-plugin/"
-  fi
+  cp "$PLUGIN_JSON" "$cache_dest/.claude-plugin/plugin.json"
 
-  # Copy selected skills
   for skill in $selected_skills; do
-    if [ -d "$script_dir/skills/$skill" ]; then
-      cp -r "$script_dir/skills/$skill" "$cache_dest/skills/"
+    if [ -d "$SCRIPT_DIR/skills/$skill" ]; then
+      cp -R "$SCRIPT_DIR/skills/$skill" "$cache_dest/skills/"
       ok "Copied skill: $skill"
     else
       warn "Skill not found: $skill (skipping)"
     fi
   done
 
-  # Register
   ensure_settings_plugin
-  ok "Enabled in settings.json"
-
   ensure_installed_plugin
-  ok "Registered in installed_plugins.json"
-
-  echo ""
+  ok "Plugin registered with latest version: $VERSION"
 }
 
 uninstall_all() {
   info "Uninstalling $MARKETPLACE_NAME..."
-
-  remove_settings_plugin
-  remove_installed_plugin
-  remove_marketplace_registration
-  remove_vscode_prompt
-
-  local cache_path="$CACHE_DIR/$MARKETPLACE_NAME"
-  if [ -d "$cache_path" ]; then
-    rm -rf "$cache_path"
-    info "Removed cache: $cache_path"
-  fi
-
-  local mkt_path="$MARKETPLACE_DIR/$MARKETPLACE_NAME"
-  if [ -d "$mkt_path" ]; then
-    rm -rf "$mkt_path"
-    info "Removed marketplace: $mkt_path"
-  fi
-
+  reset_existing_installation
   ok "Uninstall complete!"
 }
-
-# ============================================================
-# Interactive selection
-# ============================================================
 
 interactive_select() {
   echo -e "${CYAN}========================================${NC}"
@@ -289,11 +315,16 @@ interactive_select() {
   echo -e "  ${GREEN}[q]${NC} Quit"
   echo ""
 
-  read -p "Select (e.g. 1 2 or a): " choice
+  read -r -p "Select (e.g. 1 2 or a): " choice
 
   case "$choice" in
-    q|Q) info "Cancelled."; exit 0 ;;
-    a|A) SELECTED_CATEGORIES="common android flutter" ;;
+    q|Q)
+      info "Cancelled."
+      exit 0
+      ;;
+    a|A)
+      SELECTED_CATEGORIES="common android flutter"
+      ;;
     *)
       SELECTED_CATEGORIES="common"
       for num in $choice; do
@@ -307,10 +338,6 @@ interactive_select() {
   esac
 }
 
-# ============================================================
-# Main
-# ============================================================
-
 main() {
   echo ""
   echo -e "${CYAN}dev-tools-skills Installer${NC}"
@@ -322,16 +349,23 @@ main() {
   fi
 
   require_jq
+  load_plugin_metadata
+  ensure_claude_layout
 
-  local UNINSTALL=false
-  SELECTED_CATEGORIES=""
+  local uninstall=false
+  local selected_categories=""
 
   if [ $# -eq 0 ]; then
     interactive_select
+    selected_categories="$SELECTED_CATEGORIES"
   else
     case "$1" in
-      --uninstall|-u) UNINSTALL=true ;;
-      --all|-a)       SELECTED_CATEGORIES="common android flutter" ;;
+      --uninstall|-u)
+        uninstall=true
+        ;;
+      --all|-a)
+        selected_categories="common android flutter"
+        ;;
       --help|-h)
         echo "Usage: $0 [OPTIONS] [CATEGORY...]"
         echo ""
@@ -344,47 +378,40 @@ main() {
         echo "  common   - $(category_desc common)"
         echo "  android  - $(category_desc android)"
         echo "  flutter  - $(category_desc flutter)"
-        echo ""
-        echo "Examples:"
-        echo "  $0                          # Interactive mode"
-        echo "  $0 --all                    # Install everything"
-        echo "  $0 common                   # Common tools only"
-        echo "  $0 common android           # Common + Android tools"
         exit 0
         ;;
       *)
         for arg in "$@"; do
           case "$arg" in
-            common|android|flutter) SELECTED_CATEGORIES="$SELECTED_CATEGORIES $arg" ;;
+            common|android|flutter) selected_categories="$selected_categories $arg" ;;
             *) warn "Unknown category: $arg (skipping)" ;;
           esac
         done
-        # Always include common
-        if ! echo "$SELECTED_CATEGORIES" | grep -q "common"; then
-          SELECTED_CATEGORIES="common $SELECTED_CATEGORIES"
+        if ! echo "$selected_categories" | grep -q "common"; then
+          selected_categories="common $selected_categories"
         fi
         ;;
     esac
   fi
 
-  if [ "$UNINSTALL" = true ]; then
+  if [ "$uninstall" = true ]; then
     uninstall_all
     exit 0
   fi
 
-  # Collect selected skills
   local all_selected=""
-  for cat in $SELECTED_CATEGORIES; do
-    all_selected="$all_selected $(skills_for_category "$cat")"
+  for category in $selected_categories; do
+    all_selected="$all_selected $(skills_for_category "$category")"
   done
 
   echo -e "${BLUE}Will install:${NC}"
-  for cat in $SELECTED_CATEGORIES; do
-    echo -e "  ${GREEN}- $cat${NC}: $(category_desc "$cat")"
+  for category in $selected_categories; do
+    echo -e "  ${GREEN}- $category${NC}: $(category_desc "$category")"
   done
   echo ""
 
-  # Install
+  reset_existing_installation
+  ensure_claude_layout
   install_marketplace
   install_skills "$all_selected"
   install_vscode_prompt

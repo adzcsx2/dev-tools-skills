@@ -1,11 +1,5 @@
 # ============================================================
 # dev-tools-skills Installer for Windows PowerShell
-# Usage:
-#   .\install.ps1                    # Interactive mode
-#   .\install.ps1 -All               # Install all skills
-#   .\install.ps1 common             # Common tools only
-#   .\install.ps1 common android     # Common + Android tools
-#   .\install.ps1 -Uninstall         # Remove installed plugin
 # ============================================================
 
 param(
@@ -16,12 +10,11 @@ param(
 )
 
 $MarketplaceName = "dev-tools-skills"
-$PluginName = "dev-tools-skills"
 $RepoUrl = "git@github.com:adzcsx2/dev-tools-skills.git"
-$Version = "1.0.0"
 $VSCodePromptsDir = if ($env:VSCODE_USER_PROMPTS_FOLDER) { $env:VSCODE_USER_PROMPTS_FOLDER } else { Join-Path $env:APPDATA "Code\User\prompts" }
+$ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.ScriptName }
+$PluginJson = Join-Path $ScriptDir ".claude-plugin\plugin.json"
 
-# Paths
 $ClaudeDir = if ($env:CLAUDE_DIR) { $env:CLAUDE_DIR } else { Join-Path $env:USERPROFILE ".claude" }
 $PluginsDir = Join-Path $ClaudeDir "plugins"
 $CacheDir = Join-Path $PluginsDir "cache"
@@ -29,18 +22,15 @@ $MarketplaceDir = Join-Path $PluginsDir "marketplaces"
 $SettingsFile = Join-Path $ClaudeDir "settings.json"
 $KnownMktsFile = Join-Path $PluginsDir "known_marketplaces.json"
 $InstalledFile = Join-Path $PluginsDir "installed_plugins.json"
-$PluginKey = "${MarketplaceName}@${PluginName}"
 
-# Skill categories
+$PluginName = ""
+$Version = ""
+$PluginKey = ""
+
 $CommonSkills = @("init", "push", "update-remote-plugins", "code-note")
 $AndroidSkills = @("gradle-build-performance", "update-docs-android", "android-i18n", "android-fold-adapter", "auto-ui-test")
 $FlutterSkills = @("update-docs-flutter")
-
 $AllCategories = @("common", "android", "flutter")
-
-# ============================================================
-# Helpers
-# ============================================================
 
 function Write-Info($msg)  { Write-Host "[INFO] $msg" -ForegroundColor Blue }
 function Write-Ok($msg)    { Write-Host "[OK] $msg" -ForegroundColor Green }
@@ -56,6 +46,7 @@ function Get-CategoryDesc($cat) {
         "common"  { "Common tools (dt:init, dt:push, dt:update-remote-plugins, dt:code-note)" }
         "android" { "Android tools (adt:update-docs, adt:gradle-build-performance, etc.)" }
         "flutter" { "Flutter tools (fdt:update-docs)" }
+        default    { "" }
     }
 }
 
@@ -73,10 +64,53 @@ function Ensure-Directory($path) {
     }
 }
 
-function Install-VSCodePrompt {
-    $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.ScriptName }
-    $promptSrc = Join-Path $scriptDir ".github\prompts\init.prompt.md"
+function Require-File($path) {
+    if (-not (Test-Path $path -PathType Leaf)) {
+        Write-Err "Required file not found: $path"
+        exit 1
+    }
+}
 
+function Assert-PathInClaudeDir($path) {
+    $resolvedClaude = [System.IO.Path]::GetFullPath($ClaudeDir)
+    $resolvedPath = [System.IO.Path]::GetFullPath($path)
+    if ($resolvedPath -ne $resolvedClaude -and -not $resolvedPath.StartsWith($resolvedClaude + [System.IO.Path]::DirectorySeparatorChar)) {
+        Write-Err "Refusing to operate outside CLAUDE_DIR: $path"
+        exit 1
+    }
+}
+
+function Remove-PathIfExists($path) {
+    if (Test-Path $path) {
+        Assert-PathInClaudeDir $path
+        Remove-Item $path -Recurse -Force
+        Write-Info "Removed: $path"
+    }
+}
+
+function Load-PluginMetadata {
+    Require-File $PluginJson
+    $plugin = Get-Content $PluginJson -Raw | ConvertFrom-Json
+
+    if (-not $plugin.name -or -not $plugin.version) {
+        Write-Err "Failed to read plugin metadata from $PluginJson"
+        exit 1
+    }
+
+    $script:PluginName = $plugin.name
+    $script:Version = $plugin.version
+    $script:PluginKey = "${MarketplaceName}@${PluginName}"
+}
+
+function Ensure-ClaudeLayout {
+    Ensure-Directory $ClaudeDir
+    Ensure-Directory $PluginsDir
+    Ensure-Directory $CacheDir
+    Ensure-Directory $MarketplaceDir
+}
+
+function Install-VSCodePrompt {
+    $promptSrc = Join-Path $ScriptDir ".github\prompts\init.prompt.md"
     if (-not (Test-Path $promptSrc)) {
         Write-Warn "VS Code Copilot prompt source not found: $promptSrc"
         return
@@ -91,43 +125,35 @@ function Remove-VSCodePrompt {
     $promptPath = Join-Path $VSCodePromptsDir "init.prompt.md"
     if (Test-Path $promptPath) {
         Remove-Item $promptPath -Force
-        Write-Info "Removed VS Code Copilot prompt: $promptPath"
+        Write-Info "Removed: $promptPath"
     }
 }
 
-function Read-JsonFile($path) {
+function Read-JsonFile($path, $defaultJson) {
     if (Test-Path $path) {
         return Get-Content $path -Raw | ConvertFrom-Json
     }
-    return [PSCustomObject]@{}
+    return $defaultJson | ConvertFrom-Json
 }
 
 function Write-JsonFile($path, $data) {
     $data | ConvertTo-Json -Depth 10 | Set-Content $path -Encoding UTF8
 }
 
-# ============================================================
-# Config operations
-# ============================================================
-
 function Ensure-SettingsPlugin {
-    $settings = Read-JsonFile $SettingsFile
-    if (-not $settings.PSObject.Properties["enabledPlugins"]) {
-        $settings | Add-Member -NotePropertyName "enabledPlugins" -NotePropertyValue ([PSCustomObject]@{})
+    Ensure-Directory $ClaudeDir
+    $settings = Read-JsonFile $SettingsFile '{}'
+    if (-not $settings.PSObject.Properties['enabledPlugins']) {
+        $settings | Add-Member -NotePropertyName 'enabledPlugins' -NotePropertyValue ([PSCustomObject]@{})
     }
-    if (-not $settings.enabledPlugins.PSObject.Properties[$PluginKey]) {
-        $settings.enabledPlugins | Add-Member -NotePropertyName $PluginKey -NotePropertyValue $true
-    } else {
-        $settings.enabledPlugins.$PluginKey = $true
-    }
+    $settings.enabledPlugins | Add-Member -NotePropertyName $PluginKey -NotePropertyValue $true -Force
     Write-JsonFile $SettingsFile $settings
 }
 
 function Remove-SettingsPlugin {
     if (-not (Test-Path $SettingsFile)) { return }
-    $settings = Read-JsonFile $SettingsFile
-    if ($settings.PSObject.Properties["enabledPlugins"] -and
-        $settings.enabledPlugins.PSObject.Properties[$PluginKey]) {
+    $settings = Read-JsonFile $SettingsFile '{}'
+    if ($settings.PSObject.Properties['enabledPlugins'] -and $settings.enabledPlugins.PSObject.Properties[$PluginKey]) {
         $settings.enabledPlugins.PSObject.Properties.Remove($PluginKey)
         Write-JsonFile $SettingsFile $settings
     }
@@ -135,15 +161,15 @@ function Remove-SettingsPlugin {
 
 function Ensure-MarketplaceRegistration {
     Ensure-Directory $PluginsDir
-    $mkts = Read-JsonFile $KnownMktsFile
+    $mkts = Read-JsonFile $KnownMktsFile '{}'
     $installLocation = Join-Path $MarketplaceDir $MarketplaceName
-    $timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.000Z")
+    $timestamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.000Z')
 
     $mkts | Add-Member -NotePropertyName $MarketplaceName -NotePropertyValue (
         [PSCustomObject]@{
-            source = [PSCustomObject]@{ source = "git"; url = $RepoUrl }
+            source = [PSCustomObject]@{ source = 'git'; url = $RepoUrl }
             installLocation = $installLocation
-            lastUpdated     = $timestamp
+            lastUpdated = $timestamp
         }
     ) -Force
     Write-JsonFile $KnownMktsFile $mkts
@@ -151,7 +177,7 @@ function Ensure-MarketplaceRegistration {
 
 function Remove-MarketplaceRegistration {
     if (-not (Test-Path $KnownMktsFile)) { return }
-    $mkts = Read-JsonFile $KnownMktsFile
+    $mkts = Read-JsonFile $KnownMktsFile '{}'
     if ($mkts.PSObject.Properties[$MarketplaceName]) {
         $mkts.PSObject.Properties.Remove($MarketplaceName)
         Write-JsonFile $KnownMktsFile $mkts
@@ -159,166 +185,144 @@ function Remove-MarketplaceRegistration {
 }
 
 function Ensure-InstalledPlugin {
+    Ensure-Directory $PluginsDir
     $installPath = Join-Path $CacheDir "$MarketplaceName\$PluginName\$Version"
-    $timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.000Z")
+    $timestamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.000Z')
+    $installed = Read-JsonFile $InstalledFile '{"version":2,"plugins":{}}'
 
-    if (-not (Test-Path $InstalledFile)) {
-        @{ version = 2; plugins = @{} } | ConvertTo-Json -Depth 10 | Set-Content $InstalledFile -Encoding UTF8
+    if (-not $installed.PSObject.Properties['plugins']) {
+        $installed | Add-Member -NotePropertyName 'plugins' -NotePropertyValue ([PSCustomObject]@{})
     }
-    $installed = Read-JsonFile $InstalledFile
 
     $entry = @(
         [PSCustomObject]@{
-            scope       = "user"
+            scope = 'user'
             installPath = $installPath
-            version     = $Version
+            version = $Version
             installedAt = $timestamp
             lastUpdated = $timestamp
         }
     )
 
-    if (-not $installed.PSObject.Properties["plugins"]) {
-        $installed | Add-Member -NotePropertyName "plugins" -NotePropertyValue ([PSCustomObject]@{})
-    }
     $installed.plugins | Add-Member -NotePropertyName $PluginKey -NotePropertyValue $entry -Force
     Write-JsonFile $InstalledFile $installed
 }
 
 function Remove-InstalledPlugin {
     if (-not (Test-Path $InstalledFile)) { return }
-    $installed = Read-JsonFile $InstalledFile
-    if ($installed.PSObject.Properties["plugins"] -and
-        $installed.plugins.PSObject.Properties[$PluginKey]) {
+    $installed = Read-JsonFile $InstalledFile '{"version":2,"plugins":{}}'
+    if ($installed.PSObject.Properties['plugins'] -and $installed.plugins.PSObject.Properties[$PluginKey]) {
         $installed.plugins.PSObject.Properties.Remove($PluginKey)
         Write-JsonFile $InstalledFile $installed
     }
 }
 
-# ============================================================
-# Core operations
-# ============================================================
+function Reset-ExistingInstallation {
+    Write-Info "Resetting existing plugin state under $ClaudeDir..."
+    Remove-SettingsPlugin
+    Remove-InstalledPlugin
+    Remove-MarketplaceRegistration
+    Remove-VSCodePrompt
+    Remove-PathIfExists (Join-Path $CacheDir "$MarketplaceName\$PluginName")
+    Remove-PathIfExists (Join-Path $MarketplaceDir $MarketplaceName)
+}
 
-function Install-Marketplace {
-    $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.ScriptName }
-    $target = Join-Path $MarketplaceDir $MarketplaceName
+function Copy-WorkspaceSnapshot {
+    param([string]$Target)
 
-    Write-Info "Setting up marketplace: $MarketplaceName..."
+    Ensure-Directory $Target
+    Copy-Item -Path (Join-Path $ScriptDir 'skills') -Destination $Target -Recurse -Force
+    Copy-Item -Path (Join-Path $ScriptDir '.claude-plugin') -Destination $Target -Recurse -Force
+    if (Test-Path (Join-Path $ScriptDir '.github')) {
+        Copy-Item -Path (Join-Path $ScriptDir '.github') -Destination $Target -Recurse -Force
+    }
 
-    if (Test-Path (Join-Path $target ".git")) {
-        Write-Info "Marketplace exists, pulling latest..."
-        Push-Location $target
-        git pull 2>$null
-        Pop-Location
-    } else {
-        Write-Info "Cloning marketplace..."
-        if (Test-Path $target) { Remove-Item $target -Recurse -Force }
-        Ensure-Directory $MarketplaceDir
-
-        try {
-            git clone $RepoUrl $target 2>$null
-        } catch {
-            Write-Warn "Git clone failed, using local copy..."
-            Ensure-Directory $target
-            Copy-Item -Path "$scriptDir\*" -Destination $target -Recurse -Force
+    foreach ($file in @('README.md', 'README_EN.md', 'CLAUDE.md', 'LICENSE', 'install.sh', 'install.ps1', 'uninstall.sh', 'uninstall.ps1')) {
+        $source = Join-Path $ScriptDir $file
+        if (Test-Path $source) {
+            Copy-Item -Path $source -Destination $Target -Force
         }
     }
-    Write-Ok "Marketplace ready at $target"
+}
+
+function Install-Marketplace {
+    $target = Join-Path $MarketplaceDir $MarketplaceName
+    Write-Info "Setting up marketplace: $MarketplaceName..."
+
+    Ensure-Directory $MarketplaceDir
+    Remove-PathIfExists $target
+
+    try {
+        git clone $RepoUrl $target 2>$null
+        Write-Ok 'Cloned marketplace from remote'
+    } catch {
+        Write-Warn 'Git clone failed, using local workspace snapshot...'
+        Copy-WorkspaceSnapshot -Target $target
+    }
 
     Ensure-MarketplaceRegistration
-    Write-Ok "Marketplace registered"
+    Write-Ok "Marketplace ready at $target"
 }
 
 function Install-Skills {
     param([string[]]$Skills)
 
-    $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.ScriptName }
     $cacheDest = Join-Path $CacheDir "$MarketplaceName\$PluginName\$Version"
+    Write-Info 'Installing skills to cache...'
 
-    Write-Info "Installing skills to cache..."
+    Ensure-Directory (Join-Path $cacheDest 'skills')
+    Ensure-Directory (Join-Path $cacheDest '.claude-plugin')
+    Copy-Item $PluginJson (Join-Path $cacheDest '.claude-plugin\plugin.json') -Force
 
-    Ensure-Directory "$cacheDest\skills"
-    Ensure-Directory "$cacheDest\.claude-plugin"
-
-    # Copy plugin.json
-    $pluginJson = Join-Path $scriptDir ".claude-plugin\plugin.json"
-    if (Test-Path $pluginJson) {
-        Copy-Item $pluginJson "$cacheDest\.claude-plugin\" -Force
-    }
-
-    # Copy selected skills
     foreach ($skill in $Skills) {
-        $src = Join-Path $scriptDir "skills\$skill"
+        $src = Join-Path $ScriptDir "skills\$skill"
         if (Test-Path $src) {
-            Copy-Item -Path $src -Destination "$cacheDest\skills\" -Recurse -Force
+            Copy-Item -Path $src -Destination (Join-Path $cacheDest 'skills') -Recurse -Force
             Write-Ok "Copied skill: $skill"
         } else {
             Write-Warn "Skill not found: $skill (skipping)"
         }
     }
 
-    # Register
     Ensure-SettingsPlugin
-    Write-Ok "Enabled in settings.json"
-
     Ensure-InstalledPlugin
-    Write-Ok "Registered in installed_plugins.json"
+    Write-Ok "Plugin registered with latest version: $Version"
 }
 
 function Uninstall-All {
     Write-Info "Uninstalling $MarketplaceName..."
-
-    Remove-SettingsPlugin
-    Remove-InstalledPlugin
-    Remove-MarketplaceRegistration
-    Remove-VSCodePrompt
-
-    $cachePath = Join-Path $CacheDir $MarketplaceName
-    if (Test-Path $cachePath) {
-        Remove-Item $cachePath -Recurse -Force
-        Write-Info "Removed cache: $cachePath"
-    }
-
-    $mktPath = Join-Path $MarketplaceDir $MarketplaceName
-    if (Test-Path $mktPath) {
-        Remove-Item $mktPath -Recurse -Force
-        Write-Info "Removed marketplace: $mktPath"
-    }
-
-    Write-Ok "Uninstall complete!"
+    Reset-ExistingInstallation
+    Write-Ok 'Uninstall complete!'
 }
 
-# ============================================================
-# Interactive selection
-# ============================================================
-
 function Interactive-Select {
-    Write-Host ""
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "  dev-tools-skills Installer" -ForegroundColor Cyan
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "Select skill categories to install:"
-    Write-Host ""
+    Write-Host ''
+    Write-Host '========================================' -ForegroundColor Cyan
+    Write-Host '  dev-tools-skills Installer' -ForegroundColor Cyan
+    Write-Host '========================================' -ForegroundColor Cyan
+    Write-Host ''
+    Write-Host 'Select skill categories to install:'
+    Write-Host ''
     Write-Host "  [1] common  - $(Get-CategoryDesc 'common')" -ForegroundColor Green
     Write-Host "  [2] android - $(Get-CategoryDesc 'android')" -ForegroundColor Green
     Write-Host "  [3] flutter - $(Get-CategoryDesc 'flutter')" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "  [a] Install ALL" -ForegroundColor Green
-    Write-Host "  [q] Quit" -ForegroundColor Green
-    Write-Host ""
+    Write-Host ''
+    Write-Host '  [a] Install ALL' -ForegroundColor Green
+    Write-Host '  [q] Quit' -ForegroundColor Green
+    Write-Host ''
 
-    $choice = Read-Host "Select (e.g. 1 2 or a)"
+    $choice = Read-Host 'Select (e.g. 1 2 or a)'
 
     switch ($choice) {
-        { $_ -match "^[qQ]$" } { Write-Info "Cancelled."; exit 0 }
-        { $_ -match "^[aA]" }  { return @("common", "android", "flutter") }
+        { $_ -match '^[qQ]$' } { Write-Info 'Cancelled.'; exit 0 }
+        { $_ -match '^[aA]$' } { return @('common', 'android', 'flutter') }
         default {
-            $selected = @("common")
-            foreach ($num in $choice.Split(" ")) {
+            $selected = @('common')
+            foreach ($num in $choice.Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)) {
                 switch ($num) {
-                    "1" { $selected = @("common") }
-                    "2" { $selected += "android" }
-                    "3" { $selected += "flutter" }
+                    '1' { $selected = @('common') }
+                    '2' { $selected += 'android' }
+                    '3' { $selected += 'flutter' }
                 }
             }
             return $selected | Select-Object -Unique
@@ -326,38 +330,31 @@ function Interactive-Select {
     }
 }
 
-# ============================================================
-# Main
-# ============================================================
-
 function Main {
-    Write-Host ""
-    Write-Host "dev-tools-skills Installer" -ForegroundColor Cyan
-    Write-Host ""
+    Write-Host ''
+    Write-Host 'dev-tools-skills Installer' -ForegroundColor Cyan
+    Write-Host ''
 
-    if (-not (Test-Command "git")) {
-        Write-Err "git is required but not installed."
+    if (-not (Test-Command 'git')) {
+        Write-Err 'git is required but not installed.'
         exit 1
     }
 
+    Load-PluginMetadata
+    Ensure-ClaudeLayout
+
     if ($Help) {
-        Write-Host "Usage: .\install.ps1 [OPTIONS] [CATEGORY...]"
-        Write-Host ""
-        Write-Host "Options:"
-        Write-Host "  -All              Install all skill categories"
-        Write-Host "  -Uninstall        Remove installed plugin"
-        Write-Host "  -Help             Show this help"
-        Write-Host ""
-        Write-Host "Categories:"
+        Write-Host 'Usage: .\install.ps1 [OPTIONS] [CATEGORY...]'
+        Write-Host ''
+        Write-Host 'Options:'
+        Write-Host '  -All              Install all skill categories'
+        Write-Host '  -Uninstall        Remove installed plugin'
+        Write-Host '  -Help             Show this help'
+        Write-Host ''
+        Write-Host 'Categories:'
         Write-Host "  common   - $(Get-CategoryDesc 'common')"
         Write-Host "  android  - $(Get-CategoryDesc 'android')"
         Write-Host "  flutter  - $(Get-CategoryDesc 'flutter')"
-        Write-Host ""
-        Write-Host "Examples:"
-        Write-Host "  .\install.ps1                    # Interactive mode"
-        Write-Host "  .\install.ps1 -All               # Install everything"
-        Write-Host "  .\install.ps1 common             # Common tools only"
-        Write-Host "  .\install.ps1 common android     # Common + Android tools"
         exit 0
     }
 
@@ -366,57 +363,53 @@ function Main {
         exit 0
     }
 
-    # Determine categories
     $selectedCats = @()
-
     if ($All) {
-        $selectedCats = @("common", "android", "flutter")
+        $selectedCats = @('common', 'android', 'flutter')
     } elseif ($Categories.Count -gt 0) {
-        foreach ($c in $Categories) {
-            if ($AllCategories -contains $c) {
-                $selectedCats += $c
+        foreach ($category in $Categories) {
+            if ($AllCategories -contains $category) {
+                $selectedCats += $category
             } else {
-                Write-Warn "Unknown category: $c (skipping)"
+                Write-Warn "Unknown category: $category (skipping)"
             }
         }
-        if ($selectedCats -notcontains "common") {
-            Write-Warn "Auto-including 'common'"
-            $selectedCats = ,("common") + $selectedCats
+        if ($selectedCats -notcontains 'common') {
+            $selectedCats = ,('common') + $selectedCats
         }
+        $selectedCats = $selectedCats | Select-Object -Unique
     } else {
         $selectedCats = Interactive-Select
     }
 
-    # Collect skills
     $allSkills = @()
-    foreach ($cat in $selectedCats) {
-        $allSkills += Get-SkillsForCategory $cat
+    foreach ($category in $selectedCats) {
+        $allSkills += Get-SkillsForCategory $category
     }
     $allSkills = $allSkills | Select-Object -Unique
 
-    Write-Host "Will install:" -ForegroundColor Blue
-    foreach ($cat in $selectedCats) {
-        Write-Host "  - $cat : $(Get-CategoryDesc $cat)" -ForegroundColor Green
+    Write-Host 'Will install:' -ForegroundColor Blue
+    foreach ($category in $selectedCats) {
+        Write-Host "  - $category : $(Get-CategoryDesc $category)" -ForegroundColor Green
     }
-    Write-Host ""
+    Write-Host ''
 
-    # Install
+    Reset-ExistingInstallation
+    Ensure-ClaudeLayout
     Install-Marketplace
     Install-Skills $allSkills
     Install-VSCodePrompt
 
-    Write-Host ""
-    Write-Host "========================================" -ForegroundColor Green
-    Write-Host "  Installation Complete!" -ForegroundColor Green
-    Write-Host "========================================" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Installed skills:"
+    Write-Host '========================================' -ForegroundColor Green
+    Write-Host '  Installation Complete!' -ForegroundColor Green
+    Write-Host '========================================' -ForegroundColor Green
+    Write-Host ''
+    Write-Host 'Installed skills:'
     foreach ($skill in $allSkills) {
         Write-Host "  - $skill" -ForegroundColor Green
     }
-    Write-Host ""
-    Write-Host "Please restart Claude Code and reload VS Code Copilot chat to load the new commands."
-    Write-Host ""
+    Write-Host ''
+    Write-Host 'Please restart Claude Code and reload VS Code Copilot chat to load the new commands.'
 }
 
 Main
