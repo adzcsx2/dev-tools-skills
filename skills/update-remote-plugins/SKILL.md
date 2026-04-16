@@ -123,7 +123,9 @@ git push
 
 如果 push 被拒绝，先 rebase 再继续。
 
-### 7. Refresh Local Claude Via Install
+### 7. Refresh Local Claude Via Install (强制执行)
+
+**这是必须执行的最后一步，不得跳过。**
 
 推送远程后，本地只通过安装脚本刷新，不允许手动复制 cache 文件。
 
@@ -153,6 +155,11 @@ Windows PowerShell:
 .\install.ps1 -All
 ```
 
+**执行要求**：
+- 必须在 push 成功后立即执行 install 脚本
+- 不得以"用户可以手动执行"为由跳过此步骤
+- 必须在输出中确认缓存已刷新到最新版本
+
 ## Acceptance Criteria
 
 只有同时满足下面条件，才算完成：
@@ -164,7 +171,8 @@ Windows PowerShell:
 5. uninstall 在目标不存在时也能安全退出
 6. 所有路径都落在 Claude 根目录下
 7. 远程已提交并推送
-8. 本地可以通过 install 获得最新版本，而不是继续命中旧缓存
+8. **本地缓存已通过 install 脚本强制刷新到最新版本**
+9. 在输出中确认缓存刷新完成
 
 ## Troubleshooting
 
