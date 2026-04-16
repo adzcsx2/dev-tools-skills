@@ -54,21 +54,28 @@ Flutter 项目文档自动生成工具。分析项目结构，生成中文技术
 
 ```
 README.md
-├── 最近更新（3条摘要 + 链接到 CHANGELOG）
+├── 最近更新（3条摘要 + 链接到更新记录）
 └── ...
 
 docs/
-├── CHANGELOG.md              # 更新列表（每条有链接到详情）
-├── PROJECT_OVERVIEW.md       # 项目概览
-├── WIDGETS.md                # 界面/Widget 文档
-├── NAVIGATION.md             # 导航/路由文档
-├── STATE_MANAGEMENT.md       # 状态管理文档
-├── DEPENDENCIES.md           # 依赖文档
-├── API.md                    # API 文档
+├── guide/                    # 使用指南
+│   ├── PROJECT_OVERVIEW.md   # 项目概览
+│   └── SETUP.md              # 环境配置与开发指南
+├── modules/                  # 模块说明
+│   ├── WIDGETS.md            # 界面/Widget 文档
+│   ├── NAVIGATION.md         # 导航/路由文档
+│   └── STATE_MANAGEMENT.md   # 状态管理文档
+├── references/               # 参考资料
+│   ├── DEPENDENCIES.md       # 依赖文档
+│   └── API.md                # API 文档
+├── reports/                  # 报告
+│   └── CHANGELOG.md          # 更新列表（每条有链接到详情）
 ├── .doc-metadata.json        # 元数据
 └── update-list/              # 详情目录（可重新生成）
     └── update-YYYY-MM-DD.md  # 每次更新的详细内容
 ```
+
+**注意**：根目录不应有 CHANGELOG.md，更新记录应存放在 `docs/reports/CHANGELOG.md`。
 
 ---
 
@@ -183,18 +190,23 @@ Scan root directory for markdown files (excluding README.md) and migrate to appr
 
 ### 7. Generate Documents
 
-All docs go in `docs/` directory:
+All docs go in `docs/` subdirectories based on their category:
 
-| Document | Content |
-|----------|---------|
-| PROJECT_OVERVIEW.md | 项目概览（名称、版本、SDK、技术栈、目录结构） |
-| WIDGETS.md | 界面文档（页面、Widget、控件分析、功能说明） |
-| NAVIGATION.md | 导航文档（路由方案、页面跳转关系、命名路由列表） |
-| STATE_MANAGEMENT.md | 状态管理文档（方案、Provider/Bloc/Riverpod 列表） |
-| DEPENDENCIES.md | 依赖文档（Flutter/Dart SDK、第三方依赖列表） |
-| API.md | API 接口文档（URL、请求方法、参数说明） |
-| CHANGELOG.md | **更新列表，支持点击查看详情** |
-| update-list/*.md | **每次更新的详细内容** |
+| Document | Location | Content |
+|----------|----------|---------|
+| PROJECT_OVERVIEW.md | docs/guide/ | 项目概览（名称、版本、SDK、技术栈、目录结构） |
+| WIDGETS.md | docs/modules/ | 界面文档（页面、Widget、控件分析、功能说明） |
+| NAVIGATION.md | docs/modules/ | 导航文档（路由方案、页面跳转关系、命名路由列表） |
+| STATE_MANAGEMENT.md | docs/modules/ | 状态管理文档（方案、Provider/Bloc/Riverpod 列表） |
+| DEPENDENCIES.md | docs/references/ | 依赖文档（Flutter/Dart SDK、第三方依赖列表） |
+| API.md | docs/references/ | API 接口文档（URL、请求方法、参数说明） |
+| CHANGELOG.md | docs/reports/ | **更新列表，支持点击查看详情** |
+| update-list/*.md | docs/update-list/ | **每次更新的详细内容** |
+
+**重要规则**：
+- 创建 docs/ 及其子目录（guide、modules、references、reports）如果不存在
+- 根目录**不应**有 CHANGELOG.md
+- CHANGELOG.md 应位于 `docs/reports/CHANGELOG.md`
 
 ---
 
@@ -385,7 +397,7 @@ git diff HEAD --ignore-all-space -- "*.dart"
 
 ## 9. Update CHANGELOG.md (Update List)
 
-CHANGELOG.md serves as the update list with clickable links to details:
+CHANGELOG.md 位于 `docs/reports/CHANGELOG.md`，作为更新列表包含可点击的详情链接：
 
 ```markdown
 # 文档更新日志
@@ -404,7 +416,7 @@ CHANGELOG.md serves as the update list with clickable links to details:
 | WIDGETS.md | 新增页面 | 新增 LoginPage 登录页面 |
 | NAVIGATION.md | 更新路由 | 新增 /login 路由配置 |
 
-[查看详情](update-list/update-2026-04-14.md)
+[查看详情](../update-list/update-2026-04-14.md)
 
 ---
 
@@ -418,11 +430,11 @@ CHANGELOG.md serves as the update list with clickable links to details:
 | WIDGETS.md | 新增 | 界面文档 |
 | ... | ... | ... |
 
-[查看详情](update-list/update-2026-04-10.md)
+[查看详情](../update-list/update-2026-04-10.md)
 
 ---
 
-[← 返回主文档](../README.md)
+[← 返回主文档](../../README.md)
 ```
 
 **CHANGELOG Update Rules:**
@@ -440,7 +452,7 @@ README.md shows **3 most recent updates**:
 ```markdown
 ## 文档导航
 
-> 快速访问: [文档中心](docs/) | [更新记录](docs/CHANGELOG.md)
+> 快速访问: [文档中心](docs/) | [更新记录](docs/reports/CHANGELOG.md)
 
 ### 最近更新
 
@@ -450,15 +462,15 @@ README.md shows **3 most recent updates**:
 | YYYY-MM-DD | 新增界面文档、导航流程文档 |
 | YYYY-MM-DD | 首次生成项目文档 |
 
-> 查看全部更新: [更新记录](docs/CHANGELOG.md)
+> 查看全部更新: [更新记录](docs/reports/CHANGELOG.md)
 
 ---
 
 ### 快速开始
 | 文档 | 描述 |
 |------|------|
-| [项目概览](docs/PROJECT_OVERVIEW.md) | 项目简介、版本信息、技术栈 |
-| [界面文档](docs/WIDGETS.md) | 页面与 Widget 列表 |
+| [项目概览](docs/guide/PROJECT_OVERVIEW.md) | 项目简介、版本信息、技术栈 |
+| [界面文档](docs/modules/WIDGETS.md) | 页面与 Widget 列表 |
 ...
 ```
 

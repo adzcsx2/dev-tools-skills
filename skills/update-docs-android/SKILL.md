@@ -55,23 +55,29 @@ Android 项目文档自动生成工具。分析项目结构，生成中文技术
 
 ```
 README.md
-├── 最近更新（3条摘要 + 链接到 CHANGELOG）
+├── 最近更新（3条摘要 + 链接到更新记录）
 └── ...
 
 docs/
-├── CHANGELOG.md              # 更新列表（每条有链接到详情）
-├── PROJECT_OVERVIEW.md       # 项目概览
-├── INTERFACES.md             # 界面文档
-├── NAVIGATION.md             # 导航文档
-├── COMPONENTS.md             # 四大组件
-├── NOTIFICATIONS.md          # 通知文档
-├── BUILD_VARIANTS.md         # 构建变体
-├── DEPENDENCIES.md           # 依赖文档
-├── API.md                    # API 文档
+├── guide/                    # 使用指南
+│   ├── PROJECT_OVERVIEW.md   # 项目概览
+│   └── BUILD_VARIANTS.md     # 构建变体
+├── modules/                  # 模块说明
+│   ├── INTERFACES.md         # 界面文档
+│   ├── NAVIGATION.md         # 导航文档
+│   ├── COMPONENTS.md         # 四大组件
+│   └── NOTIFICATIONS.md      # 通知文档
+├── references/               # 参考资料
+│   ├── DEPENDENCIES.md       # 依赖文档
+│   └── API.md                # API 文档
+├── reports/                  # 报告
+│   └── CHANGELOG.md          # 更新列表（每条有链接到详情）
 ├── .doc-metadata.json        # 元数据
 └── update-list/              # 详情目录（可重新生成）
     └── update-YYYY-MM-DD.md  # 每次更新的详细内容
 ```
+
+**注意**：根目录不应有 CHANGELOG.md，更新记录应存放在 `docs/reports/CHANGELOG.md`。
 
 ---
 
@@ -169,20 +175,25 @@ Scan root directory for markdown files (excluding README.md) and migrate to appr
 
 ### 7. Generate Documents
 
-All docs go in `docs/` directory:
+All docs go in `docs/` subdirectories based on their category:
 
-| Document | Content |
-|----------|---------|
-| PROJECT_OVERVIEW.md | Project overview |
-| INTERFACES.md | Interface docs (control analysis, functionality) |
-| NAVIGATION.md | Navigation docs (Activity-Fragment relationships) |
-| COMPONENTS.md | Four components docs |
-| NOTIFICATIONS.md | Notification docs |
-| BUILD_VARIANTS.md | Build variants docs |
-| DEPENDENCIES.md | Dependencies docs |
-| API.md | API interface docs (URL and method) |
-| CHANGELOG.md | **Update list with links to details** |
-| update-list/*.md | **Detailed update content per update** |
+| Document | Location | Content |
+|----------|----------|---------|
+| PROJECT_OVERVIEW.md | docs/guide/ | Project overview |
+| INTERFACES.md | docs/modules/ | Interface docs (control analysis, functionality) |
+| NAVIGATION.md | docs/modules/ | Navigation docs (Activity-Fragment relationships) |
+| COMPONENTS.md | docs/modules/ | Four components docs |
+| NOTIFICATIONS.md | docs/modules/ | Notification docs |
+| BUILD_VARIANTS.md | docs/guide/ | Build variants docs |
+| DEPENDENCIES.md | docs/references/ | Dependencies docs |
+| API.md | docs/references/ | API interface docs (URL and method) |
+| CHANGELOG.md | docs/reports/ | **Update list with links to details** |
+| update-list/*.md | docs/update-list/ | **Detailed update content per update** |
+
+**重要规则**：
+- 创建 docs/ 及其子目录（guide、modules、references、reports）如果不存在
+- 根目录**不应**有 CHANGELOG.md
+- CHANGELOG.md 应位于 `docs/reports/CHANGELOG.md`
 
 ---
 
@@ -382,7 +393,7 @@ git diff HEAD --ignore-all-space -- "*.kt" "*.java"
 
 ## 9. Update CHANGELOG.md (Update List)
 
-CHANGELOG.md serves as the update list with clickable links to details:
+CHANGELOG.md 位于 `docs/reports/CHANGELOG.md`，作为更新列表包含可点击的详情链接：
 
 ```markdown
 # 文档更新日志
@@ -401,7 +412,7 @@ CHANGELOG.md serves as the update list with clickable links to details:
 | INTERFACES.md | 新增组件 | 新增 CastDialog 对话框，更新 AlbumActivity |
 | NAVIGATION.md | 更新流程 | 新增 WalletConnect 连接导航流程 |
 
-[查看详情](update-list/update-2026-03-12.md)
+[查看详情](../update-list/update-2026-03-12.md)
 
 ---
 
@@ -415,11 +426,11 @@ CHANGELOG.md serves as the update list with clickable links to details:
 | INTERFACES.md | 新增 | 界面文档 |
 | ... | ... | ... |
 
-[查看详情](update-list/update-2026-03-09.md)
+[查看详情](../update-list/update-2026-03-09.md)
 
 ---
 
-[← 返回主文档](../README.md)
+[← 返回主文档](../../README.md)
 ```
 
 **CHANGELOG Update Rules:**
@@ -437,7 +448,7 @@ README.md shows **3 most recent updates**:
 ```markdown
 ## 文档导航
 
-> 快速访问: [文档中心](docs/) | [更新记录](docs/CHANGELOG.md)
+> 快速访问: [文档中心](docs/) | [更新记录](docs/reports/CHANGELOG.md)
 
 ### 最近更新
 
@@ -447,15 +458,15 @@ README.md shows **3 most recent updates**:
 | YYYY-MM-DD | 新增界面文档、导航流程文档 |
 | YYYY-MM-DD | 首次生成项目文档 |
 
-> 查看全部更新: [更新记录](docs/CHANGELOG.md)
+> 查看全部更新: [更新记录](docs/reports/CHANGELOG.md)
 
 ---
 
 ### 快速开始
 | 文档 | 描述 |
 |------|------|
-| [项目概览](docs/PROJECT_OVERVIEW.md) | 项目简介、版本信息、技术栈 |
-| [开发环境](docs/SETUP.md) | 环境配置与开发指南 |
+| [项目概览](docs/guide/PROJECT_OVERVIEW.md) | 项目简介、版本信息、技术栈 |
+| [开发环境](docs/guide/SETUP.md) | 环境配置与开发指南 |
 ...
 ```
 
