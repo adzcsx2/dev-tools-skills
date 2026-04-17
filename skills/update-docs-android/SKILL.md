@@ -1,6 +1,6 @@
 ---
 name: adt:update-docs
-description: Auto-generate Chinese technical documentation for Android projects. Analyzes structure, generates interfaces, navigation, components, notifications, and API docs. Also migrates root md files to docs/ and updates README with quick links.
+description: Auto-generate and audit Chinese technical documentation for Android projects. First audit code changes, then update all affected docs including README, docs index, modules, references, reports, and example docs. If a read-only subagent is needed for change audit, tell the user before invoking it.
 ---
 
 > **中文环境要求**
@@ -16,6 +16,19 @@ description: Auto-generate Chinese technical documentation for Android projects.
 # update-docs Skill
 
 Android 项目文档自动生成工具。分析项目结构，生成中文技术文档，支持增量更新。
+
+## Core Mode
+
+本技能默认按“先审计代码改动，再补齐全部相关文档”的模式执行，而不是只生成单篇文档。
+
+强制要求：
+
+- 如果项目存在代码改动，先审计改动内容、影响范围和对外行为变化，再决定要更新哪些文档
+- 文档更新范围必须覆盖所有受影响入口，而不是只更新单个模块文档
+- 至少检查：根 README、docs/README、docs/guide、docs/modules、docs/references、docs/reports、docs/update-list，以及项目中的 example/示例文档
+- 如果改动涉及公开 API、接入方式、平台能力、权限、脚本、目录结构、状态流、通知、组件或接口契约，必须同步更新对应文档
+- 如果需要调用只读子代理做改动审计，必须先明确告知用户“将调用子代理先做审计，再回来修改文档”
+- 最终输出要先给出审计结论，再说明已更新哪些文档；如果仍有未覆盖风险，也要点明
 
 ## When to Use
 
@@ -34,6 +47,8 @@ Android 项目文档自动生成工具。分析项目结构，生成中文技术
 - "Generate documentation for my Android project"
 - "Update project docs with --force"
 - "Only generate interface documentation"
+- "审计这次代码改动并把所有相关文档一起更新"
+- "先检查 git diff，再按影响范围补 README、docs 和 example 文档"
 
 ---
 
@@ -83,6 +98,26 @@ docs/
 ---
 
 ## Execution Flow
+
+### 0. Audit Before Writing
+
+Before editing any docs:
+
+1. Detect whether the workspace has code changes, preferably via git diff, changed files, and recent commits
+2. Summarize what changed from a documentation perspective: API, behavior, permissions, routes, build, config, modules, examples, scripts
+3. Build an affected-doc list instead of defaulting to a single output file
+4. If the affected area is broad or ambiguous, explicitly tell the user that a read-only subagent will be used for audit, then invoke it
+
+**Affected-doc checklist:**
+
+- `README.md`
+- `docs/README.md`
+- `docs/guide/*`
+- `docs/modules/*`
+- `docs/references/*`
+- `docs/reports/CHANGELOG.md`
+- `docs/update-list/update-YYYY-MM-DD.md`
+- `example/README.md` and other user-facing demo docs when example behavior changed
 
 ### 1. Verify Project Type
 
@@ -151,6 +186,13 @@ Check `docs/.doc-metadata.json`:
 | `AndroidManifest.xml` | COMPONENTS.md, NAVIGATION.md |
 | `build.gradle`, `build.gradle.kts` | BUILD_VARIANTS.md, DEPENDENCIES.md |
 | `**/notification/*`, `*Notification*.kt` | NOTIFICATIONS.md |
+
+**扩展映射规则：**
+
+- 如果公开接口、接入步骤、命令入口或能力边界发生变化，额外更新 `README.md` 与 `docs/README.md`
+- 如果示例工程、调试入口、联调方式或演示界面发生变化，额外更新 `example/README.md` 或对应示例文档
+- 如果当天已经有文档更新记录，合并进当天 `docs/update-list/update-YYYY-MM-DD.md`，并同步刷新 `docs/reports/CHANGELOG.md`
+- 如果一次改动同时影响多个文档，必须一次性全量更新，不要只修最先命中的那一篇
 
 ### 5. Analyze Project
 

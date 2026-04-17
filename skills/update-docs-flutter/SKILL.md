@@ -1,6 +1,6 @@
 ---
 name: fdt:update-docs
-description: "Auto-generate Chinese technical documentation for Flutter projects. Analyzes structure, generates widgets, navigation, routes, state management, and API docs. Also migrates root md files to docs/ and updates README with quick links."
+description: "Auto-generate and audit Chinese technical documentation for Flutter projects. First audit code changes, then update all affected docs including README, docs index, SDK/API docs, references, reports, and example docs. If a read-only subagent is needed for change audit, tell the user before invoking it."
 ---
 
 > **中文环境要求**
@@ -16,6 +16,19 @@ description: "Auto-generate Chinese technical documentation for Flutter projects
 # update-docs Skill
 
 Flutter 项目文档自动生成工具。分析项目结构，生成中文技术文档，支持增量更新。
+
+## Core Mode
+
+本技能默认按“先审计代码改动，再补齐全部相关文档”的模式执行，而不是只生成单篇文档。
+
+强制要求：
+
+- 如果项目存在代码改动，先审计改动内容、影响范围和对外行为变化，再决定要更新哪些文档
+- 文档更新范围必须覆盖所有受影响入口，而不是只更新单个模块文档
+- 至少检查：根 README、docs/README、docs/guide、docs/modules、docs/references、docs/reports、docs/update-list，以及项目中的 example/示例文档
+- 如果改动涉及公开 API、配置项、接入步骤、平台能力、权限、状态流、脚本、目录结构、依赖、示例行为或接口契约，必须同步更新对应文档
+- 如果需要调用只读子代理做改动审计，必须先明确告知用户“将调用子代理先做审计，再回来修改文档”
+- 最终输出要先给出审计结论，再说明已更新哪些文档；如果仍有未覆盖风险，也要点明
 
 ## When to Use
 
@@ -34,6 +47,8 @@ Flutter 项目文档自动生成工具。分析项目结构，生成中文技术
 - "为我的 Flutter 项目生成文档"
 - "使用 --force 更新文档"
 - "只生成界面文档"
+- "先审计这次代码改动，再把所有受影响文档一起更新"
+- "检查 git diff，把 README、docs 和 example 文档全部补齐"
 
 ---
 
@@ -81,6 +96,24 @@ docs/
 ---
 
 ## Execution Flow
+
+### 0. Audit Before Writing
+
+Before editing any docs:
+
+1. Detect whether the workspace has code changes, preferably via git diff, changed files, and recent commits
+2. Summarize what changed from a documentation perspective: public APIs, config fields, onboarding steps, platform capabilities, examples, routes, state management, scripts, dependencies
+3. Build an affected-doc list instead of defaulting to a single output file
+4. If the affected area is broad or ambiguous, explicitly tell the user that a read-only subagent will be used for audit, then invoke it
+
+**Affected-doc checklist:**
+
+- `README.md`
+- `docs/README.md`
+- `docs/sdk/*`, `docs/guide/*`, `docs/modules/*`, `docs/references/*`
+- `docs/reports/CHANGELOG.md`
+- `docs/update-list/update-YYYY-MM-DD.md`
+- `example/README.md` and other demo-facing docs when example behavior changed
 
 ### 1. Verify Project Type
 
@@ -150,6 +183,13 @@ Check `docs/.doc-metadata.json`:
 | `lib/**/*_api.dart`, `lib/**/*_service.dart`, `lib/**/*_repository.dart`                                               | API.md                               |
 | `lib/**/*_state.dart`, `lib/**/*_notifier.dart`, `lib/**/*_bloc.dart`, `lib/**/*_cubit.dart`, `lib/**/*_provider.dart` | STATE_MANAGEMENT.md                  |
 | `lib/**/*_model.dart`, `lib/**/*_entity.dart`                                                                          | API.md, DEPENDENCIES.md              |
+
+**扩展映射规则：**
+
+- 如果公开 API、SDK 能力、配置项、接入方式或平台限制发生变化，额外更新 `README.md`、`docs/README.md` 以及对应 SDK/API 文档
+- 如果 example 行为、调试入口、按钮文案、录音/回放方式、环境配置或示例流程变化，额外更新 `example/README.md` 或相关示例文档
+- 如果一次改动同时影响快速接入、完整文档、API 参考和原生/平台专项文档，必须整组更新，不能只修一篇
+- 如果当天已经有文档更新记录，合并进当天 `docs/update-list/update-YYYY-MM-DD.md`，并同步刷新 `docs/reports/CHANGELOG.md`
 
 ### 5. Analyze Project
 

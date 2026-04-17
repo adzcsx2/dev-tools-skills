@@ -50,19 +50,19 @@ Installation also registers the global `/dt:init` and `/study` prompts for VS Co
 
 ### Android Tools — `adt:` prefix
 
-| Skill                          | Description                                                      |
-| ------------------------------ | ---------------------------------------------------------------- |
-| `adt:gradle-build-performance` | Diagnose and optimize Gradle build performance                   |
-| `adt:update-docs`              | Auto-generate Chinese technical docs for Android projects        |
-| `adt:android-i18n`             | i18n: audit hardcoded strings, generate multi-language resources |
-| `adt:android-fold-adapter`     | Foldable screen: diagnose and fix fold adaptation issues         |
-| `adt:auto-ui-test`             | UI automation: Midscene visual-driven + ADB fast execution       |
+| Skill                          | Description                                                             |
+| ------------------------------ | ----------------------------------------------------------------------- |
+| `adt:gradle-build-performance` | Diagnose and optimize Gradle build performance                          |
+| `adt:update-docs`              | Audit code changes first, then update all affected Android project docs |
+| `adt:android-i18n`             | i18n: audit hardcoded strings, generate multi-language resources        |
+| `adt:android-fold-adapter`     | Foldable screen: diagnose and fix fold adaptation issues                |
+| `adt:auto-ui-test`             | UI automation: Midscene visual-driven + ADB fast execution              |
 
 ### Flutter Tools — `fdt:` prefix
 
-| Skill             | Description                                               |
-| ----------------- | --------------------------------------------------------- |
-| `fdt:update-docs` | Auto-generate Chinese technical docs for Flutter projects |
+| Skill             | Description                                                             |
+| ----------------- | ----------------------------------------------------------------------- |
+| `fdt:update-docs` | Audit code changes first, then update all affected Flutter project docs |
 
 ## Project Structure
 
