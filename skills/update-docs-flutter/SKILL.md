@@ -153,6 +153,30 @@ Check `docs/.doc-metadata.json`:
 #### 5.1 Analyze pubspec.yaml
 Extract: name, version, description, Flutter/Dart SDK constraints, dependencies, dev_dependencies
 
+**重要：提取被注释掉的版本号**
+
+在分析依赖时，必须同时记录被注释掉的版本信息（通常用于本地开发或备用配置）：
+
+```yaml
+# 示例配置
+flutter_asr_lib:
+  # git:
+  #   url: https://gitee.com/chengdu-xiaochen/flutter-asr-lib.git
+  #   ref: 1.0.1
+  path: ../
+```
+
+**提取规则**：
+- 检测 `# ref: X.Y.Z` 格式的注释版本号
+- 检测 `# version: X.Y.Z` 格式的注释版本号
+- 在 DEPENDENCIES.md 中同时记录当前使用的依赖方式和注释中的版本信息
+- 格式示例：
+  ```markdown
+  ### flutter_asr_lib
+  - **当前配置**: path 依赖 (../)
+  - **注释中的版本**: git ref: 1.0.1
+  ```
+
 #### 5.2 Analyze Directory Structure
 Use Glob to find: `lib/**/*.dart`
 
