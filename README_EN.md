@@ -34,7 +34,7 @@ For cleanup only, use:
 .\uninstall.ps1
 ```
 
-Installation also registers a global `/dt:init` prompt for VS Code Copilot so the same init workflow can be triggered in any project.
+Installation also registers the global `/dt:init` and `/study` prompts for VS Code Copilot.
 
 ## Included Skills
 
@@ -43,6 +43,7 @@ Installation also registers a global `/dt:init` prompt for VS Code Copilot so th
 | Skill                      | Description                                                                                                        |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `dt:init`                  | Universal project init: detect the real stack and generate or optimize CLAUDE.md plus Copilot project instructions |
+| `dt:study`                 | Study verified skill mistakes: capture them back into the workspace source skill and avoid cached copies           |
 | `dt:push`                  | One-push release workflow: auto stage, pull, per-file commit, push                                                 |
 | `dt:update-remote-plugins` | Remote plugin maintenance: update docs and config, then verify install-based local refresh uses the latest version |
 | `dt:code-note`             | Multi-language code annotation: auto-detect language and apply comment style                                       |
@@ -70,12 +71,14 @@ dev-tools-skills/
 ├── .github/
 │   ├── copilot-instructions.md
 │   └── prompts/
-│       └── init.prompt.md        # VS Code Copilot /dt:init
+│       ├── init.prompt.md        # VS Code Copilot /dt:init
+│       └── study.prompt.md       # VS Code Copilot /study
 ├── .claude-plugin/
 │   ├── marketplace.json
 │   └── plugin.json
 ├── skills/
 │   ├── init/                     # dt:init
+│   ├── study/                    # dt:study
 │   ├── push/
 │   ├── update-remote-plugins/
 │   ├── code-note/
@@ -93,7 +96,7 @@ dev-tools-skills/
 
 ## Version
 
-v1.1.1
+v1.1.4
 
 ## License
 

@@ -26,7 +26,7 @@ PLUGIN_NAME=""
 VERSION=""
 PLUGIN_KEY=""
 
-COMMON_SKILLS="init push update-remote-plugins code-note"
+COMMON_SKILLS="init study push update-remote-plugins code-note"
 ANDROID_SKILLS="gradle-build-performance update-docs-android android-i18n android-fold-adapter auto-ui-test"
 FLUTTER_SKILLS="update-docs-flutter"
 
@@ -39,7 +39,7 @@ has_cmd() { command -v "$1" >/dev/null 2>&1; }
 
 category_desc() {
   case "$1" in
-    common)  echo "Common tools (dt:init, dt:push, dt:update-remote-plugins, dt:code-note)" ;;
+    common)  echo "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note)" ;;
     android) echo "Android tools (adt:update-docs, adt:gradle-build-performance, etc.)" ;;
     flutter) echo "Flutter tools (fdt:update-docs)" ;;
     *)       echo "" ;;
@@ -119,24 +119,40 @@ ensure_claude_layout() {
 }
 
 install_vscode_prompt() {
-  local prompt_src="$SCRIPT_DIR/.github/prompts/init.prompt.md"
+  local prompts_dir="$SCRIPT_DIR/.github/prompts"
 
-  if [ ! -f "$prompt_src" ]; then
-    warn "VS Code Copilot prompt source not found: $prompt_src"
+  if [ ! -d "$prompts_dir" ]; then
+    warn "VS Code Copilot prompts directory not found: $prompts_dir"
     return
   fi
 
   ensure_dir "$VSCODE_PROMPTS_DIR"
-  cp "$prompt_src" "$VSCODE_PROMPTS_DIR/init.prompt.md"
-  ok "Installed VS Code Copilot prompt: $VSCODE_PROMPTS_DIR/init.prompt.md"
+  local installed_any=false
+
+  for prompt_src in "$prompts_dir"/*.prompt.md; do
+    [ -e "$prompt_src" ] || continue
+    cp "$prompt_src" "$VSCODE_PROMPTS_DIR/$(basename "$prompt_src")"
+    ok "Installed VS Code Copilot prompt: $VSCODE_PROMPTS_DIR/$(basename "$prompt_src")"
+    installed_any=true
+  done
+
+  if [ "$installed_any" = false ]; then
+    warn "No VS Code Copilot prompt files found in: $prompts_dir"
+  fi
 }
 
 remove_vscode_prompt() {
-  local prompt_path="$VSCODE_PROMPTS_DIR/init.prompt.md"
-  if [ -f "$prompt_path" ]; then
-    rm -f "$prompt_path"
-    info "Removed: $prompt_path"
-  fi
+  local prompts_dir="$SCRIPT_DIR/.github/prompts"
+  [ -d "$prompts_dir" ] || return
+
+  for prompt_src in "$prompts_dir"/*.prompt.md; do
+    [ -e "$prompt_src" ] || continue
+    local prompt_path="$VSCODE_PROMPTS_DIR/$(basename "$prompt_src")"
+    if [ -f "$prompt_path" ]; then
+      rm -f "$prompt_path"
+      info "Removed: $prompt_path"
+    fi
+  done
 }
 
 ensure_settings_plugin() {

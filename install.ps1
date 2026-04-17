@@ -27,7 +27,7 @@ $PluginName = ""
 $Version = ""
 $PluginKey = ""
 
-$CommonSkills = @("init", "push", "update-remote-plugins", "code-note")
+$CommonSkills = @("init", "study", "push", "update-remote-plugins", "code-note")
 $AndroidSkills = @("gradle-build-performance", "update-docs-android", "android-i18n", "android-fold-adapter", "auto-ui-test")
 $FlutterSkills = @("update-docs-flutter")
 $AllCategories = @("common", "android", "flutter")
@@ -43,7 +43,7 @@ function Test-Command($cmd) {
 
 function Get-CategoryDesc($cat) {
     switch ($cat) {
-        "common"  { "Common tools (dt:init, dt:push, dt:update-remote-plugins, dt:code-note)" }
+        "common"  { "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note)" }
         "android" { "Android tools (adt:update-docs, adt:gradle-build-performance, etc.)" }
         "flutter" { "Flutter tools (fdt:update-docs)" }
         default    { "" }
@@ -110,22 +110,37 @@ function Ensure-ClaudeLayout {
 }
 
 function Install-VSCodePrompt {
-    $promptSrc = Join-Path $ScriptDir ".github\prompts\init.prompt.md"
-    if (-not (Test-Path $promptSrc)) {
-        Write-Warn "VS Code Copilot prompt source not found: $promptSrc"
+    $promptsDir = Join-Path $ScriptDir ".github\prompts"
+    if (-not (Test-Path $promptsDir -PathType Container)) {
+        Write-Warn "VS Code Copilot prompts directory not found: $promptsDir"
         return
     }
 
     Ensure-Directory $VSCodePromptsDir
-    Copy-Item $promptSrc (Join-Path $VSCodePromptsDir "init.prompt.md") -Force
-    Write-Ok "Installed VS Code Copilot prompt: $(Join-Path $VSCodePromptsDir 'init.prompt.md')"
+    $promptFiles = Get-ChildItem -Path $promptsDir -Filter '*.prompt.md' -File -ErrorAction SilentlyContinue
+    if (-not $promptFiles) {
+        Write-Warn "No VS Code Copilot prompt files found in: $promptsDir"
+        return
+    }
+
+    foreach ($promptFile in $promptFiles) {
+        $targetPath = Join-Path $VSCodePromptsDir $promptFile.Name
+        Copy-Item $promptFile.FullName $targetPath -Force
+        Write-Ok "Installed VS Code Copilot prompt: $targetPath"
+    }
 }
 
 function Remove-VSCodePrompt {
-    $promptPath = Join-Path $VSCodePromptsDir "init.prompt.md"
-    if (Test-Path $promptPath) {
-        Remove-Item $promptPath -Force
-        Write-Info "Removed: $promptPath"
+    $promptsDir = Join-Path $ScriptDir ".github\prompts"
+    if (-not (Test-Path $promptsDir -PathType Container)) { return }
+
+    $promptFiles = Get-ChildItem -Path $promptsDir -Filter '*.prompt.md' -File -ErrorAction SilentlyContinue
+    foreach ($promptFile in $promptFiles) {
+        $promptPath = Join-Path $VSCodePromptsDir $promptFile.Name
+        if (Test-Path $promptPath) {
+            Remove-Item $promptPath -Force
+            Write-Info "Removed: $promptPath"
+        }
     }
 }
 

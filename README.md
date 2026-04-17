@@ -34,18 +34,19 @@ cd dev-tools-skills
 .\uninstall.ps1
 ```
 
-安装后会额外注册 VS Code Copilot 的全局 `/dt:init` prompt，使你在任意项目里都可以直接执行统一初始化流程。
+安装完成后，还会额外为 VS Code Copilot 注册全局的 `/dt:init` 和 `/study` prompt。
 
 ## 包含的 Skills
 
 ### 通用工具 — `dt:` 前缀
 
-| Skill                      | 描述                                                                      |
-| -------------------------- | ------------------------------------------------------------------------- |
-| `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 CLAUDE.md 与 Copilot 项目级配置 |
-| `dt:push`                  | 一键发布工作流：自动暂存、拉取、逐文件提交、推送                          |
-| `dt:update-remote-plugins` | 远程插件维护：更新配置与文档、验证 install 回流本地是否始终命中最新版本   |
-| `dt:code-note`             | 多语言代码注释：自动检测语言类型并应用对应注释风格                        |
+| Skill                      | 描述                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 CLAUDE.md 与 Copilot 项目级配置       |
+| `dt:study`                 | 修错回源：把已验证的 skill 失误直接沉淀回工作区里的源 SKILL，避免改在缓存副本上 |
+| `dt:push`                  | 一键发布工作流：自动暂存、拉取、逐文件提交、推送                                |
+| `dt:update-remote-plugins` | 远程插件维护：更新配置与文档、验证 install 回流本地是否始终命中最新版本         |
+| `dt:code-note`             | 多语言代码注释：自动检测语言类型并应用对应注释风格                              |
 
 ### Android 工具 — `adt:` 前缀
 
@@ -70,12 +71,14 @@ dev-tools-skills/
 ├── .github/
 │   ├── copilot-instructions.md
 │   └── prompts/
-│       └── init.prompt.md        # VS Code Copilot /dt:init
+│       ├── init.prompt.md        # VS Code Copilot /dt:init
+│       └── study.prompt.md       # VS Code Copilot /study
 ├── .claude-plugin/
 │   ├── marketplace.json
 │   └── plugin.json
 ├── skills/
 │   ├── init/                     # dt:init
+│   ├── study/                    # dt:study
 │   ├── push/                   # dt:push
 │   ├── update-remote-plugins/  # dt:update-remote-plugins
 │   ├── code-note/              # dt:code-note
@@ -93,7 +96,7 @@ dev-tools-skills/
 
 ## 版本
 
-v1.1.1
+v1.1.4
 
 ## License
 

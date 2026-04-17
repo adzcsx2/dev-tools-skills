@@ -6,6 +6,7 @@ description: "Auto-generate Chinese technical documentation for Flutter projects
 > **中文环境要求**
 >
 > 本技能运行在中文环境下，请遵循以下约定：
+>
 > - 面向用户的回复、注释、提示信息必须使用中文
 > - AI 内部处理过程可以使用英文
 > - 所有生成的文件必须使用 UTF-8 编码
@@ -38,15 +39,15 @@ Flutter 项目文档自动生成工具。分析项目结构，生成中文技术
 
 ## Command Parameters
 
-| Parameter | Description |
-|-----------|-------------|
-| No args | 增量更新所有文档 |
-| `--force` | 强制重新生成所有文档 |
-| `--dry-run` | 仅分析，不生成文件 |
-| `widgets` | 仅生成界面文档 |
-| `navigation` | 仅生成导航/路由文档 |
-| `state` | 仅生成状态管理文档 |
-| `api` | 仅生成 API 文档 |
+| Parameter    | Description          |
+| ------------ | -------------------- |
+| No args      | 增量更新所有文档     |
+| `--force`    | 强制重新生成所有文档 |
+| `--dry-run`  | 仅分析，不生成文件   |
+| `widgets`    | 仅生成界面文档       |
+| `navigation` | 仅生成导航/路由文档  |
+| `state`      | 仅生成状态管理文档   |
+| `api`        | 仅生成 API 文档      |
 
 ---
 
@@ -84,6 +85,7 @@ docs/
 ### 1. Verify Project Type
 
 Check for these files:
+
 - `pubspec.yaml`
 - `lib/main.dart`
 - `android/` or `ios/` directory
@@ -131,6 +133,7 @@ Check `docs/.doc-metadata.json`:
 ### 4. Analyze Git Changes
 
 **Git-based Change Detection:**
+
 1. Read `docs/.doc-metadata.json` to get `lastUpdate` date
 2. Run `git log --since="{lastUpdate}" --oneline --no-merges` to get new commits
 3. For each commit, get changed files
@@ -138,20 +141,26 @@ Check `docs/.doc-metadata.json`:
 
 **File to Document Mapping:**
 
-| Source File Pattern | Affected Documents |
-|---------------------|-------------------|
-| `lib/**/*_page.dart`, `lib/**/*_screen.dart` | WIDGETS.md, NAVIGATION.md |
-| `lib/**/*_widget.dart`, `lib/**/*_dialog.dart` | WIDGETS.md |
-| `lib/**/routes.dart`, `lib/**/router.dart`, `lib/**/*_route*.dart` | NAVIGATION.md |
-| `pubspec.yaml` | PROJECT_OVERVIEW.md, DEPENDENCIES.md |
-| `lib/**/*_api.dart`, `lib/**/*_service.dart`, `lib/**/*_repository.dart` | API.md |
-| `lib/**/*_state.dart`, `lib/**/*_notifier.dart`, `lib/**/*_bloc.dart`, `lib/**/*_cubit.dart`, `lib/**/*_provider.dart` | STATE_MANAGEMENT.md |
-| `lib/**/*_model.dart`, `lib/**/*_entity.dart` | API.md, DEPENDENCIES.md |
+| Source File Pattern                                                                                                    | Affected Documents                   |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `lib/**/*_page.dart`, `lib/**/*_screen.dart`                                                                           | WIDGETS.md, NAVIGATION.md            |
+| `lib/**/*_widget.dart`, `lib/**/*_dialog.dart`                                                                         | WIDGETS.md                           |
+| `lib/**/routes.dart`, `lib/**/router.dart`, `lib/**/*_route*.dart`                                                     | NAVIGATION.md                        |
+| `pubspec.yaml`                                                                                                         | PROJECT_OVERVIEW.md, DEPENDENCIES.md |
+| `lib/**/*_api.dart`, `lib/**/*_service.dart`, `lib/**/*_repository.dart`                                               | API.md                               |
+| `lib/**/*_state.dart`, `lib/**/*_notifier.dart`, `lib/**/*_bloc.dart`, `lib/**/*_cubit.dart`, `lib/**/*_provider.dart` | STATE_MANAGEMENT.md                  |
+| `lib/**/*_model.dart`, `lib/**/*_entity.dart`                                                                          | API.md, DEPENDENCIES.md              |
 
 ### 5. Analyze Project
 
 #### 5.1 Analyze pubspec.yaml
+
 Extract: name, version, description, Flutter/Dart SDK constraints, dependencies, dev_dependencies
+
+**扫描范围补充**：
+
+- 依赖分析不能只看根 `pubspec.yaml`，还必须扫描 `example/pubspec.yaml`，以及工作区内本地 `path` 依赖指向的附加 `pubspec.yaml`
+- 如果扫描到多个 `pubspec.yaml`，依赖文档和元数据要合并记录，不能只保留主工程结果
 
 **重要：提取被注释掉的版本号**
 
@@ -167,27 +176,35 @@ flutter_asr_lib:
 ```
 
 **提取规则**：
+
 - 检测 `# ref: X.Y.Z` 格式的注释版本号
 - 检测 `# version: X.Y.Z` 格式的注释版本号
+- 如果附加 `pubspec.yaml` 的依赖块中含有注释的 `ref` 或 `version`，也必须在 `DEPENDENCIES.md` 中同时记录当前配置与注释版本
 - 在 DEPENDENCIES.md 中同时记录当前使用的依赖方式和注释中的版本信息
 - 格式示例：
   ```markdown
   ### flutter_asr_lib
+
   - **当前配置**: path 依赖 (../)
   - **注释中的版本**: git ref: 1.0.1
   ```
 
 #### 5.2 Analyze Directory Structure
+
 Use Glob to find: `lib/**/*.dart`
 
 #### 5.3 Analyze Pages/Screens
+
 Use Glob: `lib/**/*_page.dart`, `lib/**/*_screen.dart`, `lib/**/*_view.dart`
 
 #### 5.4 Analyze Widgets
+
 Use Glob: `lib/**/*_widget.dart`, `lib/**/*_dialog.dart`, `lib/**/*_bottom_sheet.dart`
 
 #### 5.5 Analyze Navigation/Routing
+
 Detect routing approach:
+
 - Named routes: `MaterialApp(routes: ...)`
 - `go_router`: `GoRouter(...)` in `lib/`
 - `auto_route`: `@MaterialAutoRouter` annotations
@@ -197,7 +214,9 @@ Detect routing approach:
 Use Grep: `GoRoute`, `GetPage`, `MaterialPageRoute`, `Navigator.push`, `context.go(`, `context.push(`
 
 #### 5.6 Analyze State Management
+
 Detect state management approach:
+
 - `setState`: grep for `setState(()`
 - `ChangeNotifier` / `Provider`: grep for `ChangeNotifier`, `Consumer`, `Provider`, `context.watch`, `context.read`
 - `Riverpod`: grep for `ProviderScope`, `ref.watch`, `ref.read`, `@riverpod`
@@ -206,6 +225,7 @@ Detect state management approach:
 - `MobX`: grep for `@observable`, `@action`, `Store`
 
 #### 5.7 Analyze API Interfaces
+
 Use Grep: `@GET`, `@POST`, `@PUT`, `@DELETE`, `dio.get`, `dio.post`, `http.get`, `http.post`
 
 ### 6. Migrate Root MD Files to docs/
@@ -216,18 +236,19 @@ Scan root directory for markdown files (excluding README.md) and migrate to appr
 
 All docs go in `docs/` subdirectories based on their category:
 
-| Document | Location | Content |
-|----------|----------|---------|
-| PROJECT_OVERVIEW.md | docs/guide/ | 项目概览（名称、版本、SDK、技术栈、目录结构） |
-| WIDGETS.md | docs/modules/ | 界面文档（页面、Widget、控件分析、功能说明） |
-| NAVIGATION.md | docs/modules/ | 导航文档（路由方案、页面跳转关系、命名路由列表） |
-| STATE_MANAGEMENT.md | docs/modules/ | 状态管理文档（方案、Provider/Bloc/Riverpod 列表） |
-| DEPENDENCIES.md | docs/references/ | 依赖文档（Flutter/Dart SDK、第三方依赖列表） |
-| API.md | docs/references/ | API 接口文档（URL、请求方法、参数说明） |
-| CHANGELOG.md | docs/reports/ | **更新列表，支持点击查看详情** |
-| update-list/*.md | docs/update-list/ | **每次更新的详细内容** |
+| Document            | Location          | Content                                           |
+| ------------------- | ----------------- | ------------------------------------------------- |
+| PROJECT_OVERVIEW.md | docs/guide/       | 项目概览（名称、版本、SDK、技术栈、目录结构）     |
+| WIDGETS.md          | docs/modules/     | 界面文档（页面、Widget、控件分析、功能说明）      |
+| NAVIGATION.md       | docs/modules/     | 导航文档（路由方案、页面跳转关系、命名路由列表）  |
+| STATE_MANAGEMENT.md | docs/modules/     | 状态管理文档（方案、Provider/Bloc/Riverpod 列表） |
+| DEPENDENCIES.md     | docs/references/  | 依赖文档（Flutter/Dart SDK、第三方依赖列表）      |
+| API.md              | docs/references/  | API 接口文档（URL、请求方法、参数说明）           |
+| CHANGELOG.md        | docs/reports/     | **更新列表，支持点击查看详情**                    |
+| update-list/\*.md   | docs/update-list/ | **每次更新的详细内容**                            |
 
 **重要规则**：
+
 - 创建 docs/ 及其子目录（guide、modules、references、reports）如果不存在
 - 根目录**不应**有 CHANGELOG.md
 - CHANGELOG.md 应位于 `docs/reports/CHANGELOG.md`
@@ -236,14 +257,23 @@ All docs go in `docs/` subdirectories based on their category:
 
 ## 8. Generate Update Detail Document (CRITICAL)
 
-Generate a detailed update document in `docs/update-list/` for each update:
+Generate or merge the detailed update document in `docs/update-list/` for each day:
 
 ### 8.1 Filename Convention
+
 - Base format: `update-YYYY-MM-DD.md`
-- If file exists for today, append number: `update-YYYY-MM-DD-2.md`, `update-YYYY-MM-DD-3.md`, etc.
-- **CRITICAL**: NEVER use `v2`, `v3`, `v2.md` format. Always use `-2`, `-3` (dash + number only)
-- Examples: `update-2026-04-16.md`, `update-2026-04-16-2.md`, `update-2026-04-16-3.md`
-- WRONG: `update-2026-04-16-v2.md`, `update-2026-04-16-v3.md`
+- One day only keeps one detail file: always use `update-YYYY-MM-DD.md`
+- If the file for today already exists, read it, merge the new actual changes into the same file, and overwrite it
+- **CRITICAL**: NEVER create `-2`, `-3`, `v2`, `v3` or any other same-day suffix variant
+- Correct examples: `update-2026-04-16.md`, `update-2026-04-17.md`
+- Wrong examples: `update-2026-04-16-2.md`, `update-2026-04-16-3.md`, `update-2026-04-16-v2.md`
+
+### 8.1.1 Same-Day Merge Rules
+
+- 同一天重复执行时，必须更新当天已有的详情文件，而不是新建第二条
+- 合并时保留当天所有已确认的实际文档变更，去重后再输出
+- 如果同一文档当天被多次更新，保留最新结果，并在变更内容中合并补充新增信息
+- 如果本次只有时间戳或元数据变化，没有实际文档变化，则不要改写详情文件内容
 
 ### 8.2 Document Content Structure
 
@@ -265,6 +295,7 @@ Generate a detailed update document in `docs/update-list/` for each update:
 **变更类型**: 新增接口
 
 **变更内容**:
+
 - 新增 `POST /user/login` 登录接口
   - 请求参数: `email`, `password`
   - 返回: `token`, `userInfo`
@@ -274,6 +305,7 @@ Generate a detailed update document in `docs/update-list/` for each update:
 **变更类型**: 新增页面
 
 **变更内容**:
+
 - 新增 LoginPage 登录页面
   - 支持邮箱密码登录
   - 支持忘记密码跳转
@@ -285,6 +317,7 @@ Generate a detailed update document in `docs/update-list/` for each update:
 **变更类型**: 更新路由
 
 **变更内容**:
+
 - 新增 /login 路由
   - 对应 LoginPage
   - 支持从 /home 跳转
@@ -300,6 +333,7 @@ Generate a detailed update document in `docs/update-list/` for each update:
 ### a7f334e - 修复登录页面输入验证逻辑
 
 **变动文件**:
+
 - `lib/pages/login/login_page.dart`
   - 新增邮箱格式验证
   - 修复密码长度检查
@@ -313,6 +347,7 @@ Generate a detailed update document in `docs/update-list/` for each update:
 ### 612a131 - 新增用户注册流程
 
 **变动文件**:
+
 - `lib/pages/register/register_page.dart`
   - 新增注册页面
 - `lib/services/auth_service.dart`
@@ -322,6 +357,7 @@ Generate a detailed update document in `docs/update-list/` for each update:
 ```
 
 **注意**：
+
 - 每个文件的**多处变动都要列出**
 - 不要写"保持不变"的文件列表
 - 只写有实际变动的文件
@@ -330,14 +366,14 @@ Generate a detailed update document in `docs/update-list/` for each update:
 
 **以下内容只有在发生实际变动时才写入更新日志：**
 
-| 内容类型 | 排除规则 |
-|----------|----------|
-| **项目统计** | Pages/Widgets 数量等统计数据，**不变动不写** |
-| **页面列表** | Page/Screen 名称列表，**不变动不写** |
-| **路由列表** | 路由配置，**不变动不写** |
-| **状态管理** | Provider/Bloc 列表，**不变动不写** |
-| **依赖库版本** | dio/flutter_riverpod 等版本号，**不变动不写** |
-| **技术栈** | Flutter/Riverpod/BLoC 等技术选型，**不变动不写** |
+| 内容类型       | 排除规则                                         |
+| -------------- | ------------------------------------------------ |
+| **项目统计**   | Pages/Widgets 数量等统计数据，**不变动不写**     |
+| **页面列表**   | Page/Screen 名称列表，**不变动不写**             |
+| **路由列表**   | 路由配置，**不变动不写**                         |
+| **状态管理**   | Provider/Bloc 列表，**不变动不写**               |
+| **依赖库版本** | dio/flutter_riverpod 等版本号，**不变动不写**    |
+| **技术栈**     | Flutter/Riverpod/BLoC 等技术选型，**不变动不写** |
 
 ### 8.5 Comment-Only Changes (Simplified Format)
 
@@ -349,6 +385,7 @@ Generate a detailed update document in `docs/update-list/` for each update:
 **变更类型**: 新增注释
 
 **变更内容**:
+
 - 以下文件新增代码注释：
   - `lib/services/api_service.dart`
   - `lib/services/user_service.dart`
@@ -374,14 +411,14 @@ Generate a detailed update document in `docs/update-list/` for each update:
 
 **代码格式化变化不应记录到更新日志：**
 
-| 变化类型 | 是否记录 | 示例 |
-|----------|----------|------|
-| 新增 Widget/方法 | 记录 | 新增 `LoginPage` |
-| 删除 Widget/方法 | 记录 | 删除 `OldPage` |
-| 修改方法参数 | 记录 | 参数 `email` 改为 `phone` |
-| 代码换行/缩进 | 不记录 | `setState(() {` 换行 |
-| 代码格式化 | 不记录 | IDE 自动格式化 |
-| 注释变化 | 简化记录 | 只列出文件名，不展开内容 |
+| 变化类型         | 是否记录 | 示例                      |
+| ---------------- | -------- | ------------------------- |
+| 新增 Widget/方法 | 记录     | 新增 `LoginPage`          |
+| 删除 Widget/方法 | 记录     | 删除 `OldPage`            |
+| 修改方法参数     | 记录     | 参数 `email` 改为 `phone` |
+| 代码换行/缩进    | 不记录   | `setState(() {` 换行      |
+| 代码格式化       | 不记录   | IDE 自动格式化            |
+| 注释变化         | 简化记录 | 只列出文件名，不展开内容  |
 
 **检测方法：**
 
@@ -408,6 +445,7 @@ git diff HEAD --ignore-all-space -- "*.dart"
 ### e205804 - 重构图片加载,提高加载效率
 
 **变动文件**:
+
 - `lib/services/image_service.dart`
   - 代码格式化（换行调整）← 无需详细展开
   - 新增 `CachedNetworkImage` 替换旧图片加载 ← 实际变更
@@ -416,6 +454,7 @@ git diff HEAD --ignore-all-space -- "*.dart"
 ```
 
 **规则**：
+
 - 如果文件只有格式化变化，写"代码格式化（无需详细展开）"
 - 如果有实际逻辑变化，只写逻辑变化的部分
 - 不要因为代码格式化而展开列出无意义的内容
@@ -437,11 +476,11 @@ CHANGELOG.md 位于 `docs/reports/CHANGELOG.md`，作为更新列表包含可点
 
 **变更概述**: 新增用户登录相关文档，更新 API 接口说明
 
-| 文档 | 变更类型 | 简介 |
-|------|----------|------|
-| API.md | 新增接口 | 新增 `/user/login` 登录接口 |
-| WIDGETS.md | 新增页面 | 新增 LoginPage 登录页面 |
-| NAVIGATION.md | 更新路由 | 新增 /login 路由配置 |
+| 文档          | 变更类型 | 简介                        |
+| ------------- | -------- | --------------------------- |
+| API.md        | 新增接口 | 新增 `/user/login` 登录接口 |
+| WIDGETS.md    | 新增页面 | 新增 LoginPage 登录页面     |
+| NAVIGATION.md | 更新路由 | 新增 /login 路由配置        |
 
 [查看详情](../update-list/update-2026-04-14.md)
 
@@ -451,11 +490,11 @@ CHANGELOG.md 位于 `docs/reports/CHANGELOG.md`，作为更新列表包含可点
 
 **变更概述**: 生成完整项目文档
 
-| 文档 | 变更类型 | 简介 |
-|------|----------|------|
-| PROJECT_OVERVIEW.md | 新增 | 项目概览文档 |
-| WIDGETS.md | 新增 | 界面文档 |
-| ... | ... | ... |
+| 文档                | 变更类型 | 简介         |
+| ------------------- | -------- | ------------ |
+| PROJECT_OVERVIEW.md | 新增     | 项目概览文档 |
+| WIDGETS.md          | 新增     | 界面文档     |
+| ...                 | ...      | ...          |
 
 [查看详情](../update-list/update-2026-04-10.md)
 
@@ -465,10 +504,11 @@ CHANGELOG.md 位于 `docs/reports/CHANGELOG.md`，作为更新列表包含可点
 ```
 
 **CHANGELOG Update Rules:**
-1. **Newest first**: Insert new updates at the TOP
+
+1. **Newest first**: Keep the newest date at the TOP
 2. **Summary table**: Show document, change type, and brief description
 3. **Detail link**: Each update has a link to `update-list/update-YYYY-MM-DD.md`
-4. **No limit**: Keep all history (old update-list files can be regenerated)
+4. **One entry per day**: If today's entry already exists, merge new changes into the same section instead of creating another same-day section
 
 ---
 
@@ -483,27 +523,30 @@ README.md shows **3 most recent updates**:
 
 ### 最近更新
 
-| 日期 | 描述 |
-|------|------|
+| 日期       | 描述                                    |
+| ---------- | --------------------------------------- |
 | YYYY-MM-DD | 新增用户登录相关文档，更新 API 接口说明 |
-| YYYY-MM-DD | 新增界面文档、导航流程文档 |
-| YYYY-MM-DD | 首次生成项目文档 |
+| YYYY-MM-DD | 新增界面文档、导航流程文档              |
+| YYYY-MM-DD | 首次生成项目文档                        |
 
 > 查看全部更新: [更新记录](docs/reports/CHANGELOG.md)
 
 ---
 
 ### 快速开始
-| 文档 | 描述 |
-|------|------|
+
+| 文档                                       | 描述                       |
+| ------------------------------------------ | -------------------------- |
 | [项目概览](docs/guide/PROJECT_OVERVIEW.md) | 项目简介、版本信息、技术栈 |
-| [界面文档](docs/modules/WIDGETS.md) | 页面与 Widget 列表 |
+| [界面文档](docs/modules/WIDGETS.md)        | 页面与 Widget 列表         |
+
 ...
 ```
 
 **README Update Rules:**
+
 1. **3 recent updates**: Show the latest 3 updates
-2. **Link to CHANGELOG**: Point to `docs/CHANGELOG.md` for full history
+2. **Link to CHANGELOG**: Point to `docs/reports/CHANGELOG.md` for full history
 3. **Brief description**: Summarize each update in one sentence
 
 ---
@@ -514,7 +557,7 @@ Update `docs/.doc-metadata.json` with:
 
 1. **Update timestamps** for modified documents
 2. **Update lastCommit** to current HEAD
-3. **Append to updateHistory** array
+3. **Merge into the same-day item in updateHistory** if today's entry already exists; only append when the date is new
 4. **Update stats** section
 
 ---
@@ -539,13 +582,13 @@ find docs/ -type d -mindepth 1 -maxdepth 1
 
 **必须更新 docs/README.md 的情况**：
 
-| 触发条件 | 说明 |
-|----------|------|
-| 新增文档子目录 | 如新增 `sdk/`、`api/`、`guide/` 等 |
-| 删除文档子目录 | 目录结构发生变化 |
-| 新增 Markdown 文件 | 在任何子目录中新增 `.md` 文件 |
-| 删除 Markdown 文件 | 文档被移除或重命名 |
-| docs/README.md 不存在 | 首次创建文档索引 |
+| 触发条件              | 说明                               |
+| --------------------- | ---------------------------------- |
+| 新增文档子目录        | 如新增 `sdk/`、`api/`、`guide/` 等 |
+| 删除文档子目录        | 目录结构发生变化                   |
+| 新增 Markdown 文件    | 在任何子目录中新增 `.md` 文件      |
+| 删除 Markdown 文件    | 文档被移除或重命名                 |
+| docs/README.md 不存在 | 首次创建文档索引                   |
 
 **检测方法**：
 
@@ -577,22 +620,24 @@ fi
 
 \`\`\`
 docs/
-├── guide/          # 指南文档
-├── modules/        # 模块说明
-├── references/     # 参考资料
-├── reports/        # 报告文档
-├── [其他目录]/     # 其他分类
-├── update-list/    # 更新详情
-└── README.md       # 本文件
+├── guide/ # 指南文档
+├── modules/ # 模块说明
+├── references/ # 参考资料
+├── reports/ # 报告文档
+├── [其他目录]/ # 其他分类
+├── update-list/ # 更新详情
+└── README.md # 本文件
 \`\`\`
 
 ## 建议阅读顺序
 
 **[角色 A]**：[描述]
+
 1. [link1]
 2. [link2]
 
 **[角色 B]**：[描述]
+
 1. [link1]
 2. [link2]
 
@@ -699,6 +744,7 @@ done
 ## Analysis Patterns
 
 ### Route Detection
+
 ```
 GoRoute\(path:\s*['"]([^'"]+)['"]
 GetPage\(name:\s*['"]([^'"]+)['"]
@@ -709,6 +755,7 @@ context\.push\(['"]([^'"]+)['"]
 ```
 
 ### State Management Detection
+
 ```
 setState\(()
 ChangeNotifier
@@ -724,6 +771,7 @@ Store<(\w+)>
 ```
 
 ### API Interface Detection
+
 ```
 @GET\(["']([^"']+)["']\)
 @POST\(["']([^"']+)["']\)
@@ -733,6 +781,7 @@ http\.get\(Uri\.parse\(['"]([^'"]+)['"]
 ```
 
 ### Widget Type Detection
+
 ```
 class\s+(\w+)\s+extends\s+StatefulWidget
 class\s+(\w+)\s+extends\s+StatelessWidget
@@ -745,14 +794,14 @@ class\s+(\w+)\s+extends\s+ConsumerStatefulWidget
 
 ## Widget Type Mapping
 
-| Dart Pattern | Type | Category |
-|-------------|------|----------|
-| extends StatefulWidget | StatefulWidget | Page/Widget |
-| extends StatelessWidget | StatelessWidget | Page/Widget |
-| extends HookWidget | HookWidget | Page/Widget |
-| extends ConsumerWidget | Riverpod Widget | Page/Widget |
-| extends ConsumerStatefulWidget | Riverpod State Widget | Page/Widget |
-| extends StatelessWidget with _prefix | Private Widget | Component |
+| Dart Pattern                          | Type                  | Category    |
+| ------------------------------------- | --------------------- | ----------- |
+| extends StatefulWidget                | StatefulWidget        | Page/Widget |
+| extends StatelessWidget               | StatelessWidget       | Page/Widget |
+| extends HookWidget                    | HookWidget            | Page/Widget |
+| extends ConsumerWidget                | Riverpod Widget       | Page/Widget |
+| extends ConsumerStatefulWidget        | Riverpod State Widget | Page/Widget |
+| extends StatelessWidget with \_prefix | Private Widget        | Component   |
 
 ---
 
@@ -767,3 +816,4 @@ class\s+(\w+)\s+extends\s+ConsumerStatefulWidget
 7. **Old update-list files**: Can be deleted and regenerated if needed
 8. Root md files are migrated to docs/ and deleted from root
 9. Duplicate detection: keep more detailed version when merging
+10. Same-day updates must be merged into one `update-YYYY-MM-DD.md` file and one `updateHistory` item
