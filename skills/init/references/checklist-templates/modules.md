@@ -1,34 +1,34 @@
-﻿# 模块功能清单模板
+# Module Checklist Template
 
-> 这是 init skill 使用的模板文件，用于在用户明确要求时生成 docs/checklist/modules.md。
-> 本模板只允许输出项目中真实存在的模块、包、应用或 feature。
+> This is a template file used by init skill to generate docs/checklist/modules.md when explicitly requested.
+> This template only allows output of modules, packages, applications, or features that actually exist in the project.
 
 ---
 
-# 模块功能清单
+# Module Checklist
 
-> 本文档只记录从项目配置和源码中实际扫描到的模块、职责和可复用入口，供 AI 开发时参考。
+> This document only records modules, responsibilities, and reusable entry points actually scanned from project configuration and source code, for reference during AI development.
 
-## 生成规则
+## Generation Rules
 
-- 仅记录 settings.gradle、workspace 配置、monorepo 配置、源码目录或 package 列表中真实存在的模块
-- 每个模块只写真实路径，以及能验证的职责和可复用入口
-- 不得虚构 common-core、shared-ui、base-service 等模板模块
-- 不得根据行业习惯补充项目中不存在的抽象层
-- 如果某模块职责不清晰，只保留路径和主要入口，不编造说明
-- 职责和可复用入口都是可选字段，缺少可靠信息时可以省略
+- Only record modules that actually exist in settings.gradle, workspace configuration, monorepo configuration, source directories, or package lists
+- For each module, only write real paths, and verifiable responsibilities and reusable entry points
+- Do not fabricate template modules like common-core, shared-ui, base-service
+- Do not supplement abstract layers based on industry conventions that don't exist in the project
+- If a module's responsibility is unclear, only keep the path and main entry; do not fabricate descriptions
+- Responsibilities and reusable entry points are optional fields; omit when reliable information is lacking
 
-## 模块列表
+## Module List
 
 ### {MODULE_NAME}
 
-- 路径: {MODULE_PATH}
-- 可选职责: {MODULE_ROLE}
-- 可选可复用入口:
+- Path: {MODULE_PATH}
+- Optional responsibility: {MODULE_ROLE}
+- Optional reusable entry points:
   - {CLASS_OR_PACKAGE}
 
-## 更新规则
+## Update Rules
 
-- 新增模块时补充真实职责和入口
-- 模块被移除或职责变化时同步更新
-- 只写项目中已存在、可验证的信息
+- Add real responsibilities and entry points when adding new modules
+- Update synchronously when modules are removed or responsibilities change
+- Only write information that exists and is verifiable in the project

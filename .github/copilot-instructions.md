@@ -2,30 +2,51 @@
 
 ## Scope
 
-This repository contains reusable AI skills and installation assets for Claude Code and VS Code Copilot.
+AI skills repository for Claude Code and VS Code Copilot. Skills are organized under `skills/*/SKILL.md`.
 
 ## Editing Rules
 
-- User-facing responses, comments, and generated docs should be in Chinese unless a file is explicitly English
-- Keep SKILL.md files focused on actionable workflow rules, not long project introductions
-- If a YAML frontmatter string contains a colon, wrap it in double quotes
-- Prefer one unified cross-stack init workflow in skills/init/SKILL.md instead of stack-specific init variants
+- User-facing responses and comments should follow user's preferred language
+- **ALL generated documentation files (CLAUDE.md, AGENT.md, checklists) MUST be in English**
+- Keep SKILL.md files focused on actionable workflow rules
+- **SKILL.md frontmatter**: All string values containing colons must be double-quoted
+- Use kebab-case for directories and files
+- Git commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:` prefixes, Chinese messages
 
 ## Repository Conventions
 
-- Skill sources live under skills/*/SKILL.md
-- Per-skill README.md files are generated from SKILL.md and should stay aligned with the skill content
-- Root README.md and README_EN.md must be updated when skills are added, removed, or renamed
-- Installer changes must be mirrored in both install.sh and install.ps1
-- Marketplace metadata lives in .claude-plugin/plugin.json and .claude-plugin/marketplace.json
+- Skill sources: `skills/*/SKILL.md`
+- Each skill has `README.md` generated from `SKILL.md`
+- Installer changes must mirror in `install.sh` and `install.ps1`
+- Metadata: `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`
 
-## Copilot And Claude Support
+## Reuse Priority
 
-- The unified init entrypoint is /dt:init
-- Project-level Copilot guidance should use .github/copilot-instructions.md unless a repo already standardizes on AGENTS.md
-- Avoid maintaining both AGENTS.md and .github/copilot-instructions.md for the same workspace
+When modifying:
+1. Search target directory for similar implementations first
+2. Reuse existing patterns and conventions
+3. Prefer minimal changes
+4. Maintain consistency with adjacent code
 
-## Validation
+## Documentation Rules
 
-- When removing or merging skills, also clean up installer lists and marketplace skill registrations
-- Preserve low-token, high-signal outputs for generated CLAUDE.md and Copilot instruction files
+- New documents go under `/docs` by default
+- Standard categories: `plan`, `design`, `guide`, `modules`, `references`, `checklist`, `reports`
+- Check for existing semantically equivalent directories before creating new ones
+- Do not create duplicate directories (e.g., both `plan` and `plans`)
+
+## Validation Checklist
+
+When adding, removing, or renaming skills:
+1. Update `install.sh` skill list
+2. Update `install.ps1` skill list
+3. Update `.claude-plugin/marketplace.json` if applicable
+4. Update root `README.md` skills table
+5. Update root `README_EN.md` skills table
+
+## Entry Points
+
+- Skill sources: `skills/*/SKILL.md`
+- Plugin metadata: `.claude-plugin/plugin.json`
+- Installer: `install.sh` / `install.ps1`
+- Copilot prompts: `.github/prompts/*.prompt.md`

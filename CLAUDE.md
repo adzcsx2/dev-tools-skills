@@ -1,18 +1,84 @@
-# dev-tools-skills 项目规则
+# dev-tools-skills Project Rules
 
-## SKILL.md Frontmatter 规则
+## Project Overview
 
-所有 SKILL.md 的 YAML frontmatter 中，`description` 和其他字符串字段的值如果包含冒号 `:`，必须用双引号包裹。
+AI Skills repository for Claude Code and VS Code Copilot. Provides a collection of reusable skills.
+
+**Tech Stack**: Shell scripts, PowerShell scripts, Markdown documents
+
+**Skills Organization**:
+
+- `dt:*` - Common tools (init, study, push, update-remote-plugins, code-note)
+- `adt:*` - Android tools (gradle-build-performance, update-docs, i18n, fold-adapter, auto-ui-test)
+- `fdt:*` - Flutter tools (update-docs)
+
+## Single Sources of Truth
+
+- Version and metadata: `.claude-plugin/plugin.json`
+- Skills list: `skills/` directory scan
+- Installation logic: `install.sh` / `install.ps1`
+- Project rules: `CLAUDE.md`, `AGENT.md`, `.github/copilot-instructions.md`
+
+## Reuse Priority
+
+Search target file's directory and similar implementations before modifying. Prioritize reusing existing patterns, common utilities, and established calling conventions.
+
+## Local Consistency Rules
+
+- Maintain consistency with target directory, adjacent code, and existing style
+- Do not proactively introduce new architectures, new wrappers, or new libraries
+- File naming uses kebab-case
+
+## SKILL.md Frontmatter Rules
+
+All SKILL.md YAML frontmatter string values containing colons `:` must be double-quoted.
 
 ```yaml
-# 正确
+# Correct
 description: "One-push release workflow: auto git add all changes, pull latest."
 argument-hint: "[version] e.g. /dt:push 1.2.2"
 
-# 错误 - 冒号会导致 YAML 解析失败
+# Wrong - colons will cause YAML parsing failure
 description: One-push release workflow: auto git add all changes, pull latest.
 ```
 
-未加引号的冒号会触发 YAML 解析错误 `Nested mappings are not allowed in compact mappings`，导致 `npx skills` CLI 静默跳过该 skill。
+**Rule of thumb**: Always double-quote description values.
 
-**经验法则**：description 值始终用双引号包裹。
+## Directory Structure
+
+```
+dev-tools-skills/
+├── skills/              # Skill source files (each skill contains SKILL.md + README.md)
+├── .github/
+│   ├── copilot-instructions.md
+│   └── prompts/         # VS Code Copilot prompts
+├── .claude-plugin/      # Plugin metadata
+├── docs/                # Documentation root
+├── install.sh / install.ps1
+└── uninstall.sh / uninstall.ps1
+```
+
+## Documentation Rules
+
+- New documents default to `/docs`
+- Standard category directories: `plan`, `design`, `guide`, `modules`, `references`, `checklist`, `reports`
+- Check `/docs` and existing categories for semantically equivalent directories before creating new ones
+- Reuse existing semantically equivalent directories; do not create duplicate directories with similar names
+
+**Current Status**: `/docs` and all standard category directories created, no existing semantically equivalent directories.
+
+## Naming and Conventions
+
+- Git commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:` prefixes, commit messages in Chinese
+- Skill directories: no prefix (e.g., `init/` not `dt-init/`)
+- File naming: kebab-case
+
+## Validation Checklist
+
+When adding, removing, or modifying skills:
+
+1. `install.sh` skill list
+2. `install.ps1` skill list
+3. `.claude-plugin/marketplace.json` (if applicable)
+4. Root `README.md` skills table
+5. Root `README_EN.md` skills table

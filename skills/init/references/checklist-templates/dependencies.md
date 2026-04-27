@@ -1,35 +1,35 @@
-﻿# 依赖库清单模板
+# Dependency Checklist Template
 
-> 这是 init skill 使用的模板文件，用于在用户明确要求时生成 docs/checklist/dependencies.md。
-> 本模板只允许输出从构建文件、包管理文件或锁文件中真实解析到的依赖。
+> This is a template file used by init skill to generate docs/checklist/dependencies.md when explicitly requested.
+> This template only allows output of dependencies actually parsed from build files, package manager files, or lock files.
 
 ---
 
-# 依赖库清单
+# Dependency Checklist
 
-> 本文档只记录项目中实际使用的第三方依赖，供 AI 开发时参考。
+> This document only records third-party dependencies actually used in the project, for reference during AI development.
 
-## 生成规则
+## Generation Rules
 
-- 只记录从 build.gradle、build.gradle.kts、pom.xml、package.json、pnpm-lock.yaml、yarn.lock、pyproject.toml、requirements.txt、pubspec.yaml、Cargo.toml 等真实文件中解析到的依赖
-- 依赖分类是可选的，只有当某类下存在已验证依赖时才输出该分类
-- 未检测到的库不要出现在文档里
-- 不写推荐、备选、可考虑使用之类的推断性内容
-- 如果版本号无法可靠提取，可以只记录库名和用途
-- 不要为了文档完整性保留空分类或占位示例行
+- Only record dependencies parsed from real files like build.gradle, build.gradle.kts, pom.xml, package.json, pnpm-lock.yaml, yarn.lock, pyproject.toml, requirements.txt, pubspec.yaml, Cargo.toml, etc.
+- Dependency categories are optional; only output a category when verified dependencies exist under it
+- Libraries not detected should not appear in the document
+- Do not write speculative content like recommendations, alternatives, or "consider using"
+- If version cannot be reliably extracted, only record library name and usage
+- Do not keep empty categories or placeholder example rows for document completeness
 
-## 依赖列表
+## Dependency List
 
-可选分类模板，仅在检测到真实依赖时保留：
+Optional category templates, only kept when real dependencies are detected:
 
 ### {CATEGORY_NAME}
 
-| 依赖 | 版本 | 用途 |
-|------|------|------|
+| Dependency | Version | Usage |
+|------------|---------|-------|
 | {LIB_NAME} | {VERSION} | {USAGE} |
 
-## 更新规则
+## Update Rules
 
-- 新增依赖时同步更新
-- 删除依赖时及时清理
-- 只保留项目中真实存在的库
+- Update when adding new dependencies
+- Clean up promptly when removing dependencies
+- Only keep libraries that actually exist in the project
