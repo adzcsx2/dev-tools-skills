@@ -1,6 +1,6 @@
 ---
 name: dt:init
-description: "Initialize AI project context for any codebase. Detect Android, Flutter, React, Python, Java, Node.js and other stacks from real files, then generate or update CLAUDE.md, Copilot project instructions, a concise onboarding summary, establish a /docs taxonomy, and optionally create verified checklist docs."
+description: "Initialize AI project context for any codebase. Detect Android, Flutter, React, Python, Java, Node.js and other stacks from real files, then generate or update CLAUDE.md, AGENT.md (universal AI tool rules), Copilot project instructions, a concise onboarding summary, establish a /docs taxonomy, and optionally create verified checklist docs."
 argument-hint: "[optional focus] [--experiment [converge|sync]] [--dry-run]"
 origin: dev-tools-skills
 ---
@@ -67,8 +67,9 @@ origin: dev-tools-skills
 
 1. 会话内 onboarding 摘要
 2. 项目根目录 CLAUDE.md
-3. Copilot 可读取的项目级配置
-4. `/docs` 文档根目录及必要的分类目录骨架
+3. 项目根目录 AGENT.md（通用 AI 工具规范）
+4. Copilot 可读取的项目级配置
+5. `/docs` 文档根目录及必要的分类目录骨架
 
 Copilot 配置规则：
 
@@ -530,7 +531,67 @@ Experimental 模式补充要求：
 - **必须在初始化时创建缺失的标准分类目录**，不得只列出不创建
 - 在 CLAUDE.md 中明确列出已创建的目录和复用的现有目录映射
 
-### 7.2 Copilot 项目级配置
+### 7.2 AGENT.md
+
+AGENT.md 是面向所有 AI 工具的通用规范文件，不包含平台特定语法。
+
+**生成位置**：项目根目录 AGENT.md
+
+**内容要求**：
+
+- 50 到 80 行优先
+- 采用纯文本描述，避免使用特定平台语法
+- 不包含 Tool 调用、特定 Agent 指令等平台相关内容
+
+**必须包含**：
+
+1. **项目概览**
+   - 项目名称和用途
+   - 技术栈列表
+   - 目录结构说明
+
+2. **通用编码规范**
+   - 文件命名约定
+   - 代码风格规则
+   - 测试要求
+   - 提交信息格式
+
+3. **复用优先原则**（与 CLAUDE.md 保持一致）
+   - 先搜索再修改
+   - 保持局部一致性
+   - 最小改动原则
+   - 不主动引入新架构
+
+4. **关键路径索引**
+   - 主入口文件位置
+   - 公共组件/工具类位置
+   - 文档目录结构
+
+5. **常用命令**
+   - 构建、测试、运行命令
+
+**与 CLAUDE.md 的区别**：
+
+| 特性 | CLAUDE.md | AGENT.md |
+|------|-----------|----------|
+| 目标平台 | Claude Code | 所有 AI 工具 |
+| 语法 | 包含 Claude 特定指令 | 纯文本，无平台语法 |
+| 长度 | 60-120 行 | 50-80 行 |
+| 内容密度 | 高密度规则+路径索引 | 通用描述+规范 |
+
+**生成时机**：
+
+- 在 CLAUDE.md 生成之后
+- 在 Copilot 配置生成之前
+- 如果项目已存在 AGENT.md，优先增量优化而非全量覆盖
+
+**Experimental 模式补充要求**：
+
+- AGENT.md 必须基于变更后重新扫描的结果生成
+- 与 CLAUDE.md 保持一致的项目事实
+- 避免引入 experimental 阶段的临时状态描述
+
+### 7.3 Copilot 项目级配置
 
 如果使用 .github/copilot-instructions.md：
 
@@ -552,7 +613,7 @@ Experimental 模式补充要求：
 - 仍然只能维护 AGENTS.md 或 .github/copilot-instructions.md 之一
 - 不能在 experimental 模式下同时更新两份 Copilot 规则文件
 
-### 7.3 Onboarding 摘要
+### 7.4 Onboarding 摘要
 
 在会话中输出一份 2 分钟可扫完的摘要，至少包含：
 

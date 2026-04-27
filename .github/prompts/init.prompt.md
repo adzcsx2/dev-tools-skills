@@ -1,6 +1,6 @@
 ﻿---
 name: "init"
-description: "Initialize AI project context for any codebase: detect the real stack, summarize the repo, generate or update CLAUDE.md plus Copilot project instructions, and establish a stable /docs taxonomy."
+description: "Initialize AI project context for any codebase: detect the real stack, summarize the repo, generate or update CLAUDE.md, AGENT.md (universal AI tool rules), and Copilot project instructions, and establish a stable /docs taxonomy."
 argument-hint: "[optional focus] [--experiment [converge|sync]] [--dry-run]"
 agent: "agent"
 model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
@@ -14,6 +14,7 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - 只根据真实文件、目录和配置做结论，不要套模板
 - 输出一份简洁的 onboarding 摘要，包含技术栈、关键入口、目录地图、主要约定和常用命令
 - 生成或优化项目根目录的 CLAUDE.md
+- 生成或优化项目根目录的 AGENT.md（通用 AI 工具规范）
 - 为 VS Code Copilot 增加项目级配置：如果项目已有 AGENTS.md 就更新它，否则创建或更新 .github/copilot-instructions.md
 - 不要同时维护 AGENTS.md 和 .github/copilot-instructions.md 两套项目级指令
 - 统一项目文档到 `/docs`，建立标准文档分类；已有语义等价目录时必须复用，不能重复创建同义目录
@@ -28,7 +29,7 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - Experimental 模式允许修改架构，包括源码移动重命名、模块拆分合并、构建配置调整、依赖组织整理和规则文件更新
 - 进入 experimental 模式后，必须先输出 dry-run 预览；如果带 `--dry-run`，只预览不落盘
 - Dry-run 至少包含：拟变更对象、依据、影响范围、风险、预期收益、最小验证项、回滚点
-- 执行时序必须是：先常规侦察，再判定 `converge` 或 `sync`，再 dry-run，执行结构改动后重新扫描，最后才更新 CLAUDE.md 和 Copilot 项目级配置
+- 执行时序必须是：先常规侦察，再判定 `converge` 或 `sync`，再 dry-run，执行结构改动后重新扫描，最后才更新 CLAUDE.md、AGENT.md 和 Copilot 项目级配置
 - Copilot 项目级配置仍然只能维护 AGENTS.md 或 .github/copilot-instructions.md 之一，不能同时维护两份
 - 所有项目级规则必须基于变更后重新扫描的结果生成，不能基于变更前状态写入
 - Experimental 模式不得顺带做无关业务功能改动
