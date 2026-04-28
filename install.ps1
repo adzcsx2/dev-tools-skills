@@ -152,7 +152,8 @@ function Read-JsonFile($path, $defaultJson) {
 }
 
 function Write-JsonFile($path, $data) {
-    $data | ConvertTo-Json -Depth 10 | Set-Content $path -Encoding UTF8
+    $json = $data | ConvertTo-Json -Depth 10
+    [System.IO.File]::WriteAllText($path, $json, [System.Text.UTF8Encoding]::new($false))
 }
 
 function Ensure-SettingsPlugin {
