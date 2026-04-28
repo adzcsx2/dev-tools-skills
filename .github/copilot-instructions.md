@@ -31,7 +31,8 @@ When modifying:
 ## Documentation Rules
 
 - New documents go under `/docs` by default
-- Standard categories: `plan`, `design`, `guide`, `modules`, `references`, `checklist`, `reports`
+- Standard categories: `plan`, `product`, `design`, `guide`, `modules`, `references`, `checklist`, `reports`
+- Product docs, PRDs, user stories, acceptance criteria, and feature scope docs go under `/docs/product`
 - Check for existing semantically equivalent directories before creating new ones
 - Do not create duplicate directories (e.g., both `plan` and `plans`)
 

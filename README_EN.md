@@ -42,7 +42,7 @@ Installation also registers the global `/dt:init` and `/study` prompts for VS Co
 
 | Skill                      | Description                                                                                                        |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `dt:init`                  | Universal project init: detect the real stack and generate or optimize CLAUDE.md plus Copilot project instructions |
+| `dt:init`                  | Universal project init: detect the real stack and generate or optimize CLAUDE.md, AGENT.md, Copilot instructions, and AI coding/docs constraints |
 | `dt:study`                 | Study verified skill mistakes: capture them back into the workspace source skill and avoid cached copies           |
 | `dt:push`                  | One-push release workflow: auto stage, pull, per-file commit, push                                                 |
 | `dt:update-remote-plugins` | Remote plugin maintenance: update docs and config, then verify install-based local refresh uses the latest version |
@@ -96,7 +96,7 @@ dev-tools-skills/
 
 ## Version
 
-v1.1.4
+v1.1.5
 
 ## License
 

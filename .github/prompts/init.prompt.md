@@ -19,6 +19,11 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - 不要同时维护 AGENTS.md 和 .github/copilot-instructions.md 两套项目级指令
 - 统一项目文档到 `/docs`，建立标准文档分类；已有语义等价目录时必须复用，不能重复创建同义目录
 - 默认遵循先搜索、先复用、最小改动、局部一致
+- 如果项目曾经执行过 init，必须把旧版 CLAUDE.md、AGENT.md、AGENTS.md 或 Copilot 指令增量升级到当前 init 标准，而不是只报告已存在
+- 当前 init 标准只约束后续 AI coding 行为，不要求主动重构既有源码；只有后续需求触碰到相关文件时才按新规则执行
+- 生成的 CLAUDE.md、AGENT.md 和 checklist 文档必须使用英文
+- 生成的 AI 规则必须面向 AI vibe coding：低 token、高密度、小文件、单职责、可检索
+- 生成的 AI 规则必须包含触碰文件原则、计划触发条件和最小验证规则
 
 如果用户显式传入 `--experiment`，按 experimental 模式执行，并遵循这些规则：
 
@@ -46,10 +51,29 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 
 - 默认文档根目录是 `/docs`
 - 如果没有 `/docs`，需要创建 `/docs`
-- 标准文档分类至少识别 `plan`、`design`、`guide`、`api`、`modules`、`references`、`checklist`、`reports`
+- 标准文档分类至少识别 `plan`、`product`、`design`、`guide`、`modules`、`references`、`checklist`、`reports`
+- `product` 用于产品需求、PRD、用户故事、验收标准和功能范围；如果已有 `/docs/requirements`、`/docs/prd` 或语义等价目录，则复用它
+- `api` 不是默认强制分类；只有项目或用户需求明确需要 API 文档分类时才创建
 - 如果项目已有语义等价目录，例如 `/docs/plans`，则复用它，不要再创建 `/docs/plan`
 - 如果缺少某个需要的分类且不存在语义等价目录，则创建对应分类目录
 - 生成的 CLAUDE.md 和 Copilot 项目级配置必须写入文档归档规则，确保后续 AI 不在根目录或 `/docs` 下乱建同义文档目录
+
+关于 AI vibe coding，必须写入这些规则：
+
+- 源码文件优先控制在 500 行以内；接近或超过 500 行时，优先拆分职责清晰的组件、service、helper、module、section 或测试文件
+- 不要继续向已经过大的文件追加无关逻辑；单个文件只承担一个清晰职责
+- 新增代码优先放在可复用、可测试、可检索的小单元中
+- 生成文件、lockfile、迁移文件、快照、vendor、第三方代码、协议生成物、框架强制入口和已有大型遗留文件不受 500 行偏好约束
+- 如果修改遗留大型文件，优先最小变更；只有用户要求重构或收益明确时才拆分
+- 不要为了满足 500 行偏好而主动重构未被需求触碰的既有代码；该规则用于约束后续新增代码和正在修改的文件
+
+关于后续 AI coding 范围和验证，必须写入这些规则：
+
+- 只修改与当前需求、bug 或用户指令直接相关的文件，不做顺手格式化、批量 import 重排、全仓库 lint fix 或无关重命名
+- 工作区已有未由当前 AI 产生的改动时，必须保留并绕开，不要覆盖、回滚或重写
+- 预计修改超过 3 个源码文件、跨模块、新增依赖、改 public API/数据模型/路由/权限/持久化格式，或需求不清晰时，必须先给简短计划或向用户确认
+- 每次代码改动后优先运行与改动范围最小相关的 test、lint、typecheck、build 或 smoke 验证
+- 没有可执行验证命令时，必须明确写 `not verified` 或同等说明，不得声称通过
 
 如果识别到特定技术栈，追加这些约束：
 

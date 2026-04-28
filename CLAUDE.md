@@ -61,7 +61,8 @@ dev-tools-skills/
 ## Documentation Rules
 
 - New documents default to `/docs`
-- Standard category directories: `plan`, `design`, `guide`, `modules`, `references`, `checklist`, `reports`
+- Standard category directories: `plan`, `product`, `design`, `guide`, `modules`, `references`, `checklist`, `reports`
+- Product docs, PRDs, user stories, acceptance criteria, and feature scope docs go under `/docs/product`
 - Check `/docs` and existing categories for semantically equivalent directories before creating new ones
 - Reuse existing semantically equivalent directories; do not create duplicate directories with similar names
 
