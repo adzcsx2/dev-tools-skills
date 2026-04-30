@@ -169,12 +169,14 @@ Check `docs/.doc-metadata.json`:
 
 ### 4. Analyze Git Changes
 
-**Git-based Change Detection:**
+**Change-source priority (must follow in order):**
 
-1. Read `docs/.doc-metadata.json` to get `lastUpdate` date
-2. Run `git log --since="{lastUpdate}" --oneline --no-merges` to get new commits
-3. For each commit, get changed files
-4. Map changed files to affected documents
+1. Read current working tree changes first: `git diff --name-only`, `git diff --cached --name-only`
+2. If diff exists, inspect focused hunks before reading commit history; do not skip directly to commit summaries
+3. Then read `docs/.doc-metadata.json` to get `lastUpdate` or `lastCommit`
+4. Run `git log --since="{lastUpdate}" --oneline --no-merges` only as a supplement for already-committed changes
+5. If metadata is missing or stale, fall back to recent commits plus current diff, but still prefer real workspace hunks over commit message summaries
+6. For every changed file, read the relevant diff hunk or nearby source block before mapping to docs
 
 **File to Document Mapping:**
 | Source File Pattern | Affected Documents |
@@ -191,8 +193,28 @@ Check `docs/.doc-metadata.json`:
 
 - 如果公开接口、接入步骤、命令入口或能力边界发生变化，额外更新 `README.md` 与 `docs/README.md`
 - 如果示例工程、调试入口、联调方式或演示界面发生变化，额外更新 `example/README.md` 或对应示例文档
-- 如果当天已经有文档更新记录，合并进当天 `docs/update-list/update-YYYY-MM-DD.md`，并同步刷新 `docs/reports/CHANGELOG.md`
+- 如果当天已经有文档更新记录，写入当天同一文件中的新执行批次，并同步刷新 `docs/reports/CHANGELOG.md`
 - 如果一次改动同时影响多个文档，必须一次性全量更新，不要只修最先命中的那一篇
+
+### 4.1 Build Evidence Matrix Before Writing
+
+在生成任何文档前，先为每个实际改动文件建立一行证据记录，至少包含：
+
+| 字段                | 必填内容                                                                 |
+| ------------------- | ------------------------------------------------------------------------ |
+| Source file         | 实际变更文件路径                                                         |
+| Symbol / entry      | 变更的 Activity、Fragment、接口、权限、通知渠道、Gradle 配置项或脚本入口 |
+| Real change         | 新增 / 删除 / 修改了什么行为，禁止只写“优化”“调整”                       |
+| User-visible impact | 对用户、接入方、构建方式、联调流程或示例行为造成的影响                   |
+| Target docs         | 受影响文档列表                                                           |
+| Update-list bullet  | 准备写入 `update-list` 的具体条目                                        |
+
+强制要求：
+
+- `update-list` 中的每个 bullet 必须能回溯到至少一条证据记录
+- 禁止只依据 commit message 生成文档内容
+- 禁止使用“完善逻辑”“更新内容”“修复问题”这类无法映射到代码事实的空泛描述
+- 如果 diff hunk 无法说明真实行为，必须补读对应源文件后再写文档
 
 ### 5. Analyze Project
 
@@ -202,32 +224,44 @@ Extract: applicationId, versionCode, versionName, four components list, permissi
 
 #### 5.2 Analyze build.gradle
 
-Extract: compileSdkVersion, buildTypes, productFlavors, dependencies
+Extract: compileSdkVersion / compileSdk, minSdk, targetSdk, buildTypes, productFlavors, plugins, module dependencies, external dependencies
 
 **重要：提取被注释掉的版本号**
 
 在分析依赖时，必须同时记录被注释掉的版本信息（通常用于本地开发或备用配置）：
 
-```yaml
-# 示例配置
-some_library:
-  # git:
-  #   url: https://github.com/example/library.git
-  #   ref: 1.0.1
-  path: ../
+```kotlin
+// implementation("com.squareup.okhttp3:okhttp:4.12.0")
+implementation(project(":network"))
+
+// api(project(":legacy-sdk"))
+api("com.squareup.retrofit2:retrofit:2.11.0")
+```
+
+```toml
+# retrofit = "2.10.0"
+retrofit = "2.11.0"
 ```
 
 **提取规则**：
 
-- 检测 `# ref: X.Y.Z` 格式的注释版本号
-- 检测 `# version: X.Y.Z` 格式的注释版本号
-- 在 DEPENDENCIES.md 中同时记录当前使用的依赖方式和注释中的版本信息
+- 同时扫描根工程与各模块的 `build.gradle` / `build.gradle.kts`、`settings.gradle` / `settings.gradle.kts`、`gradle/libs.versions.toml`、`gradle.properties`
+- 检测 Gradle/KTS 中被注释掉的 `implementation`、`api`、`classpath`、`id(...) version ...`、`project(...)` 依赖或插件版本
+- 检测 version catalog / TOML 中被注释掉的 alias 版本，如 `# retrofit = "2.10.0"`
+- 如果当前使用 alias，必须同时记录 alias 名和解析后的实际版本
+- 在 `DEPENDENCIES.md` 中同时记录当前使用方式和注释中的备选版本或本地模块方案
 - 格式示例：
-  ```markdown
-  ### some_library
 
-  - **当前配置**: path 依赖 (../)
-  - **注释中的版本**: git ref: 1.0.1
+  ```markdown
+  ### retrofit
+
+  - **当前配置**: version catalog `libs.retrofit` -> `2.11.0`
+  - **注释中的版本**: `retrofit = "2.10.0"`
+
+  ### network module
+
+  - **当前配置**: `implementation(project(":network"))`
+  - **注释中的备选方案**: `api(project(":legacy-sdk"))`
   ```
 
 #### 5.3 Analyze Activity/Fragment
@@ -291,8 +325,9 @@ Generate or merge the detailed update document in `docs/update-list/` for each d
 ### 8.1.1 Same-Day Merge Rules
 
 - 同一天重复执行时，必须更新当天已有的详情文件，而不是新建第二条
-- 合并时保留当天所有已确认的实际文档变更，去重后再输出
-- 如果同一文档当天被多次更新，保留最新结果，并在变更内容中合并补充新增信息
+- 同一文件内按执行批次追加 `## 执行批次 - HH:MM`，不要把当天早些时候的批次覆盖掉
+- 每个执行批次都要保留自己的来源范围、关联提交、受影响文档和证据矩阵
+- 如果同一文档当天被多次更新，只在对应批次内合并本次新增事实；不得重写之前批次已确认的事实
 - 如果本次只有时间戳或元数据变化，没有实际文档变化，则不要改写详情文件内容
 
 ### 8.2 Document Content Structure
@@ -302,11 +337,19 @@ Generate or merge the detailed update document in `docs/update-list/` for each d
 ```markdown
 # 更新详情 - YYYY-MM-DD
 
-## 概述
+## 执行批次 - HH:MM
 
-**更新时间**: YYYY-MM-DD HH:MM
-**触发方式**: Git 提交分析 / --force 强制更新
+**触发方式**: 工作区 diff / staged diff / Git 提交分析 / --force 强制更新
+**来源范围**: `git diff` / `git diff --cached` / `abc1234..def5678`
 **关联提交**: abc1234, def5678
+**受影响文档**: API.md, INTERFACES.md, NAVIGATION.md
+
+## 变更证据矩阵
+
+| 源文件                                  | 变更符号/入口  | 实际变化                   | 用户可见影响               | 目标文档                  |
+| --------------------------------------- | -------------- | -------------------------- | -------------------------- | ------------------------- |
+| `app/src/main/java/.../CastDialog.kt`   | `CastDialog`   | 新增铸造确认和失败重试交互 | 铸造对话框行为发生变化     | `INTERFACES.md`           |
+| `app/src/main/java/.../WCController.kt` | `WCController` | 新增钱包连接超时与重连逻辑 | 连接流程与错误处理发生变化 | `NAVIGATION.md`, `API.md` |
 
 ## 文档变更详情
 
@@ -389,6 +432,8 @@ Generate or merge the detailed update document in `docs/update-list/` for each d
 - 每个文件的**多处变动都要列出**
 - 不要写"保持不变"的文件列表
 - 只写有实际变动的文件
+- 如果本次主要来自未提交 diff，也要写成 `### 当前工作区改动` 或 `### 已暂存改动`，不要强行伪造成 commit
+- 每条文件级描述都要来自 diff hunk 或补读后的源文件事实，不能复述 commit 标题代替分析
 
 ### 8.3 What to EXCLUDE from Update Log (CRITICAL)
 
@@ -435,6 +480,8 @@ Generate or merge the detailed update document in `docs/update-list/` for each d
    - Sections removed
    - Content modified (not just formatting)
 4. **Skip if only metadata changed** (timestamps, etc.)
+5. **Write `update-list` first** using actual document diffs plus evidence matrix, then derive CHANGELOG and README from that detail file
+6. **Do not invent detail in summaries**: CHANGELOG and README may only summarize facts already present in `update-list`
 
 ### 8.6 Ignore Code Formatting Changes (CRITICAL)
 
@@ -535,9 +582,10 @@ CHANGELOG.md 位于 `docs/reports/CHANGELOG.md`，作为更新列表包含可点
 **CHANGELOG Update Rules:**
 
 1. **Newest first**: Keep the newest date at the TOP
-2. **Summary table**: Show document, change type, and brief description
+2. **Summary table**: Show document, change type, and brief description derived from the same-day `update-list` execution batches
 3. **Detail link**: Each update has a link to `update-list/update-YYYY-MM-DD.md`
 4. **One entry per day**: If today's entry already exists, merge new changes into the same section instead of creating another same-day section
+5. **No new facts**: CHANGELOG 只能压缩 `update-list` 已有事实，不能补写未在详情文档出现的信息
 
 ---
 
@@ -576,7 +624,8 @@ README.md shows **3 most recent updates**:
 
 1. **3 recent updates**: Show the latest 3 updates
 2. **Link to CHANGELOG**: Point to `docs/reports/CHANGELOG.md` for full history
-3. **Brief description**: Summarize each update in one sentence
+3. **Brief description**: Summarize each update in one sentence derived from CHANGELOG, not directly from source diff
+4. **No drift**: README 的最近更新必须与 CHANGELOG 同步，CHANGELOG 又必须与 `update-list` 同步
 
 ---
 
@@ -588,6 +637,7 @@ Update `docs/.doc-metadata.json` with:
 2. **Update lastCommit** to current HEAD
 3. **Merge into the same-day item in updateHistory** if today's entry already exists; only append when the date is new
 4. **Update stats** section
+5. **Skip metadata-only runs**: If no actual doc changed, do not append updateHistory or refresh summaries
 
 ---
 
