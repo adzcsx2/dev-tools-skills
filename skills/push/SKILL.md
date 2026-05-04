@@ -264,6 +264,7 @@ git commit -m "<分组 commit message>"
 - 根据分组整体变更内容自动判断 type
 - 描述要概括整组变更的核心意图，而非列举每个文件
 - 保持简洁，一行描述清楚即可
+- **禁止**在 commit message 中追加 `Co-Authored-By` 行
 
 #### 4.5 Dry-run 模式（预览）
 
