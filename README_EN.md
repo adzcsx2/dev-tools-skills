@@ -44,7 +44,7 @@ Installation also registers the global `/dt:init` and `/study` prompts for VS Co
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `dt:init`                  | Universal project init: detect the real stack and generate or optimize CLAUDE.md, AGENT.md, Copilot instructions, and AI coding/docs constraints |
 | `dt:study`                 | Study verified skill mistakes: capture them back into the workspace source skill and avoid cached copies           |
-| `dt:push`                  | One-push release workflow: auto stage, pull, per-file commit, push                                                 |
+| `dt:push`                  | One-push release workflow: auto stage, pull, logical-group commit, push with --preview support                     |
 | `dt:update-remote-plugins` | Remote plugin maintenance: update docs and config, then verify install-based local refresh uses the latest version |
 | `dt:code-note`             | Multi-language code annotation: auto-detect language and apply comment style                                       |
 

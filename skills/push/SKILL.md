@@ -1,7 +1,7 @@
 ---
 name: dt:push
-description: "One-push release workflow: auto git add all changes, pull latest, per-file commit, generate docs, push to remote with optional tag."
-argument-hint: "[version] e.g. /dt:push 1.2.2"
+description: "One-push release workflow: auto git add all changes, pull latest, logical-group commit, push to remote with optional tag."
+argument-hint: "[version|--preview] e.g. /dt:push 1.2.2 or /dt:push --preview"
 ---
 
 > **中文环境要求**
@@ -15,7 +15,7 @@ argument-hint: "[version] e.g. /dt:push 1.2.2"
 
 # push Skill
 
-一键发布工作流：自动暂存所有变更、拉取最新代码、逐文件提交、推送到远程仓库。
+一键发布工作流：自动暂存所有变更、拉取最新代码、按逻辑分组提交、推送到远程仓库。
 
 **重要：所有 git 命令均在用户当前工作目录执行。**
 
@@ -23,13 +23,14 @@ argument-hint: "[version] e.g. /dt:push 1.2.2"
 
 - 开发完成，准备将代码推送到远程仓库
 - 发版时需要更新文档版本号并创建 tag
-- 需要自动生成提交信息并逐文件提交
+- 需要自动生成提交信息并按逻辑分组提交
 - 工作区有未暂存的变更，需要一键提交推送
 
 ## Example Prompts
 
-- `/dt:push` - 自动暂存所有变更，逐文件提交，推送到远程
+- `/dt:push` - 自动暂存所有变更，按逻辑分组提交，推送到远程
 - `/dt:push 1.2.2` - 更新文档版本号到 1.2.2，提交并打 tag
+- `/dt:push --preview` - 预览分组方案与 commit messages，不执行任何 git 操作
 
 ---
 
@@ -37,8 +38,9 @@ argument-hint: "[version] e.g. /dt:push 1.2.2"
 
 | Parameter | Description |
 |-----------|-------------|
-| No args | 自动 git add 所有变更，逐文件提交，推送到远程 |
+| No args | 自动 git add 所有变更，按逻辑分组提交，推送到远程 |
 | `X.Y.Z` | 额外将文档中的版本号更新为指定版本，并创建 tag |
+| `--preview` | 仅预览逻辑分组方案与 commit messages，不执行任何 git 操作 |
 
 ---
 
@@ -181,9 +183,9 @@ git add <changed doc files>
 git commit -m "chore: bump version to X.Y.Z"
 ```
 
-### Step 4: Per-File Commit for All Changes
+### Step 4: Logical-Group Commit for All Changes
 
-自动暂存所有工作区变更，然后逐文件提交。
+自动暂存所有工作区变更，按**逻辑分组**提交，同一逻辑变更合并为 1 个 commit。
 
 **添加所有变更**：
 ```bash
@@ -195,35 +197,95 @@ git add .
 git diff HEAD --name-only
 ```
 
-**对每个文件生成独立 commit**。
+#### 4.1 逻辑分组策略
 
-执行逻辑（伪代码，非直接运行的脚本）：
+先完整读取所有文件的 diff，再按以下规则（优先级从高到低）归并到分组：
 
-1. 读取变更文件列表，按文件路径排序
-2. 对每个文件：
-   a. `git reset HEAD -- <file>` 将文件从暂存区取出
-   b. `git diff -- <file>` 分析该文件的具体变更内容（相对于工作区）
-   c. 根据变更内容生成 commit message（中文）
-   d. `git add <file>` 重新暂存该文件
-   e. `git commit -m "<message>"` 提交
-   f. **如果 commit 失败**（如 pre-commit hook 拒绝）→ 停止循环，保留当前状态，提示用户处理
+| 优先级 | 分组规则 | 示例场景 |
+|-------|---------|---------|
+| P0 | **相同字符串替换**：多个文件的 diff 中出现相同的 `- old` / `+ new` 字符串对（剔除上下文行后仍重合） | 多文件统一替换 baseUrl 域名 |
+| P1 | **同一符号重命名**：函数名、类名、常量名在多文件同步变动 | 函数重命名后波及的所有调用方文件 |
+| P2 | **同一目录 / 功能模块**：路径前缀相同且 diff 语义相关（如同属一个 feature 分支的改动） | `app/api/meeting/*` 内的多个文件一同修改 |
+| P3 | **同主题批量新增**：在同一次操作中新增的一组文件（如新 skill 的 SKILL.md + README.md） | 新增 skill 时一并提交两个新文件 |
+| P4 | **独立变更**：不匹配任何上述规则的文件，回退为**单文件 commit** | 彼此无关的零散修改 |
 
-**Commit message 生成规则**：
+**分组执行逻辑**（伪代码）：
+
+```
+1. 读取所有变更文件及其 diff
+2. 字符串替换检测（P0）：
+   a. 提取每个文件中所有 "-旧 / +新" 行对
+   b. 对 (旧, 新) 做哈希分组
+   c. 出现在 ≥ 2 个文件中的 (旧, 新) 对 → 这些文件归为同一 P0 分组
+3. 符号重命名检测（P1）：
+   a. 对剩余文件检测标识符（函数名/类名）的统一替换
+   b. 在 ≥ 2 个文件中出现同一标识符变化 → 归为 P1 分组
+4. 目录聚类（P2）：
+   a. 对剩余文件按目录前缀聚合
+   b. 同目录下 ≥ 2 个文件有关联 diff → 归为 P2 分组
+5. 同主题新增（P3）：
+   a. 剩余新增文件中，位于同一目录或明显成套的（如 SKILL.md + README.md）→ 归为 P3 分组
+6. 其余文件 → 各自独立 P4 单文件 commit
+```
+
+#### 4.2 小批量快速路径
+
+**变更文件总数 ≤ 3 个**：跳过分组分析，直接将全部文件合并为 **1 个 commit**，避免过度切分。
+
+#### 4.3 分组提交执行
+
+对每个分组（含单文件 P4）依次执行：
+
+```bash
+git reset HEAD                  # 清空暂存区
+git add <该分组所有文件>
+git commit -m "<分组 commit message>"
+```
+
+**如果 commit 失败**（如 pre-commit hook 拒绝）→ 停止，保留当前状态，提示用户处理后手动重新执行。
+
+#### 4.4 Commit message 生成规则
+
+分组 commit message 基于**该分组所有文件的聚合 diff** 生成，而非单文件 diff：
 
 | 变更类型 | type | 示例 |
 |----------|------|------|
-| 新增功能/文件 | `feat` | `feat: 新增 UserViewModel 用户状态管理` |
+| 新增功能/文件 | `feat` | `feat: 新增会议模块 API 接口与对应文档` |
 | Bug 修复 | `fix` | `fix: 修复登录页面输入框焦点丢失问题` |
 | 重构 | `refactor` | `refactor: 重构网络请求拦截器结构` |
 | 文档 | `docs` | `docs: 更新 API 接口说明文档` |
 | 配置/构建 | `chore` | `chore: 更新依赖版本` |
 | 样式/资源 | `style` | `style: 更新登录页面布局样式` |
 
+**P0 字符串替换组**专属描述格式：`chore: 统一 <变更对象> 为 <新值>` 或 `refactor: 将 <旧值> 重命名为 <新值>`
+
 **Commit message 要求**：
 - 使用中文描述
-- 根据文件变更内容自动判断 type
-- 描述要具体，包含文件中的关键变更点
+- 根据分组整体变更内容自动判断 type
+- 描述要概括整组变更的核心意图，而非列举每个文件
 - 保持简洁，一行描述清楚即可
+
+#### 4.5 Dry-run 模式（预览）
+
+执行 `/dt:push --preview` 时，Step 4 仅展示分组结果与生成的 commit messages，**不执行任何 git 操作**：
+
+```
+[preview] 检测到 N 个逻辑分组：
+
+分组 1（P0 字符串替换，3 个文件）
+  文件：app/api/meeting.py, docs/api.md, scripts/sync_swagger.sh
+  将提交：chore: 统一测试环境域名地址为 new.example.com
+
+分组 2（P3 同主题新增，2 个文件）
+  文件：skills/push/SKILL.md, skills/push/README.md
+  将提交：feat: 新增 push skill 文档
+
+分组 3（P4 独立，1 个文件）
+  文件：README.md
+  将提交：docs: 更新项目简介
+
+输入 yes 确认执行，或输入 no 退出。
+```
 
 ### Step 5: Push to Remote
 
@@ -270,10 +332,11 @@ Tag 命名格式：直接使用用户提供的版本号，例如 `1.2.2`
 
 1. **所有 git 命令在用户当前工作目录执行**，不是 ~/.claude 或插件目录
 2. 所有 commit message 使用中文
-3. 逐文件提交时，按文件路径的字母顺序依次提交
+3. Step 4 按逻辑分组提交；变更文件 ≤ 3 个时整体合为 1 个 commit
 4. 版本号仅更新文档中的记录，不修改项目构建文件
 5. 如果某个文件的变更只有代码格式化，commit message 中标注为 `style`
 6. push 失败时自动重试一次，冲突无法解决时交给用户
 7. Tag 直接使用用户提供的版本号，不添加 `v` 前缀，例如 `1.2.2`
 8. Step 3 在 Step 4 之前执行，Step 3 提交的文件不会在 Step 4 中重复提交
 9. Step 1 提前拉取代码，大幅降低 Step 5 推送时的冲突概率
+10. `/dt:push --preview` 仅预览分组方案与 commit messages，不执行任何 git 操作
