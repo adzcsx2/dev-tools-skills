@@ -633,3 +633,124 @@ fi
 4. 生成的 `start-public.sh` / `start-public.ps1` 可提交到 git；`.cloudflared/config.yml` 中有本地路径，建议加入 `.gitignore`
 5. Windows 用户首次运行 ps1 可能需要：`Set-ExecutionPolicy -Scope Process RemoteSigned`
 6. tunnel 名在 Cloudflare 账户内全局唯一，同名 tunnel 不能重复创建
+
+---
+
+## Windows 常见陷阱与最佳实践
+
+### 陷阱 1：`start` 命令在 .bat 中不可靠（必须避免）
+
+Windows `.bat` 文件中用 `start` 后台启动 cloudflared **会失败**：
+
+```bat
+:: 错误写法 —— 进程会立即退出，报 "The system cannot find the file <title>"
+start "cloudflared-build" /min cloudflared.exe tunnel --config "config.yml" run
+```
+
+**原因**：`start` 的第一个带引号参数会被当作窗口标题，但在某些环境（MSYS2/Git Bash/某些 CMD 版本）下，`start` 会将标题误解为要执行的可执行文件名，导致进程立即退出。
+
+**正确做法**：在 .bat 中通过 PowerShell 启动：
+
+```bat
+:: 正确写法 —— 进程可靠存活
+powershell -Command "Start-Process -FilePath 'cloudflared.exe' -ArgumentList 'tunnel','--config','%USERPROFILE%\.cloudflared\config.yml','run' -WindowStyle Minimized"
+```
+
+**重要**：生成任何 Windows 启动脚本（.bat 或 .ps1）时，**禁止使用 `start` 命令启动 cloudflared**，一律用 PowerShell `Start-Process`。
+
+### 陷阱 2：进程唯一性 —— 防止重复启动
+
+多次执行启动脚本会产生多个 cloudflared 进程，导致：
+- 重复的 tunnel 连接（浪费资源）
+- Cloudflare 返回 1033 错误（连接冲突）
+- stop 时残留孤儿进程
+
+**启动前必须检查**（按命令行参数匹配，而非窗口标题）：
+
+```bat
+:: .bat 中检查唯一性
+powershell -Command "Get-CimInstance Win32_Process -Filter \"name='cloudflared.exe'\" | Where-Object {$_.CommandLine -like '*config-build*'} | Select-Object -First 1" 2>nul | findstr /i "cloudflared" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo   [SKIP] tunnel already running
+) else (
+    powershell -Command "Start-Process -FilePath 'cloudflared.exe' -ArgumentList 'tunnel','--config','config.yml','run' -WindowStyle Minimized"
+)
+```
+
+```powershell
+# .ps1 中检查唯一性
+$existing = Get-CimInstance Win32_Process -Filter "name='cloudflared.exe'" |
+    Where-Object { $_.CommandLine -like "*$ConfigFile*" }
+if ($existing) {
+    Write-Host "[SKIP] tunnel already running (PID: $($existing.ProcessId))"
+} else {
+    Start-Process cloudflared -ArgumentList "tunnel","--config",$ConfigFile,"run" -WindowStyle Minimized
+}
+```
+
+### 陷阱 3：停止 tunnel 要按命令行精确匹配
+
+用窗口标题 `taskkill /FI "WINDOWTITLE eq ..."` 不可靠（`Start-Process` 不设置窗口标题）。正确做法：
+
+```bat
+:: 按 command line 匹配杀进程
+powershell -Command "Get-CimInstance Win32_Process -Filter \"name='cloudflared.exe'\" | Where-Object {$_.CommandLine -like '*config-web*' -or $_.CommandLine -like '*config-build*'} | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
+```
+
+### 多 tunnel 管理（start-all / stop-all）模板
+
+当一台机器跑多个 tunnel 时，推荐以下 .bat 模板：
+
+```bat
+@echo off
+chcp 65001 >nul
+setlocal enabledelayedexpansion
+
+:: ---- 定义 tunnel 列表 ----
+set "tunnel_count=2"
+set "t1_config=%USERPROFILE%\.cloudflared\config-web.yml"
+set "t2_config=%USERPROFILE%\.cloudflared\config-build.yml"
+
+:: ---- 唯一性检查 + 启动 ----
+for /l %%i in (1,1,%tunnel_count%) do (
+    set "tconfig=!t%%i_config!"
+
+    powershell -Command "Get-CimInstance Win32_Process -Filter \"name='cloudflared.exe'\" | Where-Object {$_.CommandLine -like '*!tconfig!*'} | Select-Object -First 1" 2>nul | findstr /i "cloudflared" >nul 2>&1
+    if !errorlevel! equ 0 (
+        echo   [SKIP] !tconfig! already running
+    ) else (
+        powershell -Command "Start-Process -FilePath 'cloudflared.exe' -ArgumentList 'tunnel','--config','!tconfig!','run' -WindowStyle Minimized"
+        echo   [START] !tconfig! started
+    )
+)
+
+:: ---- stop-all 模板 ----
+:: powershell -Command "Get-CimInstance Win32_Process -Filter \"name='cloudflared.exe'\" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
+endlocal
+```
+
+### 诊断命令
+
+当 tunnel 无法访问时，按以下顺序排查：
+
+```bash
+# 1. 检查 tunnel 是否有活跃连接（最关键）
+cloudflared tunnel info <tunnel-id-or-name>
+# "does not have any active connection" = tunnel 进程没在跑
+
+# 2. 检查本地服务是否在监听
+netstat -ano | grep ":<port> " | grep LISTEN
+
+# 3. 本地直接 curl 测试
+curl -s -o /dev/null -w "%{http_code}" http://localhost:<port>/
+
+# 4. 通过域名 curl 测试
+curl -s -o /dev/null -w "%{http_code}" https://<hostname>/
+# 返回 530 + "error code: 1033" = tunnel 进程未连接到 Cloudflare edge
+
+# 5. 检查是否有 cloudflared 进程在跑
+powershell -Command "Get-CimInstance Win32_Process -Filter \"name='cloudflared.exe'\" | Select-Object ProcessId, CommandLine | Format-List"
+
+# 6. 前台运行看详细日志（调试用）
+cloudflared.exe tunnel --config "config.yml" run
+```

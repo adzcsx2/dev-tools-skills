@@ -25,6 +25,9 @@
 - PowerShell 启动模板通过 shell 包装复杂启动命令，避免 `Start-Process` 直接执行失败
 - 启动脚本退出时自动清理 tunnel 进程，二次启动前自动回收残留 cloudflared
 - 启动后实时显示公网地址
+- Windows 下禁止使用 `start` 命令启动 cloudflared（进程会立即退出），一律用 PowerShell `Start-Process`
+- 多 tunnel 场景启动前按命令行参数检查唯一性，防止重复进程
+- 提供 start-all / stop-all 多 tunnel 管理模板
 
 ## 前置要求
 
