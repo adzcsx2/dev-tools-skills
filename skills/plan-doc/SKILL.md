@@ -1,6 +1,6 @@
 ---
 name: dt:plan-doc
-description: "Generate a complete task-scoped documentation set under docs/plan/<task-slug>/: README, execution log with progress pointer and subagent plan, architecture design, dev guide, roadmap, and optional test docs. Prefer /ecc:plan for execution, fall back to /everything-claude-code:plan when available, and degrade to a plain-language resume prompt if the user declines installation."
+description: "Generate a complete task-scoped documentation set under docs/plan/<task-slug>-YYYY-MM-DD/: README, execution log with progress pointer and subagent plan, architecture design, dev guide, roadmap, and optional test docs. Prefer /ecc:plan for execution, fall back to /everything-claude-code:plan when available, and degrade to a plain-language resume prompt if the user declines installation."
 argument-hint: "<task-slug> [test] | [test] [task-slug]"
 origin: dev-tools-skills
 ---
@@ -15,7 +15,7 @@ origin: dev-tools-skills
 
 # plan-doc Skill
 
-Generate a complete task-scoped documentation set in `docs/plan/<task-slug>/` so an AI can execute a multi-phase engineering task across multiple sessions without losing progress.
+Generate a complete task-scoped documentation set in `docs/plan/<task-slug>-YYYY-MM-DD/` so an AI can execute a multi-phase engineering task across multiple sessions without losing progress.
 
 Default execution companion is `/ecc:plan`: it handles in-conversation phase execution, while `/dt:plan-doc` **persists** that plan as linked markdown files with a progress pointer and a subagent plan baked in.
 
@@ -102,7 +102,7 @@ Output a plan in this exact shape:
 # plan-doc generation plan: <task-slug>
 
 ## Output location
-docs/plan/<task-slug>/
+docs/plan/<task-slug>-<YYYY-MM-DD>/
 
 ## Documents to generate
 - README.md — index
@@ -137,7 +137,9 @@ Reply "yes" / "proceed" to generate, or "modify: ..." to adjust.
 
 Only after confirmation:
 
-1. Create `docs/plan/<task-slug>/` (fail if it already exists with content — ask before overwriting)
+1. Compute the target directory: `docs/plan/<task-slug>-<today-date>/` where `<today-date>` is the local date in `YYYY-MM-DD` format at generation time.
+   - Before creating, scan for existing directories matching `docs/plan/<task-slug>-*/` (same slug, any date). If one is found, ask the user: "已存在 `<found-dir>`，是续做（reuse）还是新任务（create new）？" Only create a new directory if the user chooses new task.
+   - Fail if the target directory already exists with content — ask before overwriting.
 2. Write the docs in this order: `README.md` → `00-执行文档.md` → `01` → `02` → `03` → (`04` → `05` if test)
 3. Use the templates in `references/templates/` as starting point; fill placeholders from Restate output
 4. Cross-link documents (README links to all; `00` links to `01-03`; each numbered doc has prev/next links)
@@ -153,8 +155,13 @@ After writing all files:
 
 ## Output Structure
 
+目录命名规则：`docs/plan/<task-slug>-<YYYY-MM-DD>/`
+- `<task-slug>`：用户提供的英文 kebab-case 标识符
+- `<YYYY-MM-DD>`：生成当天的本地日期，例如 `2026-05-06`
+- 示例：`docs/plan/ble-multi-device-fix-2026-05-06/`
+
 ```
-docs/plan/<task-slug>/
+docs/plan/<task-slug>-<YYYY-MM-DD>/
 ├── README.md                  # required · task index, background, doc list, task status
 ├── 00-执行文档.md             # required · progress pointer, subagent plan, checklists
 ├── 01-架构设计.md             # required · core architectural decisions
@@ -194,6 +201,12 @@ This is the file that makes `plan-doc` different from a plain execution command 
 5. **Execution log** (reverse chronological table, AI appends every state change)
 
 6. **Execution prompt template** users can hand to a fresh AI session
+
+### Placeholder conventions
+
+- `{{TASK_SLUG}}` — 纯 slug，无日期，用于描述性引用任务名
+- `{{TASK_DIR}}` — 完整目录名 `<task-slug>-<YYYY-MM-DD>`，用于文件路径引用
+- 模板中的路径占位符全部使用 `{{TASK_DIR}}`
 
 ### Execution command resolution for 00-执行文档.md
 
@@ -313,10 +326,13 @@ The generated `00-执行文档.md` expects the host project's CLAUDE.md to have 
 - Putting code changes in 02-开发规范.md (it's a guide, not an implementation)
 - Omitting the progress pointer anchors or using a different marker
 - Copying the original audit/report content verbatim into 01 (01 should synthesize decisions, not restate evidence)
-- Generating more than 7 files under `docs/plan/<task-slug>/` — the fixed structure is the contract
+- Generating more than 7 files under `docs/plan/<task-slug>-<YYYY-MM-DD>/` — the fixed structure is the contract
 - Modifying `.cursor/rules/*.mdc` or top-level `docs/guide/*使用规范.md` during generation
+- Omitting the date suffix from the directory name (e.g., creating `docs/plan/ble-fix/` instead of `docs/plan/ble-fix-2026-05-06/`)
+- Embedding a date inside the slug itself to work around the suffix rule (e.g., `ble-fix-2026-05-06` as slug, resulting in double-date `ble-fix-2026-05-06-2026-05-06`) — the date must come only from the auto-appended suffix
+- Silently creating a new dated directory when a same-slug directory already exists — always prompt the user to choose between reuse and new task first
 - Matching `test` keyword inside the slug (slug is not prompt body)
-- Creating nested task subdirs (e.g. `docs/plan/<task-slug>/sub-task/`)
+- Creating nested task subdirs (e.g. `docs/plan/<task-slug>-2026-05-06/sub-task/`)
 
 ## Examples
 
@@ -328,6 +344,9 @@ User: /dt:plan-doc ble-multi-device-fix test
 
 Agent:
 # plan-doc generation plan: ble-multi-device-fix
+
+## Output location
+docs/plan/ble-multi-device-fix-2026-05-06/
 ...
 (emits 7-doc plan, waits for confirmation)
 

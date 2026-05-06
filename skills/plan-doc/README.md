@@ -1,6 +1,6 @@
 # dt:plan-doc
 
-> Persist a multi-phase engineering plan as a durable task-scoped doc set under `docs/plan/<task-slug>/`, complete with progress pointer and subagent plan so AI can resume across sessions without losing state. Execution prompts prefer `/ecc:plan`, then `/everything-claude-code:plan`, and degrade to plain-language resume prompts if the user declines installation.
+> Persist a multi-phase engineering plan as a durable task-scoped doc set under `docs/plan/<task-slug>-YYYY-MM-DD/`, complete with progress pointer and subagent plan so AI can resume across sessions without losing state. Execution prompts prefer `/ecc:plan`, then `/everything-claude-code:plan`, and degrade to plain-language resume prompts if the user declines installation.
 
 ## Install
 
@@ -27,8 +27,10 @@ When `plan-doc` prints the first execution prompt for the generated docs, it res
 
 ## What It Generates
 
+目录命名：`docs/plan/<task-slug>-<YYYY-MM-DD>/`（日期为本地生成日期，如 `ble-fix-2026-05-06`）
+
 ```
-docs/plan/<task-slug>/
+docs/plan/<task-slug>-<YYYY-MM-DD>/
 ├── README.md           # task index
 ├── 00-执行文档.md      # progress pointer + subagent plan + per-phase checklists
 ├── 01-架构设计.md      # core decisions

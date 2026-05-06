@@ -103,7 +103,7 @@ blockers: []
 ```text
 {{PLAN_COMMAND}}
 
-请先阅读 docs/plan/{{TASK_SLUG}}/00-执行文档.md 第 1 节进度指针，
+请先阅读 docs/plan/{{TASK_DIR}}/00-执行文档.md 第 1 节进度指针，
 再阅读 01-架构设计.md、02-开发规范.md、03-修复路线图.md 对应 Phase 的小节。
 
 按 00-执行文档.md 第 2 节的"断点续做协议"执行：
@@ -123,7 +123,7 @@ blockers: []
 ### 7.2 降级模板（用户拒绝安装时）
 
 ```text
-请先阅读 docs/plan/{{TASK_SLUG}}/00-执行文档.md 第 1 节进度指针，
+请先阅读 docs/plan/{{TASK_DIR}}/00-执行文档.md 第 1 节进度指针，
 再阅读 01-架构设计.md、02-开发规范.md、03-修复路线图.md 对应 Phase 的小节。
 
 按 00-执行文档.md 第 2 节的"断点续做协议"执行：
