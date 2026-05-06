@@ -26,6 +26,7 @@ argument-hint: "[version|--preview] e.g. /dt:push 1.2.2 or /dt:push --preview"
 - 发版时需要更新文档版本号并创建 tag
 - 需要自动生成提交信息并按逻辑分组提交
 - 工作区有未暂存的变更，需要一键提交推送
+- 已经执行 `git add` / `git commit`，但本地提交尚未 push 到远程
 
 ## Example Prompts
 
@@ -58,17 +59,35 @@ git rev-parse --is-inside-work-tree
 # 2. 确认 remote origin 存在
 git remote get-url origin
 
-# 3. 确认工作区有变更（已暂存或未暂存）
+# 3. 确认当前分支
+git branch --show-current
+
+# 4. 获取上游分支（如果存在）
+git rev-parse --abbrev-ref --symbolic-full-name @{u}
+
+# 5. 确认工作区状态（已暂存或未暂存）
 git status --porcelain
+
+# 6. 检查本地是否有未推送提交（仅在存在上游分支时执行）
+git rev-list --count @{u}..HEAD
 ```
 
 **检查结果处理**：
 
-| 检查项           | 失败时                           |
-| ---------------- | -------------------------------- |
-| 非 git 仓库      | 提示用户，退出                   |
-| 无 remote origin | 提示用户，退出                   |
-| 工作区无任何变更 | 提示用户没有需要提交的更改，退出 |
+| 检查项                       | 处理方式                                                            |
+| ---------------------------- | ------------------------------------------------------------------- |
+| 非 git 仓库                  | 提示用户，退出                                                      |
+| 无 remote origin             | 提示用户，退出                                                      |
+| 无当前分支                   | 提示用户，退出                                                      |
+| 无 upstream                  | 允许继续；Step 1 跳过 pull，Step 5 首次 push 时使用 `git push -u`   |
+| 工作区有变更                 | 允许继续；后续会走 Step 4 自动分组提交                              |
+| 工作区无变更但存在未推送提交 | 允许继续；跳过 Step 4，直接在同步远程后执行 Step 5 推送已有本地提交 |
+| 工作区无变更且无未推送提交   | 若未提供版本号则退出；若提供版本号则继续执行 Step 3 生成版本提交    |
+
+**关键原则**：
+
+- `dt:push` 判断的是“是否存在待推送工作”，而不是仅判断“工作区是否脏”
+- “待推送工作”包含三类：工作区变更、版本号参数触发的文档更新、已提交但尚未 push 的本地 commit
 
 ### Step 1: 拉取最新代码并处理冲突
 
@@ -76,17 +95,19 @@ git status --porcelain
 
 **执行流程**：
 
-1. **检测当前分支名和远程名**：
+1. **检测当前分支名、远程名和上游分支**：
    ```bash
    BRANCH=$(git branch --show-current)
    REMOTE=$(git remote | head -1)
+   UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true)
    ```
-2. **检查是否有未提交的变更** — 如果有，先 `git stash` 保存，拉取完成后 `git stash pop` 恢复
-3. **执行拉取**：
+2. **如果不存在 upstream** — 跳过本步骤中的 pull/rebase，直接进入 Step 2
+3. **检查是否有未提交的变更** — 如果有，先 `git stash` 保存，拉取完成后 `git stash pop` 恢复
+4. **执行拉取**：
    ```bash
    git pull --rebase $REMOTE $BRANCH
    ```
-4. **如果 stash 了变更** → 执行 `git stash pop` 恢复工作区
+5. **如果 stash 了变更** → 执行 `git stash pop` 恢复工作区
 
 **冲突处理策略**：
 
@@ -214,9 +235,14 @@ git add <changed doc files>
 git commit -m "chore: bump version to X.Y.Z"
 ```
 
-### Step 4: Logical-Group Commit for All Changes
+### Step 4: Logical-Group Commit for Workspace Changes
 
 自动暂存所有工作区变更，按**逻辑分组**提交，同一逻辑变更合并为 1 个 commit。
+
+**跳过条件**：
+
+- 如果 Step 0 已确认“工作区无变更但存在未推送提交”，则**跳过整个 Step 4**
+- 这类场景不应提示“没有需要处理的内容”，而应保留现有本地 commit，直接进入 Step 5 推送
 
 **添加所有变更**：
 
@@ -324,11 +350,21 @@ git commit -m "<分组 commit message>"
 
 ### Step 5: Push to Remote
 
+如果前面没有产生新的工作区提交，但 Step 0 检测到本地分支领先 upstream，则此处直接推送已有本地 commit。
+
 **推送代码**：
 
-```bash
-git push $REMOTE $BRANCH
-```
+- **已有 upstream**：
+
+  ```bash
+  git push $REMOTE $BRANCH
+  ```
+
+- **无 upstream（首次推送当前分支）**：
+
+  ```bash
+  git push -u $REMOTE $BRANCH
+  ```
 
 **如果推送失败**（远程有新提交），执行重试：
 
@@ -363,7 +399,8 @@ Tag 命名格式：直接使用用户提供的版本号，例如 `1.2.2`
 
 执行完成后，远程仓库应包含：
 
-- N 个新 commit（每个文件一个 commit + 可选的版本号 commit）
+- 已有但尚未推送的本地 commit 被同步到远程
+- 如工作区存在文件变更：生成 N 个新 commit（按逻辑分组，外加可选的版本号 commit）
 - 可选：1 个新 tag（`X.Y.Z`）
 
 ## Notes
@@ -378,3 +415,4 @@ Tag 命名格式：直接使用用户提供的版本号，例如 `1.2.2`
 8. Step 3 在 Step 4 之前执行，Step 3 提交的文件不会在 Step 4 中重复提交
 9. Step 1 提前拉取代码，大幅降低 Step 5 推送时的冲突概率
 10. `/dt:push --preview` 仅预览分组方案与 commit messages，不执行任何 git 操作
+11. 已 `git commit` 但未 `git push` 的场景属于正常路径；工作区干净时不能据此直接退出

@@ -44,11 +44,13 @@ docs/plan/<task-slug>/
 
 ```markdown
 <!-- progress-pointer:start -->
+
 current_phase: 2
 current_phase_status: coding
 last_updated: 2026-05-10T14:22:00Z
 next_action: "Implement BleManager.applyTargetDiff updated branch"
 blockers: []
+
 <!-- progress-pointer:end -->
 ```
 
@@ -56,13 +58,13 @@ This means you can hand the task off across sessions/agents/humans without re-pl
 
 ## Comparison
 
-| Tool | Output | Use when |
-| --- | --- | --- |
-| `/ecc:plan` | Plan in conversation | One-session, no persistence |
-| `/everything-claude-code:plan` | Alternate plan command | Same role when `/ecc:plan` is unavailable |
-| `/dt:plan-doc` | Durable file set with progress pointer | Multi-session, multi-phase |
-| `/dt:init` | Project-level AI rules | First time in a repo |
-| `/ecc:prp-plan` | PRD-driven plan artifacts | Start from product spec |
+| Tool                           | Output                                 | Use when                                  |
+| ------------------------------ | -------------------------------------- | ----------------------------------------- |
+| `/ecc:plan`                    | Plan in conversation                   | One-session, no persistence               |
+| `/everything-claude-code:plan` | Alternate plan command                 | Same role when `/ecc:plan` is unavailable |
+| `/dt:plan-doc`                 | Durable file set with progress pointer | Multi-session, multi-phase                |
+| `/dt:init`                     | Project-level AI rules                 | First time in a repo                      |
+| `/ecc:prp-plan`                | PRD-driven plan artifacts              | Start from product spec                   |
 
 ## Relation to Project CLAUDE.md
 

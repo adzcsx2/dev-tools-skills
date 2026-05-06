@@ -71,6 +71,7 @@ Every invocation runs 5 core stages plus the Stage 2.5 execution-command resolut
 Ask at most 3 targeted questions. Do NOT ask generic ones.
 
 Required clarifications:
+
 - Slug: if not provided
 - Test docs: if ambiguous (test keyword absent but task clearly touches QA surface)
 - Source files: if the task description is too abstract to know which files are in scope
@@ -215,6 +216,7 @@ Section 7 must preserve the same body instructions across all three variants; on
 ## Subagent Plan (Stack-Specific)
 
 Stack detection uses the same signals as `dt:init`:
+
 - `pubspec.yaml` + `lib/main.dart` → Flutter
 - `settings.gradle[.kts]` + `AndroidManifest.xml` → Android
 - `package.json` + `next.config.*` / `vite.config.*` → Web
@@ -223,57 +225,58 @@ Stack detection uses the same signals as `dt:init`:
 
 ### Flutter recommended subagents
 
-| Role | Recommended |
-| --- | --- |
-| Coding | main-agent |
-| Build fix | `ecc:dart-build-resolver` |
-| Review | `ecc:flutter-reviewer` |
+| Role                   | Recommended                                     |
+| ---------------------- | ----------------------------------------------- |
+| Coding                 | main-agent                                      |
+| Build fix              | `ecc:dart-build-resolver`                       |
+| Review                 | `ecc:flutter-reviewer`                          |
 | E2E test orchestration | `ecc:e2e-runner` (real-device tests stay human) |
-| Docs update | `dev-tools-skills:update-docs-flutter` |
+| Docs update            | `dev-tools-skills:update-docs-flutter`          |
 
 ### Android recommended subagents
 
-| Role | Recommended |
-| --- | --- |
-| Coding | main-agent |
-| Build fix | `ecc:kotlin-build-resolver` or `ecc:java-build-resolver` |
-| Review | `ecc:kotlin-reviewer` or `ecc:java-reviewer` |
-| Docs update | `dev-tools-skills:update-docs-android` |
+| Role        | Recommended                                              |
+| ----------- | -------------------------------------------------------- |
+| Coding      | main-agent                                               |
+| Build fix   | `ecc:kotlin-build-resolver` or `ecc:java-build-resolver` |
+| Review      | `ecc:kotlin-reviewer` or `ecc:java-reviewer`             |
+| Docs update | `dev-tools-skills:update-docs-android`                   |
 
 ### Web / Node / React
 
-| Role | Recommended |
-| --- | --- |
-| Coding | main-agent |
+| Role      | Recommended                |
+| --------- | -------------------------- |
+| Coding    | main-agent                 |
 | Build fix | `ecc:build-error-resolver` |
-| Review | `ecc:typescript-reviewer` |
-| E2E | `ecc:e2e-runner` |
+| Review    | `ecc:typescript-reviewer`  |
+| E2E       | `ecc:e2e-runner`           |
 
 ### Python
 
-| Role | Recommended |
-| --- | --- |
-| Coding | main-agent |
-| Review | `ecc:python-reviewer` |
-| Testing | `ecc:tdd-guide` |
+| Role    | Recommended           |
+| ------- | --------------------- |
+| Coding  | main-agent            |
+| Review  | `ecc:python-reviewer` |
+| Testing | `ecc:tdd-guide`       |
 
 ### Java / Spring Boot
 
-| Role | Recommended |
-| --- | --- |
-| Coding | main-agent |
+| Role      | Recommended               |
+| --------- | ------------------------- |
+| Coding    | main-agent                |
 | Build fix | `ecc:java-build-resolver` |
-| Review | `ecc:java-reviewer` |
+| Review    | `ecc:java-reviewer`       |
 
 ### Generic (unknown stack)
 
-| Role | Recommended |
-| --- | --- |
-| Coding | main-agent |
-| Review | `ecc:code-reviewer` |
+| Role     | Recommended             |
+| -------- | ----------------------- |
+| Coding   | main-agent              |
+| Review   | `ecc:code-reviewer`     |
 | Security | `ecc:security-reviewer` |
 
 Forbidden subagent uses (apply universally):
+
 - Do not delegate progress pointer updates to subagents
 - Do not delegate phase switching decisions
 - Do not delegate core logic touching upstream sources of truth
@@ -287,6 +290,7 @@ Forbidden subagent uses (apply universally):
 - **`/ecc:prp-plan`** / **`/ecc:prp-implement`** — PRD-driven artifact planning; use when the task starts from a product spec rather than an engineering problem.
 
 When in doubt:
+
 - One-shot change → just edit
 - Single-session multi-file → `/ecc:plan` (or `/everything-claude-code:plan` if that is the installed variant)
 - Multi-session with phases → `/dt:plan-doc`
