@@ -47,6 +47,7 @@ Installation also registers the global `/dt:init` and `/study` prompts for VS Co
 | `dt:push`                  | One-push release workflow: auto stage, pull, logical-group commit, push with --preview support                     |
 | `dt:update-remote-plugins` | Remote plugin maintenance: update docs and config, then verify install-based local refresh uses the latest version |
 | `dt:code-note`             | Multi-language code annotation: auto-detect language and apply comment style                                       |
+| `dt:to-public-cloudflare`  | Cloudflare tunnel: one-click Named Tunnel setup, auto-detect project port, generate start-public.sh/ps1 with retry |
 
 ### Android Tools — `adt:` prefix
 

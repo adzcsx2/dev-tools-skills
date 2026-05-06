@@ -36,6 +36,19 @@ When modifying:
 - Check for existing semantically equivalent directories before creating new ones
 - Do not create duplicate directories (e.g., both `plan` and `plans`)
 
+## Skill Creation Workflow
+
+When asked to "create skill", create a slash-command skill:
+
+1. Create `skills/<name>/SKILL.md` (YAML frontmatter with `name`, double-quoted `description`, `argument-hint`)
+2. Generate `skills/<name>/README.md` from SKILL.md
+3. Add to `install.sh` category variable and `install.ps1` category variable
+4. Add to `.claude-plugin/marketplace.json` skills array
+5. Add rows to `README.md` and `README_EN.md` skills tables
+6. Run `./install.sh --all` to verify
+
+Prefix groups: `dt:` (common), `adt:` (Android), `fdt:` (Flutter). Kebab-case directory names without prefix.
+
 ## Validation Checklist
 
 When adding, removing, or renaming skills:

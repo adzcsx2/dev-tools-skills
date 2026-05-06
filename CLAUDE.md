@@ -74,6 +74,47 @@ dev-tools-skills/
 - Skill directories: no prefix (e.g., `init/` not `dt-init/`)
 - File naming: kebab-case
 
+## Skill Creation Workflow
+
+When the user says "create skill" or "add skill" in this project, they mean creating a new command skill that can be invoked via slash command (e.g., `/dt:foo`, `/adt:bar`). Follow this workflow:
+
+### Step 1: Create Skill Directory
+
+```
+skills/<skill-name>/SKILL.md    # Skill source (required)
+skills/<skill-name>/README.md   # Generated from SKILL.md (required)
+```
+
+- Skill directory uses kebab-case, no prefix (e.g., `my-tool/` not `dt-my-tool/`)
+- Assign to correct prefix group: `dt:` (common), `adt:` (Android), `fdt:` (Flutter)
+
+### Step 2: SKILL.md Template
+
+```yaml
+---
+name: <prefix>:<skill-name>
+description: "<One-line description with double quotes>"
+argument-hint: "[args] e.g. /<prefix>:<skill-name> ..."
+---
+```
+
+- All YAML frontmatter string values containing colons MUST be double-quoted
+- Always double-quote `description` as a safe practice
+
+### Step 3: Register Skill in All Install Targets
+
+After creating SKILL.md and README.md, update ALL of the following:
+
+1. `install.sh` — add skill name to the correct category variable (`COMMON_SKILLS`, `ANDROID_SKILLS`, or `FLUTTER_SKILLS`)
+2. `install.ps1` — add skill name to the matching category variable
+3. `.claude-plugin/marketplace.json` — add `"./skills/<skill-name>"` to the skills array
+4. Root `README.md` — add row to the correct skills table
+5. Root `README_EN.md` — add row to the correct skills table
+
+### Step 4: Verify
+
+Run `./install.sh --all` to verify installation and confirm the skill is registered as a slash command.
+
 ## Validation Checklist
 
 When adding, removing, or modifying skills:

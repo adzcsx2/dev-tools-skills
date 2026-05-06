@@ -22,7 +22,8 @@
         "./skills/android-i18n",
         "./skills/android-fold-adapter",
         "./skills/auto-ui-test",
-        "./skills/update-docs-flutter"
+        "./skills/update-docs-flutter",
+        "./skills/to-public-cloudflare"
       ]
     }
   ]

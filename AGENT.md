@@ -91,6 +91,20 @@ When modifying this project:
 - Installation logic: `install.sh` / `install.ps1`
 - Project rules: `CLAUDE.md`, `AGENT.md`, `.github/copilot-instructions.md`
 
+## Skill Creation Workflow
+
+When asked to "create skill" in this project, create a slash-command skill:
+
+1. Create `skills/<skill-name>/SKILL.md` with YAML frontmatter (`name`, `description` double-quoted, `argument-hint`)
+2. Generate `skills/<skill-name>/README.md` from SKILL.md
+3. Add skill to `install.sh` category variable (`COMMON_SKILLS` / `ANDROID_SKILLS` / `FLUTTER_SKILLS`)
+4. Add skill to `install.ps1` category variable
+5. Add `"./skills/<skill-name>"` to `.claude-plugin/marketplace.json` skills array
+6. Add row to `README.md` and `README_EN.md` skills tables
+7. Run `./install.sh --all` to verify
+
+Assign prefix group: `dt:` (common), `adt:` (Android), `fdt:` (Flutter). Use kebab-case for directory names without prefix.
+
 ## Validation
 
 When adding, removing, or renaming skills:

@@ -47,6 +47,7 @@ cd dev-tools-skills
 | `dt:push`                  | 一键发布工作流：自动暂存、拉取、按逻辑分组提交、推送，支持 --preview 预览      |
 | `dt:update-remote-plugins` | 远程插件维护：更新配置与文档、验证 install 回流本地是否始终命中最新版本         |
 | `dt:code-note`             | 多语言代码注释：自动检测语言类型并应用对应注释风格                              |
+| `dt:to-public-cloudflare`  | Cloudflare 内网穿透：一键配置 Named Tunnel，自动侦察端口，生成带重试的公网启动脚本 |
 
 ### Android 工具 — `adt:` 前缀
 

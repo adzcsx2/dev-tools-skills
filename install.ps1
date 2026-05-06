@@ -27,7 +27,7 @@ $PluginName = ""
 $Version = ""
 $PluginKey = ""
 
-$CommonSkills = @("init", "study", "push", "update-remote-plugins", "code-note")
+$CommonSkills = @("init", "study", "push", "update-remote-plugins", "code-note", "to-public-cloudflare")
 $AndroidSkills = @("gradle-build-performance", "update-docs-android", "android-i18n", "android-fold-adapter", "auto-ui-test")
 $FlutterSkills = @("update-docs-flutter")
 $AllCategories = @("common", "android", "flutter")
