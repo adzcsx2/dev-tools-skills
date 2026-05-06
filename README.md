@@ -48,6 +48,7 @@ cd dev-tools-skills
 | `dt:update-remote-plugins` | 远程插件维护：更新配置与文档、验证 install 回流本地是否始终命中最新版本         |
 | `dt:code-note`             | 多语言代码注释：自动检测语言类型并应用对应注释风格                              |
 | `dt:to-public-cloudflare`  | Cloudflare 内网穿透：一键配置 Named Tunnel，自动侦察端口，生成带重试的公网启动脚本 |
+| `dt:plan-doc`              | 任务聚合文档：在 `docs/plan/<task-slug>/` 下生成含进度指针和子代理规划的多阶段计划文档集，支持跨会话断点续做，可选测试文档（test 参数或 prompt 关键词触发） |
 
 ### Android 工具 — `adt:` 前缀
 

@@ -48,6 +48,7 @@ Installation also registers the global `/dt:init` and `/study` prompts for VS Co
 | `dt:update-remote-plugins` | Remote plugin maintenance: update docs and config, then verify install-based local refresh uses the latest version |
 | `dt:code-note`             | Multi-language code annotation: auto-detect language and apply comment style                                       |
 | `dt:to-public-cloudflare`  | Cloudflare tunnel: one-click Named Tunnel setup, auto-detect project port, generate start-public.sh/ps1 with retry |
+| `dt:plan-doc`              | Task-scoped plan docs: generate a multi-phase doc set under `docs/plan/<task-slug>/` with a progress pointer and subagent plan for cross-session resume; optional test docs via `test` arg or prompt keywords |
 
 ### Android Tools — `adt:` prefix
 

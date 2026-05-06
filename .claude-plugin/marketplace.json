@@ -9,14 +9,15 @@
     {
       "name": "dev-tools-skills",
       "source": "./",
-      "description": "All-in-one development toolkit: universal project init (dt:init), study assistant (dt:study), git push (dt:push), plugin management (dt:update-remote-plugins), code annotation (dt:code-note), Android tools (adt:*), and Flutter tools (fdt:*).",
-      "version": "1.1.5",
+      "description": "All-in-one development toolkit: universal project init (dt:init), study assistant (dt:study), git push (dt:push), plugin management (dt:update-remote-plugins), code annotation (dt:code-note), task-scoped plan docs (dt:plan-doc), Android tools (adt:*), and Flutter tools (fdt:*).",
+      "version": "1.2.0",
       "skills": [
         "./skills/init",
         "./skills/study",
         "./skills/push",
         "./skills/update-remote-plugins",
         "./skills/code-note",
+        "./skills/plan-doc",
         "./skills/gradle-build-performance",
         "./skills/update-docs-android",
         "./skills/android-i18n",
