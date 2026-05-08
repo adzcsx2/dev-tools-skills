@@ -387,8 +387,27 @@ jq --arg name "$TUNNEL_NAME" \
 2. `cert.pem` 是账户级凭证，一个账户只需 `tunnel login` 一次
 3. 每个 tunnel 对应一个 credentials JSON 文件，请勿删除 `~/.cloudflared/<id>.json`
 4. 配置文件生成在 `~/.cloudflared/config-<name>.yml`，由全局管理脚本统一管理；项目无需生成启动脚本
-5. Windows 用户首次运行 ps1 可能需要：`Set-ExecutionPolicy -Scope Process RemoteSigned`
-6. tunnel 名在 Cloudflare 账户内全局唯一，同名 tunnel 不能重复创建
+5. **项目目录 `.bat` 包装脚本**：如果用户需要在项目目录放 `.bat` 文件方便双击启动/停止，**必须委托给全局 PowerShell 脚本**，禁止在 bat 内自行启动 cloudflared。正确模板：
+   ```bat
+   :: tunnel-start.bat（放在项目目录，双击即启动全部隧道 + 健康监测）
+   @echo off
+   chcp 65001 >nul
+   echo.
+   powershell -ExecutionPolicy Bypass -NoProfile -File "%USERPROFILE%\bin\tunnel-start.ps1" %*
+   echo.
+   pause
+
+   :: tunnel-stop.bat（放在项目目录，双击即停止全部隧道 + 监测）
+   @echo off
+   chcp 65001 >nul
+   echo.
+   powershell -ExecutionPolicy Bypass -NoProfile -File "%USERPROFILE%\bin\tunnel-stop.ps1" %*
+   echo.
+   pause
+   ```
+   这样 bat 文件只做薄包装，所有逻辑（进程管理、健康监测、自动重启）都由全局脚本统一处理。
+6. Windows 用户首次运行 ps1 可能需要：`Set-ExecutionPolicy -Scope Process RemoteSigned`
+7. tunnel 名在 Cloudflare 账户内全局唯一，同名 tunnel 不能重复创建
 
 ---
 
@@ -405,14 +424,21 @@ start "cloudflared-build" /min cloudflared.exe tunnel --config "config.yml" run
 
 **原因**：`start` 的第一个带引号参数会被当作窗口标题，但在某些环境（MSYS2/Git Bash/某些 CMD 版本）下，`start` 会将标题误解为要执行的可执行文件名，导致进程立即退出。
 
-**正确做法**：在 .bat 中通过 PowerShell 启动：
+**正确做法（首选）**：委托给全局 `tunnel-start.ps1` 脚本（自带进程去重 + 健康监测）：
 
 ```bat
-:: 正确写法 —— 进程可靠存活
+:: 最佳写法 —— 委托给全局管理脚本
+powershell -ExecutionPolicy Bypass -NoProfile -File "%USERPROFILE%\bin\tunnel-start.ps1"
+```
+
+**正确做法（备选）**：如果确实需要在 .bat 中直接启动单个 cloudflared，通过 PowerShell `Start-Process`：
+
+```bat
+:: 备选写法 —— 单独启动（无健康监测）
 powershell -Command "Start-Process -FilePath 'cloudflared.exe' -ArgumentList 'tunnel','--config','%USERPROFILE%\.cloudflared\config.yml','run' -WindowStyle Minimized"
 ```
 
-**重要**：生成任何 Windows 启动脚本（.bat 或 .ps1）时，**禁止使用 `start` 命令启动 cloudflared**，一律用 PowerShell `Start-Process`。
+**重要**：生成任何 Windows 启动脚本（.bat 或 .ps1）时，**禁止使用 `start` 命令启动 cloudflared**，一律用 PowerShell `Start-Process` 或委托给全局管理脚本。
 
 ### 陷阱 2：进程唯一性 —— 防止重复启动
 

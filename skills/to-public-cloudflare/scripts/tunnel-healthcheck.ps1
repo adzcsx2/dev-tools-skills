@@ -138,9 +138,11 @@ while ($true) {
         }
     }
 
-    $maxR = if ($script:State.Count -gt 0) {
-        ($script:State.Values | Measure-Object -Property RestartCount -Maximum).Maximum
-    } else { 0 }
+    $maxR = 0
+    foreach ($key in $script:State.Keys) {
+        $rc = $script:State[$key]['RestartCount']
+        if ($rc -gt $maxR) { $maxR = $rc }
+    }
     $sleepSec = [Math]::Min($CHECK_INTERVAL + ($maxR * 60), $MAX_BACKOFF)
     Start-Sleep -Seconds $sleepSec
 }

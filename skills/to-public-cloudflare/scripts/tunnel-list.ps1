@@ -59,26 +59,15 @@ foreach ($t in $tunnels) {
         default      { "DarkGray" }
     }
 
-    Write-Host -NoNewline ("  {0,-18} " -f $t.name)
-    Write-Host -NoNewline ("{0,-35} " -f $t.hostname)
-    Write-Host -NoNewline ("{0,-7} " -f $t.port)
-    Write-Host -NoNewline ("$processStatus" -f "")
-    Write-Host -NoNewline ("{0,-10} " -f "")
-    Write-Host -NoNewline ("$healthStatus" -f "")
-
-    # Manual color output
     $namePad = $t.name.PadRight(18)
     $hostPad = $t.hostname.PadRight(35)
     $portPad = "$($t.port)".PadRight(7)
-
-    # Overwrite with colors
-    $cursorTop = [Console]::CursorTop - 1
-    [Console]::SetCursorPosition(2, $cursorTop)
-    Write-Host "$namePad " -NoNewline -ForegroundColor White
-    Write-Host "$hostPad " -NoNewline -ForegroundColor Cyan
-    Write-Host "$portPad " -NoNewline -ForegroundColor White
     $procPad = $processStatus.PadRight(10)
-    Write-Host "$procPad " -NoNewline -ForegroundColor $procColor
+
+    Write-Host -NoNewline "  $namePad " -ForegroundColor White
+    Write-Host -NoNewline "$hostPad " -ForegroundColor Cyan
+    Write-Host -NoNewline "$portPad " -ForegroundColor White
+    Write-Host -NoNewline "$procPad " -ForegroundColor $procColor
     Write-Host $healthStatus -ForegroundColor $healthColor
 }
 

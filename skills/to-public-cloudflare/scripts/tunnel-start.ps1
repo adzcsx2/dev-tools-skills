@@ -8,6 +8,28 @@ $REGISTRY_FILE = Join-Path $CF_DIR "tunnel-registry.json"
 function Write-Info($msg) { Write-Host "  $msg" -ForegroundColor Blue }
 function Write-Ok($msg)   { Write-Host "  $msg" -ForegroundColor Green }
 function Write-Warn($msg) { Write-Host "  $msg" -ForegroundColor Yellow }
+function Write-Fail($msg) { Write-Host "  $msg" -ForegroundColor Red }
+
+function Test-TunnelHealthy {
+    param([string]$Url)
+    try {
+        $null = Invoke-WebRequest -Uri $Url -TimeoutSec 10 -UseBasicParsing
+        return $true
+    } catch {
+        if ($_.Exception.Response) { return $true }
+        return $false
+    }
+}
+
+function Wait-TunnelHealthy {
+    param([string]$Url, [int]$MaxWaitSeconds = 30, [string]$Name)
+    $deadline = (Get-Date).AddSeconds($MaxWaitSeconds)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-TunnelHealthy -Url $Url) { return $true }
+        Start-Sleep -Seconds 3
+    }
+    return $false
+}
 
 if (-not (Test-Path $REGISTRY_FILE)) {
     Write-Host "No tunnel registry found. Run 'tunnel-add' first." -ForegroundColor Red
@@ -38,6 +60,7 @@ Write-Host ""
 
 foreach ($t in $selectedTunnels) {
     $configPath = Join-Path $CF_DIR $t.config_file
+    $url = "https://$($t.hostname)"
 
     if (-not (Test-Path $configPath)) {
         Write-Warn "[SKIP] $($t.name) - config not found: $($t.config_file)"
@@ -50,12 +73,30 @@ foreach ($t in $selectedTunnels) {
         Select-Object -First 1
 
     if ($existing) {
-        Write-Info "[SKIP] $($t.name) already running (PID: $($existing.ProcessId))"
+        # Process exists, but check if tunnel is actually healthy
+        if (Test-TunnelHealthy -Url $url) {
+            Write-Ok "[OK]   $($t.name) running & healthy (PID: $($existing.ProcessId)) - $url"
+            continue
+        } else {
+            Write-Warn "[DEAD] $($t.name) process alive but tunnel unreachable (PID: $($existing.ProcessId)), restarting..."
+            Stop-Process -Id $existing.ProcessId -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 3
+            # Fall through to start below
+        }
+    }
+
+    # Start tunnel
+    Start-Process -FilePath "cloudflared.exe" `
+        -ArgumentList "tunnel","--config",$configPath,"run" `
+        -WindowStyle Minimized
+    Write-Info "[WAIT] $($t.name) starting... - $url <- localhost:$($t.port)"
+
+    # Wait and verify
+    if (Wait-TunnelHealthy -Url $url -Name $t.name -MaxWaitSeconds 30) {
+        Write-Ok "[OK]   $($t.name) connected - $url"
     } else {
-        Start-Process -FilePath "cloudflared.exe" `
-            -ArgumentList "tunnel","--config",$configPath,"run" `
-            -WindowStyle Minimized
-        Write-Ok "[START] $($t.name) - https://$($t.hostname) <- localhost:$($t.port)"
+        Write-Fail "[FAIL] $($t.name) started but not reachable within 30s - $url"
+        Write-Info "       Check: cloudflared tunnel info $($t.tunnel_id)"
     }
 }
 
@@ -84,7 +125,18 @@ if (Test-Path $HC_SCRIPT) {
     Start-Process -FilePath "powershell" `
         -ArgumentList "-ExecutionPolicy","Bypass","-NoProfile","-File",$HC_SCRIPT `
         -WindowStyle Minimized
-    Write-Ok "Health monitor running"
+
+    # Verify healthcheck actually started
+    Start-Sleep -Seconds 2
+    $hcProc = Get-CimInstance Win32_Process -Filter "name='powershell.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -like '*tunnel-healthcheck*' } |
+        Select-Object -First 1
+
+    if ($hcProc) {
+        Write-Ok "Health monitor running (PID: $($hcProc.ProcessId))"
+    } else {
+        Write-Fail "Health monitor FAILED to start"
+    }
     Write-Info "Log: $env:TEMP\tunnel-healthcheck.log"
 } else {
     Write-Warn "tunnel-healthcheck.ps1 not found in ~/bin/, health monitoring disabled"
