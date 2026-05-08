@@ -43,8 +43,8 @@ function Test-Command($cmd) {
 
 function Get-CategoryDesc($cat) {
     switch ($cat) {
-        "common"  { "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note)" }
-        "android" { "Android tools (adt:update-docs, adt:gradle-build-performance, etc.)" }
+        "common"  { "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:plan-doc)" }
+        "android" { "Android tools (adt:gradle-build-performance, adt:update-docs, adt:android-i18n, adt:android-fold-adapter, adt:auto-ui-test)" }
         "flutter" { "Flutter tools (fdt:update-docs)" }
         default    { "" }
     }
@@ -300,9 +300,33 @@ function Install-Skills {
         }
     }
 
+    # Install tunnel management scripts from to-public-cloudflare skill
+    Install-TunnelScripts -CacheDest $cacheDest
+
     Ensure-SettingsPlugin
     Ensure-InstalledPlugin
     Write-Ok "Plugin registered with latest version: $Version"
+}
+
+function Install-TunnelScripts {
+    param([string]$CacheDest)
+
+    $scriptsSrc = Join-Path $CacheDest 'skills\to-public-cloudflare\scripts'
+    if (-not (Test-Path $scriptsSrc)) { return }
+
+    $binDir = Join-Path $env:USERPROFILE 'bin'
+    Ensure-Directory $binDir
+
+    Write-Info 'Installing tunnel management scripts to ~/bin/...'
+
+    $scripts = Get-ChildItem -Path $scriptsSrc -Filter '*.ps1' -File -ErrorAction SilentlyContinue
+    $scripts += Get-ChildItem -Path $scriptsSrc -Filter '*.sh' -File -ErrorAction SilentlyContinue
+
+    foreach ($script in $scripts) {
+        $dest = Join-Path $binDir $script.Name
+        Copy-Item $script.FullName $dest -Force
+        Write-Ok "Installed: ~/bin/$($script.Name)"
+    }
 }
 
 function Uninstall-All {

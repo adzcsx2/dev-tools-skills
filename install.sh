@@ -40,7 +40,7 @@ has_cmd() { command -v "$1" >/dev/null 2>&1; }
 category_desc() {
   case "$1" in
     common)  echo "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:plan-doc)" ;;
-    android) echo "Android tools (adt:update-docs, adt:gradle-build-performance, etc.)" ;;
+    android) echo "Android tools (adt:gradle-build-performance, adt:update-docs, adt:android-i18n, adt:android-fold-adapter, adt:auto-ui-test)" ;;
     flutter) echo "Flutter tools (fdt:update-docs)" ;;
     *)       echo "" ;;
   esac
@@ -305,9 +305,32 @@ install_skills() {
     fi
   done
 
+  # Install tunnel management scripts from to-public-cloudflare skill
+  install_tunnel_scripts "$cache_dest"
+
   ensure_settings_plugin
   ensure_installed_plugin
   ok "Plugin registered with latest version: $VERSION"
+}
+
+install_tunnel_scripts() {
+  local cache_dest="$1"
+  local scripts_src="$cache_dest/skills/to-public-cloudflare/scripts"
+  local bin_dir="$HOME/bin"
+
+  if [ ! -d "$scripts_src" ]; then return; fi
+
+  info "Installing tunnel management scripts to ~/bin/..."
+  ensure_dir "$bin_dir"
+
+  for script in "$scripts_src"/*.sh "$scripts_src"/*.ps1; do
+    [ -e "$script" ] || continue
+    local basename
+    basename=$(basename "$script")
+    cp "$script" "$bin_dir/$basename"
+    chmod +x "$bin_dir/$basename"
+    ok "Installed: ~/bin/$basename"
+  done
 }
 
 uninstall_all() {

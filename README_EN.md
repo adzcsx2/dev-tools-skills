@@ -47,7 +47,7 @@ Installation also registers the global `/dt:init` and `/study` prompts for VS Co
 | `dt:push`                  | One-push release workflow: auto stage, pull, logical-group commit, push with --preview support                     |
 | `dt:update-remote-plugins` | Remote plugin maintenance: update docs and config, then verify install-based local refresh uses the latest version |
 | `dt:code-note`             | Multi-language code annotation: auto-detect language and apply comment style                                       |
-| `dt:to-public-cloudflare`  | Cloudflare tunnel: one-click Named Tunnel setup, auto-detect project port, generate start-public.sh/ps1 with retry |
+| `dt:to-public-cloudflare`  | Cloudflare tunnel: one-click Named Tunnel setup, auto-detect project port, deploy global tunnel management scripts (tunnel-add/start/stop/remove/list) with health monitoring and auto-restart |
 | `dt:plan-doc`              | Task-scoped plan docs: generate a multi-phase doc set under `docs/plan/<task-slug>/` with a progress pointer and subagent plan for cross-session resume; optional test docs via `test` arg or prompt keywords |
 
 ### Android Tools — `adt:` prefix
@@ -81,15 +81,17 @@ dev-tools-skills/
 ├── skills/
 │   ├── init/                     # dt:init
 │   ├── study/                    # dt:study
-│   ├── push/
-│   ├── update-remote-plugins/
-│   ├── code-note/
-│   ├── gradle-build-performance/
-│   ├── update-docs-android/
-│   ├── android-i18n/
-│   ├── android-fold-adapter/
-│   ├── auto-ui-test/
-│   └── update-docs-flutter/
+│   ├── push/                     # dt:push
+│   ├── update-remote-plugins/    # dt:update-remote-plugins
+│   ├── code-note/                # dt:code-note
+│   ├── to-public-cloudflare/     # dt:to-public-cloudflare
+│   ├── plan-doc/                 # dt:plan-doc
+│   ├── gradle-build-performance/ # adt:gradle-build-performance
+│   ├── update-docs-android/      # adt:update-docs
+│   ├── android-i18n/             # adt:android-i18n
+│   ├── android-fold-adapter/     # adt:android-fold-adapter
+│   ├── auto-ui-test/             # adt:auto-ui-test
+│   └── update-docs-flutter/      # fdt:update-docs
 ├── install.sh
 ├── install.ps1
 ├── uninstall.sh

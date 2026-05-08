@@ -1,6 +1,6 @@
 ---
 name: dt:to-public-cloudflare
-description: "Cloudflare Named Tunnel one-click setup: install cloudflared, login, configure tunnel with custom domain, auto-detect project port, push DNS route, and generate start-public.sh + start-public.ps1 with retry."
+description: "Cloudflare Named Tunnel one-click setup: install cloudflared, login, configure tunnel with custom domain, auto-detect project port, push DNS route, write to global tunnel registry, and deploy management scripts (tunnel-add/start/stop/remove/list)."
 argument-hint: "[--force-reset] e.g. /dt:to-public-cloudflare or /dt:to-public-cloudflare --force-reset"
 ---
 
@@ -22,25 +22,26 @@ argument-hint: "[--force-reset] e.g. /dt:to-public-cloudflare or /dt:to-public-c
 
 参数说明：
 
-- 无参数：按上次配置（全局缓存）自动续用，跳过已完成的步骤
+- 无参数：按上次配置（全局注册表）自动续用，跳过已完成的步骤
 - `--force-reset`：强制重新走全部配置流程（忽略缓存）
 
 ---
 
-## 全局缓存文件
+## 全局注册表
 
-配置持久化到 `~/.cloudflared/to-public-cloudflare.json`，格式：
+所有 tunnel 配置持久化到 `~/.cloudflared/tunnel-registry.json`，格式：
 
 ```json
 {
-  "domain": "long.com",
+  "domain": "long123456789.xyz",
   "tunnels": [
     {
-      "name": "aaa",
-      "id": "<tunnel-id>",
-      "hostname": "aaa.long.com",
-      "port": 3000,
-      "project": "/Users/xxx/my-project"
+      "name": "web",
+      "tunnel_id": "<uuid>",
+      "subdomain": "web",
+      "hostname": "web.long123456789.xyz",
+      "port": 4000,
+      "config_file": "config-web.yml"
     }
   ]
 }
@@ -48,9 +49,21 @@ argument-hint: "[--force-reset] e.g. /dt:to-public-cloudflare or /dt:to-public-c
 
 每次执行时：
 
-1. 读取缓存，识别当前项目目录匹配的条目
-2. 有匹配条目：提示"检测到已配置 tunnel：aaa.long.com → 端口 3000，是否继续？"（y 直接跳到 Step 8 生成脚本）
-3. 无匹配：走完整 9 步流程
+1. 读取注册表，识别当前项目目录匹配的条目（通过端口与项目服务端口对比）
+2. 有匹配条目：提示"检测到已配置 tunnel：web.long123456789.xyz → 端口 4000，是否继续？"
+   - y → 跳到 Step 8（更新注册表 + 提示启动命令）
+   - n → 重新配置
+3. 无匹配：走完整流程
+
+安装 skill 时，`install.sh` / `install.ps1` 会自动将 tunnel 管理脚本部署到 `~/bin/`：
+
+| 脚本 | 功能 |
+|------|------|
+| `tunnel-add` | 交互式添加或更新 tunnel |
+| `tunnel-start [name...]` | 启动指定或全部 tunnel + 健康监测 |
+| `tunnel-stop` | 停止所有 tunnel + 健康监测 |
+| `tunnel-remove [name]` | 删除 tunnel |
+| `tunnel-list` | 列出所有 tunnel 及状态 |
 
 ---
 
@@ -152,7 +165,7 @@ cloudflared tunnel login
 
 ## Step 3：确认域名
 
-从全局缓存读取 `domain`：
+从全局注册表读取 `domain`：
 
 - **有缓存**：提示"当前域名是 `long.com`，是否保留？（y/n）"
   - y → 使用缓存域名
@@ -259,7 +272,7 @@ cloudflared tunnel list --output json | jq -e ".[] | select(.name==\"$TUNNEL_NAM
 
 ## Step 7：生成 cloudflare 配置并推送路由
 
-**生成项目内配置文件** `<project>/.cloudflared/config.yml`（写入项目，建议加入 .gitignore）：
+**生成全局配置文件** `~/.cloudflared/config-<tunnel-name>.yml`：
 
 ```yaml
 tunnel: <tunnel-id>
@@ -290,269 +303,33 @@ cloudflared tunnel info "$TUNNEL_NAME"
 
 ---
 
-## Step 8：生成启动脚本
+## Step 8：写入注册表 + 提示启动
 
-在项目根生成 `start-public.sh`（macOS/Linux）和 `start-public.ps1`（Windows），注意：
+不再生成 per-project 的 `start-public.sh` / `start-public.ps1`，改为写入全局注册表，由全局管理脚本统一启动和监控。
 
-- 如果项目根已有 `start.sh`（或 `start.ps1`），**以它为模板追加 tunnel 逻辑，而非全部重写**；保留原启动命令不变
-- 若无原脚本，从零生成
-
-### start-public.sh 模板
+**写入注册表** `~/.cloudflared/tunnel-registry.json`：
 
 ```bash
-#!/usr/bin/env bash
-# <项目名> 公网启动脚本（Cloudflare Named Tunnel）
-# 公网地址：https://<hostname>
-# 自动生成，请勿手动修改 tunnel 相关配置
-
-set -euo pipefail
-
-ROOT="$(cd "$(dirname "$0")" && pwd)"
-
-BOLD='\033[1m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
-
-TUNNEL_NAME="<tunnel-name>"
-HOSTNAME="<hostname>"
-PORT=<port>
-CONFIG_FILE="$ROOT/.cloudflared/config.yml"
-TUNNEL_LOG="/tmp/${TUNNEL_NAME}-tunnel.log"
-TUNNEL_PID_FILE="$ROOT/.cloudflared/${TUNNEL_NAME}.pid"
-CLEANUP_DONE=0
-
-cleanup_stale_tunnel() {
-  if [ -f "$TUNNEL_PID_FILE" ]; then
-    OLD_TUNNEL_PID="$(cat "$TUNNEL_PID_FILE" 2>/dev/null || true)"
-    if [ -n "$OLD_TUNNEL_PID" ] && kill -0 "$OLD_TUNNEL_PID" 2>/dev/null; then
-      echo -e "${YELLOW}[提示] 检测到上次残留的 Cloudflare Tunnel 进程（PID: $OLD_TUNNEL_PID），正在清理...${NC}"
-      kill "$OLD_TUNNEL_PID" 2>/dev/null || true
-      wait "$OLD_TUNNEL_PID" 2>/dev/null || true
-    fi
-    rm -f "$TUNNEL_PID_FILE"
-  fi
-}
-
-# ========== 检查 cloudflared ==========
-if ! command -v cloudflared &>/dev/null; then
-  echo -e "${RED}[错误] 未找到 cloudflared，请先运行 /dt:to-public-cloudflare 完成安装${NC}"
-  exit 1
-fi
-
-# ========== 启动项目 ==========
-# [如有原 start.sh 则将其原始启动命令插入此处]
-echo -e "${BOLD}▶ 启动项目服务（端口 $PORT）...${NC}"
-<original-start-command> &
-APP_PID=$!
-
-# 等待端口就绪（最多 30s）
-echo -n "  等待服务启动"
-for i in $(seq 1 60); do
-  if lsof -iTCP:$PORT -sTCP:LISTEN &>/dev/null 2>&1 || \
-     ss -tlnp 2>/dev/null | grep -q ":$PORT "; then
-    echo -e " ${GREEN}就绪${NC}"
-    break
-  fi
-  echo -n "."
-  sleep 0.5
-  if [ $i -eq 60 ]; then
-    echo -e " ${RED}超时${NC}"
-    echo -e "${RED}[错误] 服务未能在 30s 内启动，请检查启动命令${NC}"
-    kill $APP_PID 2>/dev/null || true
-    exit 1
-  fi
-done
-
-# ========== 启动 Cloudflare Tunnel（带看门狗重试）==========
-echo -e "${BOLD}▶ 启动 Cloudflare Tunnel (${TUNNEL_NAME})...${NC}"
-
-start_tunnel() {
-  cloudflared tunnel --config "$CONFIG_FILE" run "$TUNNEL_NAME" >"$TUNNEL_LOG" 2>&1 &
-  local tunnel_pid=$!
-  printf '%s\n' "$tunnel_pid" > "$TUNNEL_PID_FILE"
-  echo "$tunnel_pid"
-}
-
-cleanup_stale_tunnel
-TUNNEL_PID=$(start_tunnel)
-TUNNEL_RETRY=0
-MAX_TUNNEL_RETRY=5
-WATCH_INTERVAL=15
-
-monitor_tunnel() {
-  while true; do
-    sleep $WATCH_INTERVAL
-    if ! kill -0 $TUNNEL_PID 2>/dev/null; then
-      TUNNEL_RETRY=$((TUNNEL_RETRY + 1))
-      if [ $TUNNEL_RETRY -gt $MAX_TUNNEL_RETRY ]; then
-        echo -e "\n${RED}[错误] Tunnel 重试 $MAX_TUNNEL_RETRY 次仍失败，查看日志：$TUNNEL_LOG${NC}"
-        kill $APP_PID 2>/dev/null || true
-        exit 1
-      fi
-      SLEEP_SEC=$((TUNNEL_RETRY * 2))
-      echo -e "\n${YELLOW}[Tunnel 断线] 第 $TUNNEL_RETRY 次重连，${SLEEP_SEC}s 后重试...${NC}"
-      sleep $SLEEP_SEC
-      TUNNEL_PID=$(start_tunnel)
-    fi
-  done
-}
-
-monitor_tunnel &
-MONITOR_PID=$!
-
-# ========== 打印公网地址 ==========
-echo ""
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}${BOLD}  服务已启动${NC}"
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "  本机:        http://localhost:${PORT}"
-echo -e "  公网(HTTPS): ${BOLD}https://${HOSTNAME}${NC}"
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "  按 ${BOLD}Ctrl+C${NC} 停止所有服务"
-echo ""
-
-# ========== 清理 ==========
-cleanup() {
-  local exit_code=$?
-  if [ "$CLEANUP_DONE" -eq 1 ]; then
-    return
-  fi
-  CLEANUP_DONE=1
-
-  echo -e "\n${YELLOW}▶ 正在停止服务...${NC}"
-  for pid in "${MONITOR_PID:-}" "${TUNNEL_PID:-}" "${APP_PID:-}"; do
-    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-      kill "$pid" 2>/dev/null || true
-      wait "$pid" 2>/dev/null || true
-    fi
-  done
-  rm -f "$TUNNEL_PID_FILE"
-  echo -e "${GREEN}▶ 已停止${NC}"
-  return "$exit_code"
-}
-trap cleanup EXIT
-trap 'exit 130' INT TERM
-
-wait $APP_PID
+# bash (jq)
+jq --arg name "$TUNNEL_NAME" \
+   --arg id "$TUNNEL_ID" \
+   --arg sub "$TUNNEL_NAME" \
+   --arg host "$HOSTNAME" \
+   --argjson port "$PORT" \
+   --arg config "config-${TUNNEL_NAME}.yml" \
+   '.tunnels = ((.tunnels // []) | map(select(.name != $name)) + [{
+       name: $name, tunnel_id: $id, subdomain: $sub,
+       hostname: $host, port: $port, config_file: $config
+   }])' "$REGISTRY_FILE" > "${REGISTRY_FILE}.tmp" && mv "${REGISTRY_FILE}.tmp" "$REGISTRY_FILE"
 ```
 
-### start-public.ps1 模板
+**冲突检测**：
 
-```powershell
-# <项目名> 公网启动脚本（Cloudflare Named Tunnel）
-# 公网地址：https://<hostname>
-# 自动生成，请勿手动修改 tunnel 相关配置
-
-$TunnelName = "<tunnel-name>"
-$Hostname   = "<hostname>"
-$Port       = <port>
-$Root       = $PSScriptRoot
-$ConfigFile = Join-Path $Root ".cloudflared\config.yml"
-$TunnelLog  = "$env:TEMP\$TunnelName-tunnel.log"
-$TunnelPidFile = Join-Path $Root ".cloudflared\$TunnelName.pid"
-
-function Stop-StaleTunnel {
-  if (-not (Test-Path $TunnelPidFile)) { return }
-
-  $oldPid = (Get-Content $TunnelPidFile -ErrorAction SilentlyContinue | Select-Object -First 1)
-  if ($oldPid) {
-    $oldProcess = Get-Process -Id ([int]$oldPid) -ErrorAction SilentlyContinue
-    if ($oldProcess) {
-      Write-Host "[提示] 检测到上次残留的 Cloudflare Tunnel 进程（PID: $oldPid），正在清理..." -ForegroundColor Yellow
-      Stop-Process -Id $oldProcess.Id -Force -ErrorAction SilentlyContinue
-    }
-  }
-
-  Remove-Item $TunnelPidFile -Force -ErrorAction SilentlyContinue
-}
-
-# 检查 cloudflared
-if (-not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
-    Write-Host "[错误] 未找到 cloudflared，请先运行 /dt:to-public-cloudflare" -ForegroundColor Red
-    exit 1
-}
-
-# 启动项目
-Write-Host "▶ 启动项目服务（端口 $Port）..." -ForegroundColor White
-# [如有原 start.ps1 则将其原始启动命令写入 $AppCommand；复杂命令统一交给 shell 执行]
-$AppCommand = "<original-start-command>"
-$PowerShellShell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
-$AppProcess = Start-Process -FilePath $PowerShellShell `
-  -ArgumentList "-NoLogo","-NoProfile","-Command",$AppCommand `
-  -WorkingDirectory $Root -PassThru -NoNewWindow
-
-# 等待端口就绪（最多 30s）
-Write-Host -NoNewline "  等待服务启动"
-$ready = $false
-for ($i = 0; $i -lt 60; $i++) {
-    $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
-    if ($conn) { Write-Host " 就绪" -ForegroundColor Green; $ready = $true; break }
-    Write-Host -NoNewline "."
-    Start-Sleep -Milliseconds 500
-}
-if (-not $ready) {
-    Write-Host " 超时" -ForegroundColor Red
-    Write-Host "[错误] 服务未能在 30s 内启动" -ForegroundColor Red
-    Stop-Process -Id $AppProcess.Id -Force -ErrorAction SilentlyContinue
-    exit 1
-}
-
-# 启动 Tunnel（带重试看门狗）
-Write-Host "▶ 启动 Cloudflare Tunnel ($TunnelName)..." -ForegroundColor White
-
-function Start-Tunnel {
-  $process = Start-Process cloudflared -ArgumentList "tunnel","--config",$ConfigFile,"run",$TunnelName `
-        -PassThru -NoNewWindow -RedirectStandardOutput $TunnelLog -RedirectStandardError $TunnelLog
-  [System.IO.File]::WriteAllText($TunnelPidFile, $process.Id.ToString(), [System.Text.UTF8Encoding]::new($false))
-  return $process
-}
-
-Stop-StaleTunnel
-$TunnelProcess = Start-Tunnel
-$TunnelRetry = 0
-$MaxRetry = 5
-
-$WatchJob = Start-Job -ScriptBlock {
-    param($tp, $max, $cfg, $name, $log)
-    $retry = 0; $sleep = 2
-    while ($true) {
-        Start-Sleep -Seconds 15
-        if ($tp.HasExited) {
-            $retry++
-            if ($retry -gt $max) { Write-Output "[错误] Tunnel 重试 $max 次失败"; return }
-            Write-Output "[Tunnel 断线] 第 $retry 次重连，${sleep}s 后重试..."
-            Start-Sleep -Seconds $sleep; $sleep *= 2
-            $tp = Start-Process cloudflared -ArgumentList "tunnel","--config",$cfg,"run",$name `
-                -PassThru -NoNewWindow -RedirectStandardOutput $log -RedirectStandardError $log
-        }
-    }
-} -ArgumentList $TunnelProcess, $MaxRetry, $ConfigFile, $TunnelName, $TunnelLog
-
-# 打印公网地址
-Write-Host ""
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-Write-Host "  服务已启动" -ForegroundColor Green
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-Write-Host "  本机:        http://localhost:$Port"
-Write-Host "  公网(HTTPS): https://$Hostname" -ForegroundColor Green
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor White
-Write-Host "  按 Ctrl+C 停止所有服务"
-Write-Host ""
-
-# 等待并清理
-try {
-    $AppProcess | Wait-Process
-} finally {
-    Stop-Job $WatchJob -ErrorAction SilentlyContinue
-    Remove-Job $WatchJob -Force -ErrorAction SilentlyContinue
-    Stop-Process -Id $TunnelProcess.Id -Force -ErrorAction SilentlyContinue
-    Stop-Process -Id $AppProcess.Id -Force -ErrorAction SilentlyContinue
-  Remove-Item $TunnelPidFile -Force -ErrorAction SilentlyContinue
-    Write-Host "`n▶ 已停止" -ForegroundColor Yellow
-}
-```
+| 场景 | 处理 |
+|------|------|
+| 子域名已存在于注册表 | 提示"web 已指向 4000 端口，是否更新为新端口？"→ 更新 config + 注册表 |
+| 端口与其他 tunnel 相同 | 允许（正常需求），提示"注意：build 也使用端口 3000" |
+| Cloudflare 端同名 tunnel | 复用，跳过创建 |
 
 ---
 
@@ -564,45 +341,16 @@ try {
 | `cloudflared tunnel list`（授权校验） | 最多 3 次，间隔 2s（指数退避）           |
 | `cloudflared tunnel create`           | 最多 3 次，间隔 2s（指数退避）           |
 | `cloudflared tunnel route dns`        | 最多 3 次，间隔 3s（指数退避）           |
-| 启动脚本中 tunnel run（看门狗重启）   | 最多 5 次，间隔 2/4/8/16/32s（指数退避） |
 | 端口等待（本地服务就绪）              | 最多 60 次 × 0.5s = 30s                  |
 
----
+**健康监测**（由全局 `tunnel-healthcheck` 脚本负责）：
 
-## 更新全局缓存
-
-完整流程走完后，更新 `~/.cloudflared/to-public-cloudflare.json`：
-
-```bash
-# 读取现有 JSON
-CACHE_FILE="$HOME/.cloudflared/to-public-cloudflare.json"
-[ -f "$CACHE_FILE" ] || echo '{"tunnels":[]}' > "$CACHE_FILE"
-
-# 追加或更新当前项目的 tunnel 条目（用 python3 兜底，jq 优先）
-if command -v jq &>/dev/null; then
-  NEW_ENTRY=$(jq -n \
-    --arg name "$TUNNEL_NAME" --arg id "$TUNNEL_ID" \
-    --arg hostname "$HOSTNAME" --argjson port "$PORT" \
-    --arg project "$PWD" \
-    '{name:$name,id:$id,hostname:$hostname,port:$port,project:$project}')
-  jq --arg domain "$DOMAIN" \
-    --arg project "$PWD" \
-    --argjson entry "$NEW_ENTRY" \
-    '.domain = $domain |
-     .tunnels = ((.tunnels // []) | map(select(.project != $project)) + [$entry])' \
-    "$CACHE_FILE" > /tmp/cf-cache-tmp.json && mv /tmp/cf-cache-tmp.json "$CACHE_FILE"
-else
-  python3 -c "
-import json, os, sys
-f = '$CACHE_FILE'
-data = json.load(open(f)) if os.path.exists(f) else {'tunnels':[]}
-data['domain'] = '$DOMAIN'
-data['tunnels'] = [t for t in data.get('tunnels',[]) if t.get('project') != '$PWD']
-data['tunnels'].append({'name':'$TUNNEL_NAME','id':'$TUNNEL_ID','hostname':'$HOSTNAME','port':$PORT,'project':'$PWD'})
-json.dump(data, open(f,'w'), indent=2, ensure_ascii=False)
-"
-fi
-```
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| 检测间隔 | 60s | 正常情况下的检查周期 |
+| 失败阈值 | 3 次 | 连续失败次数才触发重启 |
+| 冷却期 | 120s | 重启后不检测的时间 |
+| 最大退避 | 300s | 连续重启后的最大检测间隔 |
 
 ---
 
@@ -613,12 +361,20 @@ fi
   配置完成！
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   公网地址：https://aaa.long.com
-  启动脚本：./start-public.sh（macOS/Linux）
-           .\start-public.ps1（Windows）
+  本地服务：http://localhost:3000
+
+  启动隧道：
+    tunnel-start aaa
+
+  管理命令：
+    tunnel-list        查看所有隧道状态
+    tunnel-add         添加新隧道
+    tunnel-remove aaa  删除隧道
+    tunnel-stop        停止所有隧道
 
   提示：
-  - 首次运行需要 Cloudflare edge 建立连接，可能需要 10-30s
-  - 如脚本中途失败请查看 /tmp/<tunnel>-tunnel.log
+  - 首次启动需要 Cloudflare edge 建立连接，可能需要 10-30s
+  - 健康监测自动运行，日志：~/tmp/tunnel-healthcheck.log
   - 管理 tunnel：https://dash.cloudflare.com/
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
@@ -630,7 +386,7 @@ fi
 1. **域名必须已托管到 Cloudflare**（NS 记录已指向 Cloudflare）才能用 `tunnel route dns` 自动创建 CNAME
 2. `cert.pem` 是账户级凭证，一个账户只需 `tunnel login` 一次
 3. 每个 tunnel 对应一个 credentials JSON 文件，请勿删除 `~/.cloudflared/<id>.json`
-4. 生成的 `start-public.sh` / `start-public.ps1` 可提交到 git；`.cloudflared/config.yml` 中有本地路径，建议加入 `.gitignore`
+4. 配置文件生成在 `~/.cloudflared/config-<name>.yml`，由全局管理脚本统一管理；项目无需生成启动脚本
 5. Windows 用户首次运行 ps1 可能需要：`Set-ExecutionPolicy -Scope Process RemoteSigned`
 6. tunnel 名在 Cloudflare 账户内全局唯一，同名 tunnel 不能重复创建
 
@@ -697,37 +453,43 @@ if ($existing) {
 powershell -Command "Get-CimInstance Win32_Process -Filter \"name='cloudflared.exe'\" | Where-Object {$_.CommandLine -like '*config-web*' -or $_.CommandLine -like '*config-build*'} | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
 ```
 
-### 多 tunnel 管理（start-all / stop-all）模板
+### 多 tunnel 管理
 
-当一台机器跑多个 tunnel 时，推荐以下 .bat 模板：
+当一台机器跑多个 tunnel 时，统一使用全局管理脚本，无需手动编辑配置：
 
-```bat
-@echo off
-chcp 65001 >nul
-setlocal enabledelayedexpansion
+```bash
+# 添加隧道（交互式：输入子域名+端口，自动创建 tunnel+config+DNS）
+tunnel-add
 
-:: ---- 定义 tunnel 列表 ----
-set "tunnel_count=2"
-set "t1_config=%USERPROFILE%\.cloudflared\config-web.yml"
-set "t2_config=%USERPROFILE%\.cloudflared\config-build.yml"
+# 启动所有已注册的隧道 + 健康监测
+tunnel-start
 
-:: ---- 唯一性检查 + 启动 ----
-for /l %%i in (1,1,%tunnel_count%) do (
-    set "tconfig=!t%%i_config!"
+# 启动指定隧道
+tunnel-start web build
 
-    powershell -Command "Get-CimInstance Win32_Process -Filter \"name='cloudflared.exe'\" | Where-Object {$_.CommandLine -like '*!tconfig!*'} | Select-Object -First 1" 2>nul | findstr /i "cloudflared" >nul 2>&1
-    if !errorlevel! equ 0 (
-        echo   [SKIP] !tconfig! already running
-    ) else (
-        powershell -Command "Start-Process -FilePath 'cloudflared.exe' -ArgumentList 'tunnel','--config','!tconfig!','run' -WindowStyle Minimized"
-        echo   [START] !tconfig! started
-    )
-)
+# 查看所有隧道状态（进程、健康）
+tunnel-list
 
-:: ---- stop-all 模板 ----
-:: powershell -Command "Get-CimInstance Win32_Process -Filter \"name='cloudflared.exe'\" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
-endlocal
+# 停止所有隧道
+tunnel-stop
+
+# 删除一个隧道（可选是否从 Cloudflare 端删除）
+tunnel-remove myapp
 ```
+
+所有配置存储在 `~/.cloudflared/tunnel-registry.json`，管理脚本从注册表读取 tunnel 列表。
+
+### 与本地服务集成
+
+对于多服务的工作空间（如 WebWorkplace），推荐分离架构：
+
+| 脚本 | 职责 |
+|------|------|
+| `start-all` | 只启动本地 PM2 服务 |
+| `tunnel-start` | 启动所有隧道 + 健康监测 |
+| `stop-all` | 停止一切（PM2 + 隧道 + 监测） |
+
+在 `stop-all` 中，可以加入调用 `tunnel-stop` 来确保隧道也被停止。
 
 ### 诊断命令
 

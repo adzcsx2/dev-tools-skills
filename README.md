@@ -47,7 +47,7 @@ cd dev-tools-skills
 | `dt:push`                  | 一键发布工作流：自动暂存、拉取、按逻辑分组提交、推送，支持 --preview 预览      |
 | `dt:update-remote-plugins` | 远程插件维护：更新配置与文档、验证 install 回流本地是否始终命中最新版本         |
 | `dt:code-note`             | 多语言代码注释：自动检测语言类型并应用对应注释风格                              |
-| `dt:to-public-cloudflare`  | Cloudflare 内网穿透：一键配置 Named Tunnel，自动侦察端口，生成带重试的公网启动脚本 |
+| `dt:to-public-cloudflare`  | Cloudflare 内网穿透：一键配置 Named Tunnel，自动侦察端口，自动部署全局 tunnel 管理脚本（tunnel-add/start/stop/remove/list），支持健康监测与自动重启 |
 | `dt:plan-doc`              | 任务聚合文档：在 `docs/plan/<task-slug>/` 下生成含进度指针和子代理规划的多阶段计划文档集，支持跨会话断点续做，可选测试文档（test 参数或 prompt 关键词触发） |
 
 ### Android 工具 — `adt:` 前缀
@@ -81,15 +81,17 @@ dev-tools-skills/
 ├── skills/
 │   ├── init/                     # dt:init
 │   ├── study/                    # dt:study
-│   ├── push/                   # dt:push
-│   ├── update-remote-plugins/  # dt:update-remote-plugins
-│   ├── code-note/              # dt:code-note
-│   ├── gradle-build-performance/
-│   ├── update-docs-android/    # adt:update-docs
-│   ├── android-i18n/
-│   ├── android-fold-adapter/
-│   ├── auto-ui-test/
-│   └── update-docs-flutter/    # fdt:update-docs
+│   ├── push/                     # dt:push
+│   ├── update-remote-plugins/    # dt:update-remote-plugins
+│   ├── code-note/                # dt:code-note
+│   ├── to-public-cloudflare/     # dt:to-public-cloudflare
+│   ├── plan-doc/                 # dt:plan-doc
+│   ├── gradle-build-performance/ # adt:gradle-build-performance
+│   ├── update-docs-android/      # adt:update-docs
+│   ├── android-i18n/             # adt:android-i18n
+│   ├── android-fold-adapter/     # adt:android-fold-adapter
+│   ├── auto-ui-test/             # adt:auto-ui-test
+│   └── update-docs-flutter/      # fdt:update-docs
 ├── install.sh
 ├── install.ps1
 ├── uninstall.sh

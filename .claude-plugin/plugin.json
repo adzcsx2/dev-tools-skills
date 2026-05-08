@@ -1,6 +1,6 @@
 {
   "name": "dev-tools-skills",
-  "description": "All-in-one development toolkit: universal project init (dt:init), study assistant (dt:study), git push (dt:push), plugin management (dt:update-remote-plugins), code annotation (dt:code-note), task-scoped plan docs (dt:plan-doc), Android tools (adt:*), and Flutter tools (fdt:*).",
+  "description": "All-in-one development toolkit: universal project init (dt:init), study assistant (dt:study), git push (dt:push), plugin management (dt:update-remote-plugins), code annotation (dt:code-note), Cloudflare tunnel (dt:to-public-cloudflare), task-scoped plan docs (dt:plan-doc), Android tools (adt:*), and Flutter tools (fdt:*).",
   "version": "1.2.0",
   "author": {
     "name": "adzcsx2",

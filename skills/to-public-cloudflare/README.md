@@ -1,33 +1,54 @@
 # dt:to-public-cloudflare
 
-将当前项目的本地服务通过 **Cloudflare Named Tunnel** 一键暴露到公网，绑定自定义域名，自动生成 `start-public.sh` 和 `start-public.ps1`。
+将当前项目的本地服务通过 **Cloudflare Named Tunnel** 一键暴露到公网，绑定自定义域名。安装时自动部署全局 tunnel 管理脚本。
 
 ## 使用方式
 
 ```bash
+# AI 辅助创建 tunnel（在项目目录下运行）
 /dt:to-public-cloudflare
+
+# 重置配置重新走流程
+/dt:to-public-cloudflare --force-reset
 ```
 
-重置配置重新走流程：
+创建完成后，使用全局命令管理隧道：
 
 ```bash
-/dt:to-public-cloudflare --force-reset
+# 启动所有隧道（含健康监测）
+tunnel-start
+
+# 启动指定隧道
+tunnel-start web build
+
+# 查看隧道状态
+tunnel-list
+
+# 添加新隧道（交互式）
+tunnel-add
+
+# 删除隧道
+tunnel-remove myapp
+
+# 停止所有隧道
+tunnel-stop
 ```
 
 ## 功能特性
 
 - 自动检测并安装 cloudflared（支持 macOS/Linux/Windows）
 - 引导 Cloudflare 账号登录与 zone 授权
-- 全局配置缓存（`~/.cloudflared/to-public-cloudflare.json`），同项目无需重复配置
+- 全局注册表（`~/.cloudflared/tunnel-registry.json`），统一管理所有隧道
 - 自动侦察项目启动命令与端口（支持 Node.js/Python/Go/Spring Boot/Docker 等）
 - 通过 `cloudflared tunnel route dns` 自动创建 DNS CNAME，无需登录 Dashboard 手动配置
-- 生成含看门狗重试机制的 `start-public.sh` + `start-public.ps1`
-- PowerShell 启动模板通过 shell 包装复杂启动命令，避免 `Start-Process` 直接执行失败
-- 启动脚本退出时自动清理 tunnel 进程，二次启动前自动回收残留 cloudflared
-- 启动后实时显示公网地址
-- Windows 下禁止使用 `start` 命令启动 cloudflared（进程会立即退出），一律用 PowerShell `Start-Process`
-- 多 tunnel 场景启动前按命令行参数检查唯一性，防止重复进程
-- 提供 start-all / stop-all 多 tunnel 管理模板
+- 冲突检测：子域名重复提示更新端口，端口重复允许并提示
+- 安装 skill 时自动部署管理脚本到 `~/bin/`（支持 .ps1 + .sh）
+- **主动健康监测**：通过 HTTP 请求检测公网 URL 可达性，发现僵尸进程
+  - 连续 3 次检测失败才触发重启，防止网络抖动误判
+  - 重启后 120 秒冷却期，防止频繁重启
+  - 退避机制：连续重启后检测间隔逐渐增大（最大 300 秒）
+  - 本地服务未启动时跳过隧道重启
+- Windows 下禁止使用 `start` 命令启动 cloudflared，一律用 PowerShell `Start-Process`
 
 ## 前置要求
 
@@ -37,15 +58,28 @@
 | 域名已托管到 Cloudflare | https://dash.cloudflare.com/ → 添加站点 |
 | 本地有可运行的服务      | 任意语言/框架                           |
 
+## 安装的脚本
+
+安装 skill 后，以下脚本会自动部署到 `~/bin/`：
+
+| 脚本 | 功能 |
+|------|------|
+| `tunnel-add.ps1` / `.sh` | 交互式添加或更新 tunnel |
+| `tunnel-start.ps1` / `.sh` | 启动指定或全部 tunnel + 健康监测 |
+| `tunnel-stop.ps1` / `.sh` | 停止所有 tunnel + 健康监测 |
+| `tunnel-remove.ps1` / `.sh` | 删除 tunnel（可选从 Cloudflare 端删除） |
+| `tunnel-list.ps1` / `.sh` | 列出所有 tunnel 及运行状态、健康状态 |
+| `tunnel-healthcheck.ps1` / `.sh` | 后台健康监测（被 tunnel-start 自动启动） |
+
 ## 示例输出
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  服务已启动
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  本机:        http://localhost:3000
-  公网(HTTPS): https://my-app.long.com
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ========================================
+  Tunnel added!
+  ========================================
+  Hostname: https://myapp.long123456789.xyz
+  Local:    http://localhost:3000
+  Start:    tunnel-start myapp
 ```
 
 ## 重试机制
@@ -54,5 +88,6 @@
 | ------------------------ | ------------------------------ |
 | cloudflared 安装验证     | 3 次，指数退避                 |
 | tunnel 创建 / DNS 路由   | 3 次，指数退避                 |
-| 启动脚本中 tunnel 看门狗 | 5 次，指数退避（2→4→8→16→32s） |
+| 健康监测（HTTP 公网检测） | 每 60s 检测，3 次失败重启，退避到最大 300s |
+| 冷却期（防止频繁重启）   | 重启后 120s 不检测             |
 | 本地服务启动等待         | 最多 30s                       |
