@@ -1,6 +1,6 @@
 # dt:init
 
-统一跨技术栈项目初始化入口。基于真实代码和配置，生成或优化 CLAUDE.md、AGENT.md、Copilot 项目级指令，建立 `/docs` 分类规则，写入 AI vibe coding 约束，并输出简洁的代码库入门摘要。
+统一跨技术栈项目初始化入口。基于真实代码和配置，生成或优化 CLAUDE.md、AGENT.md、Copilot 项目级指令，建立 `/docs` 分类规则，写入 10 条通用原则（GP-1 至 GP-10），并输出简洁的代码库入门摘要。
 
 ---
 
@@ -10,12 +10,20 @@
 - 检测真实构建文件、入口点、目录结构和已有编码规范
 - 生成或优化 CLAUDE.md、AGENT.md 及 Copilot 可读的项目配置
 - 建立 `/docs` 根目录及标准分类体系，**强制创建缺失的标准分类目录**（plan、product、design、guide、modules、references、checklist、reports）
-- 默认输出低 token 消耗的 AI 规则文件，而非冗长的项目介绍
-- 写入 AI vibe coding 约束：小文件、单一职责、源文件 500 行偏好（含显式例外）、变更文件纪律、计划优先触发、最低验证要求、紧凑可检索文档
+- 写入 10 条通用原则（GP-1 至 GP-10）：
+  - GP-1: Evidence-Only Conclusions - 只基于真实代码和配置得出结论
+  - GP-2: Single Sources of Truth - 建立并遵循各类事实来源映射
+  - GP-3: Reuse-First - 搜索优先、复用优先、最小改动、局部一致
+  - GP-4: File-Touch Discipline - 只修改需求直接相关文件
+  - GP-5: Plan-First Triggers - 明确需要计划时的触发条件
+  - GP-6: Minimal Verification - 最小验证规则和执行要求
+  - GP-7: AI Vibe Coding Constraints - 源文件 500 行偏好（含显式例外）
+  - GP-8: Copilot Config Exclusivity - AGENTS.md 与 copilot-instructions.md 二选一
+  - GP-9: Documentation Taxonomy - `/docs` 分类规则与任务聚合约定
+  - GP-10: Incremental Upgrade on Re-run - 重复执行时增量升级旧版规则文件
 - 保留 Android 和 Flutter 本地一致性约束，适配其他技术栈
 - 可在明确请求时生成已验证的 API、依赖和模块清单文档
 - 确保后续 AI 复用已有文档分类目录，避免在 `/docs` 下创建语义重复目录或在仓库根目录散落文档
-- 再次运行时自动升级旧版 init 生成的规则文件至当前 init skill 标准
 - 支持 `--experiment converge` 用于新项目首次版本或早期迁移架构收敛
 - 支持 `--experiment sync` 在新增目录、模块或文件结构后同步更新 AI 规则和路径映射
 - 支持 `--dry-run` 预览变更范围、风险、验证项和回滚点后再执行
