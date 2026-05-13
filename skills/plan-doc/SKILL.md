@@ -58,7 +58,7 @@ Only inspect the prompt body. Do NOT match the slug (e.g. a slug like `foo-test-
 
 ## Execution Flow (prefers /ecc:plan)
 
-Every invocation runs 5 core stages plus the Stage 2.5 execution-command resolution checkpoint. Do NOT skip any of them.
+Every invocation runs 6 core stages plus the Stage 2.5 execution-command resolution checkpoint and the Stage 3.5 model-switch checkpoint. Do NOT skip any of them.
 
 ### Stage 1. Restate
 
@@ -128,21 +128,80 @@ Phase 2: ...
 - <list of .cursor/rules/*.mdc, docs/guide/*使用规范.md, etc.>
 
 ## Waiting for confirmation
-Reply "yes" / "proceed" to generate, or "modify: ..." to adjust.
+Reply "yes" / "proceed" to enter the model-switch checkpoint, or "modify: ..." to adjust.
 ```
 
 **DO NOT generate files until the user confirms.**
 
+### Stage 3.5. Model-switch checkpoint + WAIT for `继续`
+
+Immediately after the user replies `yes` / `proceed`, pause before file generation and create an explicit generation handoff.
+
+1. Build a compact `Generation Handoff` block containing:
+   - `task_slug`
+   - `output_dir`
+   - `docs_language`
+   - `test_mode`
+   - `detected_stack`
+   - `resolved_plan_command`
+   - `upstream_sources`
+   - `phase_list`
+   - `doc_list`
+   - `generation_risks`
+2. Recommend the generation model using this routing policy:
+   - Default to `haiku` for template filling, cross-linking, and straightforward markdown generation.
+   - Recommend `sonnet` instead when any of the following is true:
+     - test mode is enabled and the task needs nontrivial test strategy or regression matrix synthesis
+     - upstream sources are numerous (`> 3`) or materially conflict with each other
+     - the task is terminology-heavy, mixed-language, or architecture-heavy
+     - `01-架构设计.md`, `04-测试计划.md`, or `05-测试用例清单.md` require fresh synthesis rather than direct expansion from the handoff
+     - the user explicitly prefers quality over cost
+3. Print the checkpoint in this exact shape:
+
+```text
+## Model switch checkpoint
+已完成审计和写文档准备。下一步建议切换到 <haiku | sonnet> 再继续生成文档。
+
+### Generation Handoff
+- task_slug: ...
+- output_dir: ...
+- docs_language: ...
+- test_mode: ...
+- detected_stack: ...
+- resolved_plan_command: ...
+- upstream_sources:
+  - ...
+- phase_list:
+  - Phase 1: ...
+  - Phase 2: ...
+- doc_list:
+  - README.md
+  - 00-执行文档.md
+  - ...
+- generation_risks:
+  - ...
+
+切换完成后请输入：继续
+```
+
+4. Stop after the checkpoint. Do NOT create files yet.
+5. Only continue when the user replies exactly `继续`.
+6. If the currently active model already matches the recommendation, still stop and require `继续` so there is a clean boundary between audit and generation.
+7. If the user changes the task after the checkpoint, go back to Stage 1 or Stage 2 as needed instead of blindly continuing.
+
 ### Stage 4. Generate
 
-Only after confirmation:
+Only after confirmation and the Stage 3.5 `继续` reply:
 
-1. Compute the target directory: `docs/plan/<task-slug>-<today-date>/` where `<today-date>` is the local date in `YYYY-MM-DD` format at generation time.
+1. Read the Stage 3.5 `Generation Handoff` block first and use it as the primary input for generation.
+   - Do NOT repeat the full audit if the handoff already contains enough information.
+   - Only reread upstream sources when the handoff is missing details, the sources conflict, or the user changed the task after the checkpoint.
+2. Compute the target directory: `docs/plan/<task-slug>-<today-date>/` where `<today-date>` is the local date in `YYYY-MM-DD` format at generation time.
    - Before creating, scan for existing directories matching `docs/plan/<task-slug>-*/` (same slug, any date). If one is found, ask the user: "已存在 `<found-dir>`，是续做（reuse）还是新任务（create new）？" Only create a new directory if the user chooses new task.
    - Fail if the target directory already exists with content — ask before overwriting.
-2. Write the docs in this order: `README.md` → `00-执行文档.md` → `01` → `02` → `03` → (`04` → `05` if test)
-3. Use the templates in `references/templates/` as starting point; fill placeholders from Restate output
-4. Cross-link documents (README links to all; `00` links to `01-03`; each numbered doc has prev/next links)
+3. Write the docs in this order: `README.md` → `00-执行文档.md` → `01` → `02` → `03` → (`04` → `05` if test)
+4. Use the templates in `references/templates/` as starting point; fill placeholders from Restate output and the `Generation Handoff`
+5. Cross-link documents (README links to all; `00` links to `01-03`; each numbered doc has prev/next links)
 
 ### Stage 5. Post-generation
 
@@ -302,6 +361,21 @@ Forbidden subagent uses (apply universally):
 - **`/dt:init`** — initializes project-level AI rules; `plan-doc` respects the docs taxonomy established by `init`.
 - **`/ecc:prp-plan`** / **`/ecc:prp-implement`** — PRD-driven artifact planning; use when the task starts from a product spec rather than an engineering problem.
 
+## Model Routing Policy
+
+`plan-doc` separates expensive reasoning from cheaper document generation.
+
+- Stages 1-3: use the current stronger model to restate the task, clarify gaps, resolve execution command, and design the phase plan.
+- Stage 3.5: stop and explicitly tell the user which model to switch to for document generation.
+- Stage 4: resume only after the user switches model manually and replies `继续`.
+
+Routing rules:
+
+- Default recommendation: `haiku`
+- Recommend `sonnet` when the generation work still needs substantial synthesis, conflict resolution, or complex test/architecture writing
+- Never auto-switch silently; always ask the user to switch manually
+- Never ask the cheaper model to redo the full audit unless the handoff is incomplete or the user changed requirements
+
 When in doubt:
 
 - One-shot change → just edit
@@ -320,6 +394,7 @@ The generated `00-执行文档.md` expects the host project's CLAUDE.md to have 
 ## Anti-Patterns
 
 - Generating docs before user confirmation (violates the plan-first workflow)
+- Generating docs immediately after `yes` / `proceed` without first stopping at the Stage 3.5 model-switch checkpoint
 - Writing test docs by default when user didn't ask or the task doesn't involve QA
 - Hardcoding subagent names that don't exist in the host's installed agents — check `dt:init` produced agent inventory if available
 - Hardcoding `/ecc:plan` in generated prompts when only `/everything-claude-code:plan` is available, or when the user declined installation and asked for degraded execution
@@ -333,6 +408,9 @@ The generated `00-执行文档.md` expects the host project's CLAUDE.md to have 
 - Silently creating a new dated directory when a same-slug directory already exists — always prompt the user to choose between reuse and new task first
 - Matching `test` keyword inside the slug (slug is not prompt body)
 - Creating nested task subdirs (e.g. `docs/plan/<task-slug>-2026-05-06/sub-task/`)
+- Letting the generation model re-read every audit source by default instead of using the Stage 3.5 `Generation Handoff`
+- Defaulting to `sonnet` for routine template filling that `haiku` can handle
+- Defaulting to `haiku` when the task still needs substantial synthesis for architecture or QA documents
 
 ## Examples
 
@@ -351,6 +429,14 @@ docs/plan/ble-multi-device-fix-2026-05-06/
 (emits 7-doc plan, waits for confirmation)
 
 User: yes
+
+Agent:
+## Model switch checkpoint
+已完成审计和写文档准备。下一步建议切换到 sonnet 再继续生成文档。
+...
+切换完成后请输入：继续
+
+User: 继续
 
 Agent:
 (generates 7 files + first execution prompt)
@@ -375,6 +461,19 @@ User: /dt:plan-doc realtime-notifications
 Agent:
 # plan-doc generation plan: realtime-notifications
 ... 5 docs (no 04/05) ...
+
+User: yes
+
+Agent:
+## Model switch checkpoint
+已完成审计和写文档准备。下一步建议切换到 haiku 再继续生成文档。
+...
+切换完成后请输入：继续
+
+User: 继续
+
+Agent:
+(generates 5 files + first execution prompt)
 ```
 
 ### Example 4 · Interactive mode

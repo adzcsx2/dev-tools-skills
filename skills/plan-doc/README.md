@@ -1,6 +1,6 @@
 # dt:plan-doc
 
-> Persist a multi-phase engineering plan as a durable task-scoped doc set under `docs/plan/<task-slug>-YYYY-MM-DD/`, complete with progress pointer and subagent plan so AI can resume across sessions without losing state. Execution prompts prefer `/ecc:plan`, then `/everything-claude-code:plan`, and degrade to plain-language resume prompts if the user declines installation.
+> Persist a multi-phase engineering plan as a durable task-scoped doc set under `docs/plan/<task-slug>-YYYY-MM-DD/`, complete with progress pointer and subagent plan so AI can resume across sessions without losing state. After the audit and plan are confirmed, `plan-doc` pauses at a model-switch checkpoint, recommends `haiku` or `sonnet` for document generation, and resumes only after the user replies `继续`.
 
 ## Install
 
@@ -15,6 +15,30 @@ Bundled with the `dev-tools-skills` plugin. See the repo root `README.md` for in
 ```
 
 Test mode is also enabled automatically if the prompt body contains `测试 / 回归 / 自测 / QA / 验证 / 用例 / test / regression / verification`.
+
+Typical flow:
+
+1. Run `/dt:plan-doc ...`
+2. Review the emitted generation plan
+3. Reply `yes` / `proceed`
+4. Follow the model-switch checkpoint recommendation (`haiku` by default, `sonnet` for heavier synthesis)
+5. After switching models manually, reply `继续`
+6. The skill generates the docs
+
+If you are already on the recommended model, no switch is needed; just reply `继续`.
+
+## Model Switch Checkpoint
+
+`plan-doc` separates expensive reasoning from cheaper markdown generation.
+
+- Audit, clarification, and phase design happen before the checkpoint
+- Document generation happens after the checkpoint
+- The skill never switches models automatically; it tells the user which model to switch to and waits for `继续`
+
+Default recommendation:
+
+- `haiku` for routine template filling, cross-linking, and straightforward markdown generation
+- `sonnet` when generation still requires substantial synthesis, complex architecture writing, or nontrivial test planning
 
 ## Execution Command Resolution
 
