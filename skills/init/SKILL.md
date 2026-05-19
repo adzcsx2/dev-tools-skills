@@ -387,6 +387,11 @@ Copilot 配置文件选择规则（→ GP-8）。
     ├── .updates/
     └── project-skills/
         └── SKILL.md
+
+.claude/
+└── skills/
+    └── project-skills/
+        └── SKILL.md
 ```
 
 强制要求：
@@ -396,6 +401,8 @@ Copilot 配置文件选择规则（→ GP-8）。
 - 若 `registry.yml` 不存在，必须创建最小注册表
 - 若 `.updates/` 不存在，必须创建，用于存放待确认更新提案
 - 若 `project-skills/SKILL.md` 不存在，必须创建项目内元 skill，说明 `.ai/skills/` 是 canonical source
+- 若 `.claude/skills/` 不存在，必须创建 `.claude/skills/`
+- init 完成时，必须把 bootstrapped 的 `project-skills` 从 `.ai/skills/project-skills/` 同步复制一份到 `.claude/skills/project-skills/`
 
 `registry.yml` 最小字段至少包含：
 
@@ -438,7 +445,9 @@ description: Canonical project-local skill governance. Use when summarizing succ
 # project-skills
 
 - Canonical source: `.ai/skills/`
+- Claude mirror: `.claude/skills/`
 - Do not edit tool export layers directly
+- Do not edit `.claude/skills/` directly; refresh it by syncing from `.ai/skills/`
 - When the user says "summarize this into a skill" or similar, first run duplicate-check, overlap-check, and merge-check
 - Show a proposal before writing any canonical skill update
 - Export Copilot or Codex views only on explicit request
@@ -446,22 +455,25 @@ description: Canonical project-local skill governance. Use when summarizing succ
 
 ### 3.6.2 Bootstrap Rules
 
-默认只建立 Claude-first 的项目级接入，不主动生成 Copilot、Codex 或其他工具的 skill 导出层。
+默认建立 Claude-first 的项目级接入：canonical source 在 `.ai/skills/`，Claude 镜像在 `.claude/skills/`；Copilot、Codex 或其他工具导出层仍然按需生成。
 
 这意味着：
 
 - init 默认创建 `.ai/skills/` canonical source
+- init 默认创建 `.claude/skills/` Claude project mirror
 - init 必须把 project skill 规则写进生成的 `CLAUDE.md` 和 `AGENT.md`
 - init 不主动创建 Copilot 或 Codex 的 skill 适配文件
 - 只有用户后续明确要求时，才从 `.ai/skills/` 导出到其他工具
 - 如果本次带 `--dry-run`，`.ai/` 骨架也只允许输出预览，不得实际创建目录或文件
+- 如果本次带 `--dry-run`，`.claude/skills/` 镜像也只允许输出预览，不得实际创建目录或文件
 
 ### 3.6.3 Canonical-Only Rule
 
 生成的项目级规则文件必须显式写入以下约束：
 
 - 修改、沉淀、合并项目级 skill 时，只允许修改 `.ai/skills/` 下的 canonical 文件
-- `.claude/`、Copilot、Codex 等工具侧文件是导出层，不是事实源
+- `.claude/skills/`、Copilot、Codex 等工具侧文件是导出层，不是事实源
+- Claude 项目级 skill 默认通过同步把 `.ai/skills/` 复制到 `.claude/skills/`，不能直接手改 `.claude/skills/`
 - 如需同步到其他工具，必须从 `.ai/skills/` 导出，不能直接手改导出层
 - 当用户说“帮我总结一下加到 skill 里”或类似表达时，默认先做重复检查、重叠检查、融合判断，再给出 proposal，确认后才写入
 

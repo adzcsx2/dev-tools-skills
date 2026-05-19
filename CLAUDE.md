@@ -9,7 +9,7 @@ AI Skills repository for Claude Code and VS Code Copilot. Provides a collection 
 **Skills Organization**:
 
 - `dt:*` - Common tools (init, study, push, update-remote-plugins, code-note)
-- `adt:*` - Android tools (gradle-build-performance, update-docs, i18n, fold-adapter, auto-ui-test)
+- `adt:*` - Android tools (gradle-build-performance, update-docs, i18n, fold-adapter)
 - `fdt:*` - Flutter tools (update-docs)
 
 ## Single Sources of Truth

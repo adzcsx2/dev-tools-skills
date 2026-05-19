@@ -6,7 +6,7 @@ This repository contains reusable AI skills for Claude Code and VS Code Copilot.
 
 **Skills Organization**:
 - `dt:*` - Universal tools (init, study, push, update-remote-plugins, code-note)
-- `adt:*` - Android tools (gradle-build-performance, update-docs, i18n, fold-adapter, auto-ui-test)
+- `adt:*` - Android tools (gradle-build-performance, update-docs, i18n, fold-adapter)
 - `fdt:*` - Flutter tools (update-docs)
 
 **Technical Stack**: Shell scripts, PowerShell scripts, Markdown documents, YAML frontmatter, JSON configuration

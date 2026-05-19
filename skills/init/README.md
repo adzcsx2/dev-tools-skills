@@ -9,9 +9,9 @@
 - 支持 Android、Flutter、React、Python、Java、Node.js 等项目
 - 检测真实构建文件、入口点、目录结构和已有编码规范
 - 生成或优化 CLAUDE.md、AGENT.md 及 Copilot 可读的项目配置
-- 创建或升级 `.ai/README.md`、`.ai/skills/registry.yml`、`.ai/skills/.updates/` 和 `.ai/skills/project-skills/SKILL.md`
+- 创建或升级 `.ai/README.md`、`.ai/skills/registry.yml`、`.ai/skills/.updates/`、`.ai/skills/project-skills/SKILL.md`，并把 Claude 镜像同步到 `.claude/skills/project-skills/`
 - 把“项目级 skill 只改 `.ai/skills/` canonical source”的规则写入生成的 CLAUDE.md 与 AGENT.md
-- 默认只建立 Claude-first 的 project-skills 工作流；Copilot / Codex skill 导出层按需生成
+- 默认建立 Claude-first 的 project-skills 工作流：`.ai/skills/` 是事实源，`.claude/skills/` 是同步镜像；Copilot / Codex skill 导出层按需生成
 - 建立 `/docs` 根目录及标准分类体系，**强制创建缺失的标准分类目录**（plan、product、design、guide、modules、references、checklist、reports）
 - 写入 10 条通用原则（GP-1 至 GP-10）：
   - GP-1: Evidence-Only Conclusions - 只基于真实代码和配置得出结论

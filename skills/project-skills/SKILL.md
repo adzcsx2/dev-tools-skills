@@ -13,7 +13,7 @@ origin: dev-tools-skills
 
 # project-skills Skill
 
-统一的项目级 AI skill 生命周期入口。它不维护用户机器上的缓存副本，而是只维护目标项目里的 canonical source：`.ai/skills/`。
+统一的项目级 AI skill 生命周期入口。它以 `.ai/skills/` 作为唯一事实源，并默认把 Claude 需要的 project skill 同步镜像到项目内 `.claude/skills/`。
 
 ## Trigger
 
@@ -26,7 +26,7 @@ origin: dev-tools-skills
 - 用户说“帮我总结一下加到 skill 里”“把这次修改沉淀成 skill”“把上面的经验补到对应 skill”
 - 需要检查项目里已有 skill 是否重复、重叠、可融合
 - 需要把一次成功实现提炼成可复用的项目级 skill
-- 需要同步更新 `.ai/skills/` 下的 canonical skill，但更新前必须先征求确认
+- 需要同步更新 `.ai/skills/` 下的 canonical skill，并把 Claude 镜像同步到 `.claude/skills/`，但更新前必须先征求确认
 - 需要按需导出 Copilot 或 Codex 适配层
 
 ## Core Model
@@ -42,16 +42,18 @@ origin: dev-tools-skills
 强制规则：
 
 - 只修改 `.ai/skills/` 下的 canonical skill 和注册表
-- 不直接手改 `.claude/`、Copilot、Codex 或其他工具导出层
+- 不直接手改 `.claude/skills/`、Copilot、Codex 或其他工具导出层
 - 如需导出到其他工具，必须从 `.ai/skills/` 派生
 
-### 2. Claude-First, Others On Demand
+### 2. Claude-First Mirror, Others On Demand
 
-默认只为 Claude 项目级工作流建立接入约束；Copilot、Codex 等导出层只有在用户明确要求时才生成。
+默认会为 Claude 项目级工作流维护一个派生镜像：`.claude/skills/`；Copilot、Codex 等导出层只有在用户明确要求时才生成。
 
 这意味着：
 
-- `list`、`audit`、`sync`、`promote`、`merge` 默认只处理 canonical source
+- `.ai/skills/` 仍是唯一事实源
+- `sync`、`promote`、`merge` 在更新 canonical source 后，默认同步 `tool_exports` 包含 `claude` 的 skill 到 `.claude/skills/`
+- `.claude/skills/` 是派生镜像，可被 `sync` 覆盖，不是手改入口
 - `export copilot ...`、`export codex ...` 只有显式要求时才执行
 
 ### 3. Proposal Before Write
@@ -68,6 +70,11 @@ origin: dev-tools-skills
 └── skills/
     ├── registry.yml
     ├── .updates/
+    └── project-skills/
+        └── SKILL.md
+
+.claude/
+└── skills/
     └── project-skills/
         └── SKILL.md
 ```
@@ -94,7 +101,7 @@ origin: dev-tools-skills
 
 ### `sync`
 
-用于更新已有 project skill，但必须先征求确认。
+用于更新已有 project skill，并默认刷新 Claude 项目级镜像，但必须先征求确认。
 
 执行步骤：
 
@@ -105,7 +112,10 @@ origin: dev-tools-skills
    - 为什么要更新
    - 是补充、重写局部还是合并
    - 影响哪些 canonical 文件
-4. 等用户确认后再写入
+   - 会同步哪些 skill 到 `.claude/skills/`
+4. 等用户确认后先更新 `.ai/skills/`
+5. 再把 `tool_exports` 包含 `claude` 的 skill 复制到 `.claude/skills/`
+6. 最后报告 canonical 变更和 Claude 镜像变更
 
 ### `promote`
 
@@ -122,7 +132,8 @@ origin: dev-tools-skills
    - 更新现有 skill
    - 新建 skill
    - 融合多个 skill
-5. 用户确认后才真正写入 canonical source
+5. 用户确认后先写入 canonical source
+6. 若目标 skill 的 `tool_exports` 包含 `claude`，再同步复制到 `.claude/skills/`
 
 ### `merge`
 
@@ -137,6 +148,7 @@ origin: dev-tools-skills
 - 只有用户明确说“生成 Copilot 版本”“导出 Codex 版本”时才执行
 - 导出层是 view，不是事实源
 - 不允许跳过 canonical source 直接在导出层手改
+- Claude 不走 `export`；Claude 项目级镜像默认由 `sync` / `promote` / `merge` 维护到 `.claude/skills/`
 - `export copilot` 默认沿用 `dt:init` 的 Copilot 路径规则：已有 `AGENTS.md` 就更新 `AGENTS.md`，否则更新 `.github/copilot-instructions.md`
 - `export codex` 默认写入 `.ai/exports/codex/` 派生视图；若项目已有明确 Codex 约定，才复用项目既有位置
 
@@ -167,10 +179,11 @@ project-skills proposal
 - rationale: <why>
 - duplicate-check: <result>
 - overlap-check: <result>
-- export-impact: canonical only | plus copilot | plus codex
+- export-impact: canonical only | plus claude mirror | plus copilot | plus codex
 - files-to-change:
   - .ai/skills/...
   - .ai/skills/registry.yml
+  - .claude/skills/...
 Please confirm before apply.
 ```
 
@@ -198,9 +211,10 @@ Please confirm before apply.
 
 只有同时满足下面条件，才算完成：
 
-1. 改动只发生在 `.ai/skills/` canonical source
+1. canonical 改动只发生在 `.ai/skills/` source，`.claude/skills/` 只作为同步镜像更新
 2. 在写入前已完成重复检查、重叠检查和融合判断
 3. 在写入前已给用户看过 proposal 并获得确认
-4. 如果涉及导出层，导出来源明确来自 `.ai/skills/`
-5. 如果只是补充旧 skill 的局部边界，没有无意义新建 skill
-6. 如果发现多个 skill 可融合，已明确给出 merge 建议而不是静默保留重复内容
+4. 若 `tool_exports` 包含 `claude`，相关 skill 已同步复制到 `.claude/skills/`
+5. 如果涉及其他导出层，导出来源明确来自 `.ai/skills/`
+6. 如果只是补充旧 skill 的局部边界，没有无意义新建 skill
+7. 如果发现多个 skill 可融合，已明确给出 merge 建议而不是静默保留重复内容

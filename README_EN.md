@@ -59,7 +59,6 @@ Installation also registers the global `/dt:init` and `/study` prompts for VS Co
 | `adt:update-docs`              | Audit code changes first, then update all affected Android project docs |
 | `adt:android-i18n`             | i18n: audit hardcoded strings, generate multi-language resources        |
 | `adt:android-fold-adapter`     | Foldable screen: diagnose and fix fold adaptation issues                |
-| `adt:auto-ui-test`             | UI automation: Midscene visual-driven + ADB fast execution              |
 
 ### Flutter Tools — `fdt:` prefix
 
@@ -92,7 +91,6 @@ dev-tools-skills/
 │   ├── update-docs-android/      # adt:update-docs
 │   ├── android-i18n/             # adt:android-i18n
 │   ├── android-fold-adapter/     # adt:android-fold-adapter
-│   ├── auto-ui-test/             # adt:auto-ui-test
 │   └── update-docs-flutter/      # fdt:update-docs
 ├── install.sh
 ├── install.ps1
