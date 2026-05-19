@@ -1,6 +1,6 @@
 ﻿---
 name: "init"
-description: "Initialize AI project context for any codebase: detect the real stack, summarize the repo, generate or update CLAUDE.md, AGENT.md (universal AI tool rules), and Copilot project instructions, and establish a stable /docs taxonomy."
+description: "Initialize AI project context for any codebase: detect the real stack, summarize the repo, generate or update CLAUDE.md, AGENT.md (universal AI tool rules), Copilot project instructions, bootstrap a canonical .ai/skills workspace for project-level skills, and establish a stable /docs taxonomy."
 argument-hint: "[optional focus] [--experiment [converge|sync]] [--dry-run]"
 agent: "agent"
 model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
@@ -17,6 +17,9 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - 生成或优化项目根目录的 AGENT.md（通用 AI 工具规范）
 - 为 VS Code Copilot 增加项目级配置：如果项目已有 AGENTS.md 就更新它，否则创建或更新 .github/copilot-instructions.md
 - 不要同时维护 AGENTS.md 和 .github/copilot-instructions.md 两套项目级指令
+- 建立项目级 AI framework：创建或升级 `.ai/README.md`、`.ai/skills/registry.yml`、`.ai/skills/.updates/` 和 `.ai/skills/project-skills/SKILL.md`
+- 项目级 skill 的唯一事实源是 `.ai/skills/`；如果后续要改 skill，只能改 canonical source，不能直接改工具导出层
+- 默认只建立 Claude-first 接入，不主动生成 Copilot 或 Codex 的 skill 导出层；只有用户明确要求时才导出
 - 统一项目文档到 `/docs`，建立标准文档分类；已有语义等价目录时必须复用，不能重复创建同义目录
 - 默认遵循先搜索、先复用、最小改动、局部一致
 - 如果项目曾经执行过 init，必须把旧版 CLAUDE.md、AGENT.md、AGENTS.md 或 Copilot 指令增量升级到当前 init 标准，而不是只报告已存在
@@ -57,6 +60,7 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - 如果项目已有语义等价目录，例如 `/docs/plans`，则复用它，不要再创建 `/docs/plan`
 - 如果缺少某个需要的分类且不存在语义等价目录，则创建对应分类目录
 - 生成的 CLAUDE.md 和 Copilot 项目级配置必须写入文档归档规则，确保后续 AI 不在根目录或 `/docs` 下乱建同义文档目录
+- 生成的 CLAUDE.md 和 AGENT.md 必须显式写入 project-skills 规则：用户说“帮我总结一下加到 skill 里”时，先做重复检查、重叠检查、融合判断，再给 proposal，确认后才写入 `.ai/skills/`
 
 关于 AI vibe coding，必须写入这些规则：
 
