@@ -18,6 +18,18 @@ argument-hint: "[--force-reset] e.g. /dt:to-public-cloudflare or /dt:to-public-c
 
 将当前项目的本地服务通过 **Cloudflare Named Tunnel** 一键暴露到公网，绑定自定义域名，生成可复用的启动脚本。
 
+---
+
+## 三条铁律（执行前必读）
+
+| # | 规则 | 违反后果 |
+|---|------|---------|
+| 1 | **DNS 路由必须用 TUNNEL_UUID，禁用 TUNNEL_NAME** | 名称相似导致 DNS 指向错误 tunnel，公网 URL 不可用 |
+| 2 | **`cloudflared tunnel route dns` 必须加 `-f`** | DNS 记录已存在时报错 1003，流程卡死 |
+| 3 | **DNS 路由出问题时修复而非换子域名** | 产生孤儿 DNS 记录，域名混乱，增加清理成本 |
+
+---
+
 **核心命令**：`/dt:to-public-cloudflare`
 
 参数说明：
@@ -229,6 +241,14 @@ cloudflared tunnel list --output json | jq -e ".[] | select(.name==\"$TUNNEL_NAM
 
 合成完整 hostname = `<tunnel-name>.<domain>`（如 `aaa.long.com`）。
 
+**CRITICAL**: 创建成功后，必须保存以下变量供后续步骤使用：
+- `TUNNEL_ID`: 隧道 UUID（如 `5af095b0-b00c-4b19-b1af-0c16183eef39`）
+- `CREDS_FILE`: credentials 文件路径（如 `~/.cloudflared/<TUNNEL_ID>.json`）
+- `TUNNEL_NAME`: 隧道名称
+- `HOSTNAME`: 完整域名（如 `aaa.long.com`）
+
+**重要**: 后续所有 `cloudflared tunnel route dns` 命令必须使用 **TUNNEL_ID（UUID）**，绝不能使用 TUNNEL_NAME。因为 tunnel name 可能与其他名称相似的 tunnel 产生解析歧义，导致 DNS 路由到错误的隧道。
+
 ---
 
 ## Step 6：检测项目启动命令与端口
@@ -272,7 +292,9 @@ cloudflared tunnel list --output json | jq -e ".[] | select(.name==\"$TUNNEL_NAM
 
 ## Step 7：生成 cloudflare 配置并推送路由
 
-**生成全局配置文件** `~/.cloudflared/config-<tunnel-name>.yml`：
+### 7.1 生成配置文件
+
+写入 `~/.cloudflared/config-<tunnel-name>.yml`：
 
 ```yaml
 tunnel: <tunnel-id>
@@ -285,21 +307,61 @@ ingress:
 
 Windows 路径用 `\` → 写入时改为 `/`（cloudflared 在 Windows 也接受 `/`）。
 
-**推送 DNS CNAME（无需进 Dashboard）**：
+### 7.2 推送 DNS CNAME
+
+**CRITICAL — 必须使用 TUNNEL_ID (UUID) 而非 TUNNEL_NAME**：
+
+使用 tunnel name 可能导致 DNS 路由到错误的隧道（cloudflared 可能将名称解析为其他已存在的隧道）。必须使用完整的 UUID。
 
 ```bash
-retry_cmd 3 3 cloudflared tunnel route dns "$TUNNEL_NAME" "$HOSTNAME"
+# 正确：使用 UUID + -f 强制覆盖
+cloudflared tunnel route dns -f "$TUNNEL_ID" "$HOSTNAME"
 ```
 
-该命令在 Cloudflare 自动创建 CNAME：`aaa.long.com → <tunnel-id>.cfargotunnel.com`。
+**为什么必须加 -f？** 如果该 hostname 之前配置过（即使是配置到其他 tunnel），不加 `-f` 会报错 "An A, AAAA, or CNAME record with that host already exists"。`-f` 会先删除旧记录再创建新记录。
 
-成功后验证：
+**CRITICAL — 验证路由是否正确指向你的 tunnel**：
 
 ```bash
-cloudflared tunnel info "$TUNNEL_NAME"
+# 确认输出中 tunnelID= 后面是你的 TUNNEL_ID
+cloudflared tunnel route dns -f "$TUNNEL_ID" "$HOSTNAME"
+# 正确输出示例：
+# Added CNAME wecom.long123456789.xyz which will route to this tunnel tunnelID=5af095b0-...
 ```
 
-输出中应含 "connector" 和 hostname 信息。
+如果输出的 `tunnelID` 不是你的 `TUNNEL_ID`，说明路由到了错误的隧道。此时需要：
+1. 检查 cloudflared tunnel list 确认 tunnel name 和 ID 对应关系
+2. 重新用 UUID 执行 `cloudflared tunnel route dns -f <UUID> <HOSTNAME>`
+
+**CRITICAL — 禁止创建替代子域名规避问题**：
+
+如果 DNS 路由创建后输出显示 tunnelID 不正确（指向了错误的隧道），**禁止**换一个新子域名（如 `wecom-demo` 替代 `wecom`）来规避问题。必须先诊断根因：
+1. 确认 TUNNEL_ID 是否正确
+2. 用 `-f` 标志 + UUID 强制覆盖
+
+如果需要创建多个 tunnel 映射到同一个本地服务（例如临时测试），必须先向用户说明原因并获得同意。
+
+### 7.3 等待 DNS 生效（提示用户）
+
+DNS CNAME 记录创建后，需要 Cloudflare DNS 传播。提示用户：
+
+```
+DNS 记录已创建：<hostname> → <tunnel-id>.cfargotunnel.com
+
+Cloudflare DNS 是全球分布式系统，新记录通常 1-5 分钟内在全球生效。
+如果你现在访问 https://<hostname> 可能暂时无法解析，
+这是正常现象，请稍等片刻再试。
+
+我们将在启动 tunnel 后自动验证连接状态。
+```
+
+### 7.4 解析验证（可选，非阻塞）
+
+```bash
+# 验证 DNS 是否开始解析（新记录可能返回空）
+dig +short "$HOSTNAME" CNAME 2>&1
+# 如果返回空，说明 DNS 尚在传播中，继续后续步骤即可
+```
 
 ---
 
@@ -307,23 +369,43 @@ cloudflared tunnel info "$TUNNEL_NAME"
 
 不再生成 per-project 的 `start-public.sh` / `start-public.ps1`，改为写入全局注册表，由全局管理脚本统一启动和监控。
 
-**写入注册表** `~/.cloudflared/tunnel-registry.json`：
+### 8.1 初始化注册表
+
+注册表文件 `~/.cloudflared/tunnel-registry.json` 可能不存在（首次使用时）。写入前必须检查并初始化：
 
 ```bash
-# bash (jq)
-jq --arg name "$TUNNEL_NAME" \
-   --arg id "$TUNNEL_ID" \
-   --arg sub "$TUNNEL_NAME" \
-   --arg host "$HOSTNAME" \
-   --argjson port "$PORT" \
-   --arg config "config-${TUNNEL_NAME}.yml" \
-   '.tunnels = ((.tunnels // []) | map(select(.name != $name)) + [{
-       name: $name, tunnel_id: $id, subdomain: $sub,
-       hostname: $host, port: $port, config_file: $config
-   }])' "$REGISTRY_FILE" > "${REGISTRY_FILE}.tmp" && mv "${REGISTRY_FILE}.tmp" "$REGISTRY_FILE"
+REGISTRY_FILE="$HOME/.cloudflared/tunnel-registry.json"
+if [ ! -f "$REGISTRY_FILE" ]; then
+  echo '{"domain":"","tunnels":[]}' > "$REGISTRY_FILE"
+fi
 ```
 
-**冲突检测**：
+### 8.2 更新注册表
+
+```bash
+# bash (Python 替代 jq，兼容性更好)
+python3 -c "
+import json
+with open('$REGISTRY_FILE') as f:
+    reg = json.load(f)
+reg['domain'] = '$DOMAIN'
+reg['tunnels'] = [t for t in reg.get('tunnels', []) if t['name'] != '$TUNNEL_NAME']
+reg['tunnels'].append({
+    'name': '$TUNNEL_NAME',
+    'tunnel_id': '$TUNNEL_ID',
+    'subdomain': '$TUNNEL_NAME',
+    'hostname': '$HOSTNAME',
+    'port': $PORT,
+    'config_file': 'config-${TUNNEL_NAME}.yml'
+})
+with open('$REGISTRY_FILE', 'w') as f:
+    json.dump(reg, f, indent=2, ensure_ascii=False)
+"
+```
+
+若无 Python，优先使用 jq（参考原版命令），再不行用 node。
+
+### 8.3 冲突检测
 
 | 场景 | 处理 |
 |------|------|
@@ -333,15 +415,65 @@ jq --arg name "$TUNNEL_NAME" \
 
 ---
 
-## Step 9：重试保障总结
+## Step 9：启动 Tunnel 并验证连接
+
+启动 tunnel 后，必须等待 Cloudflare edge 建立连接，然后验证公网可达性。
+
+### 9.1 启动 tunnel
+
+```bash
+# 后台启动
+nohup cloudflared tunnel --config ~/.cloudflared/config-<name>.yml run > /tmp/tunnel-<name>.log 2>&1 &
+TUNNEL_PID=$!
+sleep 3
+```
+
+### 9.2 验证 tunnel ↔ Cloudflare edge 连接
+
+```bash
+cloudflared tunnel info "$TUNNEL_ID"
+```
+
+关键检查项：
+- **必须有活跃连接**：输出中应有 "CONNECTOR ID" 行，如果没有 `active connection` 则 tunnel 未成功连接
+- 如果显示 "does not have any active connection"：等待 5s 后重试（最多 3 次），若仍失败则检查 `/tmp/tunnel-<name>.log`
+
+### 9.3 验证公网 URL
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" https://<hostname>/ 2>&1
+```
+
+预期结果：
+- `200` — 一切正常
+- `000` 或超时 — DNS 尚在传播中，提示用户等待 1-5 分钟
+- `530` + "error code: 1033" — tunnel 进程未连接到 Cloudflare edge，检查 tunnel 状态
+
+### 9.4 提示用户
+
+```
+Tunnel 启动成功！Cloudflare edge 连接已建立。
+
+公网地址: https://<hostname>
+本地服务: http://localhost:<port>
+
+注意：如果是新创建的 DNS 记录，Cloudflare 全球 DNS 传播可能需要 1-5 分钟。
+如果暂时打不开，请稍等片刻后重试。
+```
+
+---
+
+## Step 10：重试保障总结
 
 | 操作                                  | 重试策略                                 |
 | ------------------------------------- | ---------------------------------------- |
 | `cloudflared --version` 安装验证      | 最多 3 次，间隔 2s                       |
 | `cloudflared tunnel list`（授权校验） | 最多 3 次，间隔 2s（指数退避）           |
 | `cloudflared tunnel create`           | 最多 3 次，间隔 2s（指数退避）           |
-| `cloudflared tunnel route dns`        | 最多 3 次，间隔 3s（指数退避）           |
+| `cloudflared tunnel route dns`（-f + UUID） | 最多 3 次，间隔 3s（指数退避）     |
 | 端口等待（本地服务就绪）              | 最多 60 次 × 0.5s = 30s                  |
+| Tunnel edge 连接等待                  | 最多 3 次 × 5s = 15s                     |
+| DNS 传播等待                          | 提示用户等待 1-5 分钟，不需要轮询阻塞    |
 
 **健康监测**（由全局 `tunnel-healthcheck` 脚本负责）：
 
@@ -374,6 +506,7 @@ jq --arg name "$TUNNEL_NAME" \
 
   提示：
   - 首次启动需要 Cloudflare edge 建立连接，可能需要 10-30s
+  - 新 DNS 记录全球传播约需 1-5 分钟，暂时打不开属正常现象
   - 健康监测自动运行，日志：~/tmp/tunnel-healthcheck.log
   - 管理 tunnel：https://dash.cloudflare.com/
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

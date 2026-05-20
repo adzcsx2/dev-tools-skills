@@ -42,14 +42,14 @@ Installation also registers the global `/dt:init` and `/study` prompts for VS Co
 
 | Skill                      | Description                                                                                                        |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `dt:init`                  | Universal project init: detect the real stack, generate or optimize CLAUDE.md, AGENT.md, Copilot instructions, and bootstrap a canonical `.ai/skills/` workspace for project-level AI skills |
+| `dt:init`                  | Universal project init: detect the real stack, generate or optimize CLAUDE.md, AGENT.md, Copilot instructions, bootstrap a canonical `.ai/skills/` workspace, and define skill auto-sync rules when configured tool mirrors exist |
 | `dt:study`                 | Study verified skill mistakes: capture them back into the workspace source skill and avoid cached copies           |
 | `dt:push`                  | One-push release workflow: auto stage, pull, logical-group commit, push with --preview support                     |
 | `dt:update-remote-plugins` | Remote plugin maintenance: update docs and config, then verify install-based local refresh uses the latest version |
 | `dt:code-note`             | Multi-language code annotation: auto-detect language and apply comment style                                       |
 | `dt:to-public-cloudflare`  | Cloudflare tunnel: one-click Named Tunnel setup, auto-detect project port, deploy global tunnel management scripts (tunnel-add/start/stop/remove/list) with health monitoring and auto-restart |
 | `dt:plan-doc`              | Task-scoped plan docs: generate a multi-phase doc set under `docs/plan/<task-slug>-<YYYY-MM-DD>/` with a progress pointer and subagent plan; after plan confirmation it pauses, recommends `haiku` or `sonnet`, and resumes when the user replies `继续` (no switch needed if already on the recommended model) |
-| `dt:project-skills`        | Project-local skill lifecycle management: use `.ai/skills/` as the canonical source, audit duplicates/overlaps, sync updates after confirmation, promote successful changes into skills, and export Copilot/Codex adapters on demand |
+| `dt:project-skills`        | Project-local skill lifecycle management: use `.ai/skills/` as the canonical source, audit duplicates/overlaps, sync updates after confirmation, promote successful changes into skills, and automatically refresh configured tool mirrors |
 
 ### Android Tools — `adt:` prefix
 

@@ -34,6 +34,15 @@ tunnel-remove myapp
 tunnel-stop
 ```
 
+## 注意事项
+
+| # | 规则 | 说明 |
+|---|------|------|
+| 1 | DNS 路由必须用 UUID | `cloudflared tunnel route dns` 使用 tunnel UUID 而非 name，避免名称类似导致路由到错误隧道 |
+| 2 | 必须加 `-f` 标志 | 始终使用 `--overwrite-dns` 避免"record already exists"错误 |
+| 3 | 禁止换子域名规避 | DNS 路由出问题时修复现有记录，不要新建替代子域名 |
+| 4 | 等待 DNS 传播 | 新 DNS 记录全球传播需 1-5 分钟，提示用户耐心等待 |
+
 ## 功能特性
 
 - 自动检测并安装 cloudflared（支持 macOS/Linux/Windows）

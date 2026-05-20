@@ -1,6 +1,6 @@
 ---
 name: dt:project-skills
-description: "Manage canonical project-local AI skills under .ai/skills/: list skills, audit duplicates or overlaps, sync updates with confirmation, promote successful changes into skills, merge overlapping skills, and export tool-specific adapters on demand. Use when the user says summarize this into a skill, add this to a skill, update a project skill, or export skills to Copilot or Codex."
+description: "Manage canonical project-local AI skills under .ai/skills/: list skills, audit duplicates or overlaps, sync updates with confirmation, promote successful changes into skills, merge overlapping skills, and automatically refresh already-configured tool mirrors from the canonical source."
 argument-hint: "<list|audit|sync|promote|merge|export> [args]"
 origin: dev-tools-skills
 ---
@@ -13,7 +13,7 @@ origin: dev-tools-skills
 
 # project-skills Skill
 
-统一的项目级 AI skill 生命周期入口。它以 `.ai/skills/` 作为唯一事实源，并默认把 Claude 需要的 project skill 同步镜像到项目内 `.claude/skills/`。
+统一的项目级 AI skill 生命周期入口。它以 `.ai/skills/` 作为唯一事实源，并在 canonical source 更新后，自动同步到项目里已经配置好的 tool mirrors；没有配置的工具不创建、不刷新。
 
 ## Trigger
 
@@ -26,8 +26,9 @@ origin: dev-tools-skills
 - 用户说“帮我总结一下加到 skill 里”“把这次修改沉淀成 skill”“把上面的经验补到对应 skill”
 - 需要检查项目里已有 skill 是否重复、重叠、可融合
 - 需要把一次成功实现提炼成可复用的项目级 skill
-- 需要同步更新 `.ai/skills/` 下的 canonical skill，并把 Claude 镜像同步到 `.claude/skills/`，但更新前必须先征求确认
-- 需要按需导出 Copilot 或 Codex 适配层
+- 需要同步更新 `.ai/skills/` 下的 canonical skill，并把已配置工具的镜像一起刷新，但更新前必须先征求确认
+- 需要按项目里已配置的 Claude / Codex 等工具自动刷新派生层
+- 需要按需导出 Copilot 或其他非默认镜像适配层
 
 ## Core Model
 
@@ -42,19 +43,44 @@ origin: dev-tools-skills
 强制规则：
 
 - 只修改 `.ai/skills/` 下的 canonical skill 和注册表
-- 不直接手改 `.claude/skills/`、Copilot、Codex 或其他工具导出层
+- 不直接手改 `.claude/skills/`、`.ai/exports/codex/`、Copilot 或其他工具导出层
 - 如需导出到其他工具，必须从 `.ai/skills/` 派生
 
-### 2. Claude-First Mirror, Others On Demand
+### 2. Sync To Configured Tools Only
 
-默认会为 Claude 项目级工作流维护一个派生镜像：`.claude/skills/`；Copilot、Codex 等导出层只有在用户明确要求时才生成。
+默认不假设任何工具镜像存在。`sync`、`promote`、`merge` 只同步到项目里已经配置好的 tool surfaces；如果项目里没有配置任何可识别的 tool mirror，则只更新 canonical source。
 
-这意味着：
+配置工具的判断顺序必须是：
+
+1. 先读取 `dt:init` 写入 `.ai/README.md` 的 configured tool mirrors；这份记录是项目级镜像配置的一手说明
+2. 如果当前会话用户明确要求启用某个工具 mirror，把该工具加入本次同步目标
+3. 兼容旧项目：若存在既有 `.claude/skills/`、`.ai/exports/codex/`、`.codex/` 或 legacy `tool_exports: [claude|codex]` 记录，可视为已配置信号
+4. 若以上都没有，再判定为“未配置”
+
+判定约束：
+
+- `.ai/README.md` 中 configured tools 列表未出现的工具，默认视为当前项目未启用
+- 如果 `.ai/README.md` 已明确列出 configured tools，步骤 2-3 只能作为补充启用信号，不能用来推翻 `.ai/README.md` 中对某工具的“未启用”结论
+- 只有当 `.ai/README.md` 缺失或未写明 configured tools 时，才允许完全依赖步骤 2-3 做回退判断
+
+最少支持这些判断：
+
+- `claude`：`.ai/README.md` 声明了 `claude`，或当前会话用户明确要求启用，或存在既有 `.claude/skills/` / legacy `tool_exports: [claude]`
+- `codex`：`.ai/README.md` 声明了 `codex`，或当前会话用户明确要求启用，或存在既有 `.ai/exports/codex/`、`.codex/` / legacy `tool_exports: [codex]`
+- 其他工具：仅在 `.ai/README.md` 声明、当前会话用户明确要求启用，或仓库里已有明确目录/文件约定时纳入
+
+执行规则：
 
 - `.ai/skills/` 仍是唯一事实源
-- `sync`、`promote`、`merge` 在更新 canonical source 后，默认同步 `tool_exports` 包含 `claude` 的 skill 到 `.claude/skills/`
-- `.claude/skills/` 是派生镜像，可被 `sync` 覆盖，不是手改入口
-- `export copilot ...`、`export codex ...` 只有显式要求时才执行
+- `sync`、`promote`、`merge` 在更新 canonical source 后，默认同步 `tool_exports` 覆盖到的且“项目已配置”的工具
+- `tool_exports: follow_configured_tools` 表示直接跟随当前项目已配置工具集合
+- 如果 `tool_exports` 是显式列表，实际同步目标等于“显式列表 ∩ 已配置工具集合”
+- 如果只检测到 `claude`，就只同步 Claude
+- 如果检测到 `claude` 和 `codex`，就同步这两个
+- 如果没有检测到任何已配置工具，就不创建、不刷新任何工具侧镜像
+- `.claude/skills/`、`.ai/exports/codex/` 等都是派生层，可被 `sync` 覆盖，不是手改入口
+- 单次 `export codex` 只生成 view，不自动把 `codex` 写进 `.ai/README.md`；只有 `dt:init` 写入记录或用户明确要求启用 mirror 时，后续才持续自动同步
+- `export copilot ...`、`export <tool> ...` 只在用户显式要求时执行，用于生成额外 view，而不是替代自动同步
 
 ### 3. Proposal Before Write
 
@@ -62,7 +88,7 @@ origin: dev-tools-skills
 
 ## Required Project Layout
 
-如果目标项目没有下面这些路径，先提示用户运行 `/dt:init`；只有在用户明确允许时，才按 `dt:init` 的 Phase 3.6 约束补同一套最小骨架：
+如果目标项目没有下面这些 canonical 路径，先提示用户运行 `/dt:init`；只有在用户明确允许时，才按 `dt:init` 的 Phase 3.6 约束补同一套最小骨架：
 
 ```text
 .ai/
@@ -72,11 +98,19 @@ origin: dev-tools-skills
     ├── .updates/
     └── project-skills/
         └── SKILL.md
+```
 
+可选派生层（只有工具已配置时才需要存在）：
+
+```text
 .claude/
 └── skills/
-    └── project-skills/
-        └── SKILL.md
+    └── ...
+
+.ai/
+└── exports/
+    └── codex/
+        └── ...
 ```
 
 ## Command Modes
@@ -101,21 +135,25 @@ origin: dev-tools-skills
 
 ### `sync`
 
-用于更新已有 project skill，并默认刷新 Claude 项目级镜像，但必须先征求确认。
+用于更新已有 project skill，并默认刷新所有“已配置且命中导出策略”的工具镜像，但必须先征求确认。
 
 执行步骤：
 
 1. 扫描 `.ai/skills/` 与 `registry.yml`
-2. 判断哪些 skill 因最近改动、规则漂移或描述过时而需要更新
-3. 生成 proposal，写明：
+2. 读取 `.ai/README.md`，判定当前项目的 configured tools
+3. 判断哪些 skill 因最近改动、规则漂移或描述过时而需要更新
+4. 生成 proposal，写明：
    - 建议更新哪个 skill
    - 为什么要更新
    - 是补充、重写局部还是合并
    - 影响哪些 canonical 文件
-   - 会同步哪些 skill 到 `.claude/skills/`
-4. 等用户确认后先更新 `.ai/skills/`
-5. 再把 `tool_exports` 包含 `claude` 的 skill 复制到 `.claude/skills/`
-6. 最后报告 canonical 变更和 Claude 镜像变更
+   - 检测到哪些已配置工具
+   - 实际会同步哪些 skill 到哪些工具路径
+   - 哪些工具因未配置而被跳过
+5. 等用户确认后先更新 `.ai/skills/`
+6. 再把实际同步目标内的 skill 刷新到对应工具派生层
+7. 如果本次是用户明确要求启用某个新工具 mirror，需同步更新 `.ai/README.md`
+8. 最后报告 canonical 变更和各工具镜像变更
 
 ### `promote`
 
@@ -133,24 +171,27 @@ origin: dev-tools-skills
    - 新建 skill
    - 融合多个 skill
 5. 用户确认后先写入 canonical source
-6. 若目标 skill 的 `tool_exports` 包含 `claude`，再同步复制到 `.claude/skills/`
+6. 再根据已配置工具列表，刷新目标 skill 的对应派生层；没有配置工具则只停留在 canonical source
+7. 如果本次是用户明确要求启用某个新工具 mirror，需同步更新 `.ai/README.md`
 
 ### `merge`
 
 当两个或多个 skill 已明显重叠时，合并为一个更清晰的 canonical skill，并在 `registry.yml` 中标记被合并项。
 
+如果本次 `merge` 同时启用了新的工具 mirror，也必须同步更新 `.ai/README.md`。
+
 ### `export`
 
-按需从 `.ai/skills/` 生成工具适配层。
+按需从 `.ai/skills/` 生成额外工具适配层或强制重建某个工具 view。
 
 规则：
 
 - 只有用户明确说“生成 Copilot 版本”“导出 Codex 版本”时才执行
 - 导出层是 view，不是事实源
 - 不允许跳过 canonical source 直接在导出层手改
-- Claude 不走 `export`；Claude 项目级镜像默认由 `sync` / `promote` / `merge` 维护到 `.claude/skills/`
+- 已配置工具的默认镜像优先由 `sync` / `promote` / `merge` 自动维护；`export` 用于补建、强制重建或额外工具 view
 - `export copilot` 默认沿用 `dt:init` 的 Copilot 路径规则：已有 `AGENTS.md` 就更新 `AGENTS.md`，否则更新 `.github/copilot-instructions.md`
-- `export codex` 默认写入 `.ai/exports/codex/` 派生视图；若项目已有明确 Codex 约定，才复用项目既有位置
+- `export codex` 默认写入 `.ai/exports/codex/` 派生视图；若项目已有明确 Codex 约定，优先复用项目既有位置
 
 ## Duplicate, Overlap, And Merge Heuristics
 
@@ -179,11 +220,12 @@ project-skills proposal
 - rationale: <why>
 - duplicate-check: <result>
 - overlap-check: <result>
-- export-impact: canonical only | plus claude mirror | plus copilot | plus codex
+- configured-tools: <detected tools or none>
+- export-impact: canonical only | plus configured claude/codex mirrors | plus explicit extra exports
 - files-to-change:
   - .ai/skills/...
   - .ai/skills/registry.yml
-  - .claude/skills/...
+  - <tool mirror paths if configured>
 Please confirm before apply.
 ```
 
@@ -204,17 +246,22 @@ Please confirm before apply.
 
 默认值：
 
-- `tool_exports: [claude]`
+- `tool_exports: follow_configured_tools`
 - `update_policy: manual_confirm`
+
+兼容要求：
+
+- 如果旧项目已有 `tool_exports: [claude]`、`[codex]` 等显式列表，不得因为 mirror 目录暂时缺失就静默停止同步
+- 这类 legacy 显式列表应视为“项目原本意图同步到该工具”，下次 `sync` 时允许重新创建缺失的 mirror
 
 ## Acceptance Criteria
 
 只有同时满足下面条件，才算完成：
 
-1. canonical 改动只发生在 `.ai/skills/` source，`.claude/skills/` 只作为同步镜像更新
+1. canonical 改动只发生在 `.ai/skills/` source，所有工具侧文件都只作为同步镜像更新
 2. 在写入前已完成重复检查、重叠检查和融合判断
 3. 在写入前已给用户看过 proposal 并获得确认
-4. 若 `tool_exports` 包含 `claude`，相关 skill 已同步复制到 `.claude/skills/`
+4. 若检测到已配置工具，相关 skill 已同步刷新到这些工具的派生层；若未检测到，则只更新 canonical source
 5. 如果涉及其他导出层，导出来源明确来自 `.ai/skills/`
 6. 如果只是补充旧 skill 的局部边界，没有无意义新建 skill
 7. 如果发现多个 skill 可融合，已明确给出 merge 建议而不是静默保留重复内容
