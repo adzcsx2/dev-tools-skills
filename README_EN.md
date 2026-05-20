@@ -50,6 +50,7 @@ Installation also registers the global `/dt:init` and `/study` prompts for VS Co
 | `dt:to-public-cloudflare`  | Cloudflare tunnel: one-click Named Tunnel setup, auto-detect project port, deploy global tunnel management scripts (tunnel-add/start/stop/remove/list) with health monitoring and auto-restart |
 | `dt:plan-doc`              | Task-scoped plan docs: generate a multi-phase doc set under `docs/plan/<task-slug>-<YYYY-MM-DD>/` with a progress pointer and subagent plan; after plan confirmation it pauses, recommends `haiku` or `sonnet`, and resumes when the user replies `继续` (no switch needed if already on the recommended model) |
 | `dt:project-skills`        | Project-local skill lifecycle management: use `.ai/skills/` as the canonical source, audit duplicates/overlaps, sync updates after confirmation, promote successful changes into skills, refresh mirrors on explicit invocation, and serve as the mirror-refresh policy behind Claude project hooks |
+| `dt:work-report`           | Daily work report: generate a non-technical Chinese work summary from git log and uncommitted changes (each item ≤ 30 chars), supports natural-language date args, and appends actionable improvement suggestions |
 
 ### Android Tools — `adt:` prefix
 
@@ -87,6 +88,7 @@ dev-tools-skills/
 │   ├── to-public-cloudflare/     # dt:to-public-cloudflare
 │   ├── plan-doc/                 # dt:plan-doc
 │   ├── project-skills/           # dt:project-skills
+│   ├── work-report/              # dt:work-report
 │   ├── gradle-build-performance/ # adt:gradle-build-performance
 │   ├── update-docs-android/      # adt:update-docs
 │   ├── android-i18n/             # adt:android-i18n

@@ -50,6 +50,7 @@ cd dev-tools-skills
 | `dt:to-public-cloudflare`  | Cloudflare 内网穿透：一键配置 Named Tunnel，自动侦察端口，自动部署全局 tunnel 管理脚本（tunnel-add/start/stop/remove/list），支持健康监测与自动重启 |
 | `dt:plan-doc`              | 任务聚合文档：在 `docs/plan/<task-slug>-<YYYY-MM-DD>/` 下生成含进度指针和子代理规划的多阶段计划文档集；确认计划后会暂停并提示切到 `haiku` 或 `sonnet`，已在推荐模型时可直接输入 `继续` 再生成文档 |
 | `dt:project-skills`        | 项目级 skill 生命周期：以 `.ai/skills/` 为唯一事实源，支持审计重复/重叠、确认后同步更新、把实现沉淀成 skill，可显式刷新 mirrors，并作为 Claude project hook 背后的 mirror refresh 规则源 |
+| `dt:work-report`           | 工作日报生成：基于 git log 和未提交改动，自动生成功能性中文日报（每条 ≤30 字），支持自然语言日期参数，并附可执行优化建议 |
 
 ### Android 工具 — `adt:` 前缀
 
@@ -87,6 +88,7 @@ dev-tools-skills/
 │   ├── to-public-cloudflare/     # dt:to-public-cloudflare
 │   ├── plan-doc/                 # dt:plan-doc
 │   ├── project-skills/           # dt:project-skills
+│   ├── work-report/              # dt:work-report
 │   ├── gradle-build-performance/ # adt:gradle-build-performance
 │   ├── update-docs-android/      # adt:update-docs
 │   ├── android-i18n/             # adt:android-i18n
