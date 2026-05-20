@@ -1,6 +1,6 @@
 # dt:init
 
-统一跨技术栈项目初始化入口。基于真实代码和配置，生成或优化 CLAUDE.md、AGENT.md、Copilot 项目级指令，建立 `.ai/skills/` 项目级 canonical skill 工作面，检测项目里已配置的 tool mirrors，建立 `/docs` 分类规则，写入 10 条通用原则（GP-1 至 GP-10），并输出简洁的代码库入门摘要。
+统一跨技术栈项目初始化入口。现在采用“主 skill 编排 + references 细则”结构：主 `SKILL.md` 负责按步骤执行，详细规则拆分在 `references/` 下。基于真实代码和配置，生成或优化 CLAUDE.md、AGENT.md、Copilot 项目级指令，建立 `.ai/skills/` 项目级 canonical skill 工作面，在 Claude Code 项目里生成 project-level PostToolUse hook，建立 `/docs` 分类规则，并输出简洁的代码库入门摘要。
 
 ---
 
@@ -10,9 +10,12 @@
 - 检测真实构建文件、入口点、目录结构和已有编码规范
 - 生成或优化 CLAUDE.md、AGENT.md 及 Copilot 可读的项目配置
 - 创建或升级 `.ai/README.md`、`.ai/skills/registry.yml`、`.ai/skills/.updates/`、`.ai/skills/project-skills/SKILL.md`，并检测/记录项目里哪些工具镜像已经配置
+- 在 Claude Code 项目里生成 `.claude/settings.json` 与 `.claude/hooks/sync-project-skills.sh`
 - 把“项目级 skill 只改 `.ai/skills/` canonical source”的规则写入生成的 CLAUDE.md 与 AGENT.md
-- 建立 canonical-first 的 project-skills 工作流：`.ai/skills/` 是事实源；只有已配置工具才接收自动同步，未配置工具不创建镜像
+- 建立 hook-first 的 Claude project-skills 工作流：`.ai/skills/` 是事实源；Claude project hook 负责在 canonical 改动后执行 mirror refresh
 - 建立 `/docs` 根目录及标准分类体系，**强制创建缺失的标准分类目录**（plan、product、design、guide、modules、references、checklist、reports）
+- 审计、性能、评估、复盘类报告默认按 `docs/reports/<report-topic>/` 主题目录组织，支持同一主题二次、三次审计持续追加；持续更新日志如 `CHANGELOG.md` 可保留在 `docs/reports/` 根下
+- 主 `SKILL.md` 会先按顺序读取 `references/general-principles.md`、`references/recon-and-stack-detection.md`、`references/docs-taxonomy.md`、`references/project-bootstrap.md`、`references/claude-hook-bootstrap.md`、`references/output-files.md`
 - 写入 10 条通用原则（GP-1 至 GP-10）：
   - GP-1: Evidence-Only Conclusions - 只基于真实代码和配置得出结论
   - GP-2: Single Sources of Truth - 建立并遵循各类事实来源映射

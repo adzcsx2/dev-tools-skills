@@ -418,7 +418,7 @@ The generated `00-执行文档.md` expects the host project's CLAUDE.md to have 
 
 ```
 User: /dt:plan-doc ble-multi-device-fix test
-      based on docs/reports/蓝牙连接框架第四次审计报告.md
+      based on docs/reports/蓝牙连接框架审计报告/蓝牙连接框架第四次审计报告.md
 
 Agent:
 # plan-doc generation plan: ble-multi-device-fix

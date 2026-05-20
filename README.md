@@ -42,14 +42,14 @@ cd dev-tools-skills
 
 | Skill                      | 描述                                                                            |
 | -------------------------- | ------------------------------------------------------------------------------- |
-| `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 CLAUDE.md、AGENT.md、Copilot 配置，建立 `.ai/skills/` canonical skill 工作面，并在项目已配置工具镜像时建立后续 skill 自动同步约束 |
+| `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 CLAUDE.md、AGENT.md、Copilot 配置，建立 `.ai/skills/` canonical skill 工作面，并在 Claude Code 项目里生成用于 mirror refresh 的 PostToolUse hook |
 | `dt:study`                 | 修错回源：把已验证的 skill 失误直接沉淀回工作区里的源 SKILL，避免改在缓存副本上 |
 | `dt:push`                  | 一键发布工作流：自动暂存、拉取、按逻辑分组提交、推送，支持 --preview 预览      |
 | `dt:update-remote-plugins` | 远程插件维护：更新配置与文档、验证 install 回流本地是否始终命中最新版本         |
 | `dt:code-note`             | 多语言代码注释：自动检测语言类型并应用对应注释风格                              |
 | `dt:to-public-cloudflare`  | Cloudflare 内网穿透：一键配置 Named Tunnel，自动侦察端口，自动部署全局 tunnel 管理脚本（tunnel-add/start/stop/remove/list），支持健康监测与自动重启 |
 | `dt:plan-doc`              | 任务聚合文档：在 `docs/plan/<task-slug>-<YYYY-MM-DD>/` 下生成含进度指针和子代理规划的多阶段计划文档集；确认计划后会暂停并提示切到 `haiku` 或 `sonnet`，已在推荐模型时可直接输入 `继续` 再生成文档 |
-| `dt:project-skills`        | 项目级 skill 生命周期：以 `.ai/skills/` 为唯一事实源，支持审计重复/重叠、确认后同步更新、把实现沉淀成 skill，并自动刷新项目里已配置的工具镜像 |
+| `dt:project-skills`        | 项目级 skill 生命周期：以 `.ai/skills/` 为唯一事实源，支持审计重复/重叠、确认后同步更新、把实现沉淀成 skill，可显式刷新 mirrors，并作为 Claude project hook 背后的 mirror refresh 规则源 |
 
 ### Android 工具 — `adt:` 前缀
 
@@ -100,7 +100,7 @@ dev-tools-skills/
 
 ## 版本
 
-v1.3.0
+v1.3.1
 
 ## License
 

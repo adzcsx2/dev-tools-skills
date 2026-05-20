@@ -1,6 +1,6 @@
 ---
 name: dt:project-skills
-description: "Manage canonical project-local AI skills under .ai/skills/: list skills, audit duplicates or overlaps, sync updates with confirmation, promote successful changes into skills, merge overlapping skills, and automatically refresh already-configured tool mirrors from the canonical source."
+description: "Manage canonical project-local AI skills under .ai/skills/: list skills, audit duplicates or overlaps, sync updates with confirmation, promote successful changes into skills, merge overlapping skills, and define the canonical mirror-refresh policy used by Claude project hooks."
 argument-hint: "<list|audit|sync|promote|merge|export> [args]"
 origin: dev-tools-skills
 ---
@@ -13,7 +13,7 @@ origin: dev-tools-skills
 
 # project-skills Skill
 
-统一的项目级 AI skill 生命周期入口。它以 `.ai/skills/` 作为唯一事实源，并在 canonical source 更新后，自动同步到项目里已经配置好的 tool mirrors；没有配置的工具不创建、不刷新。
+统一的项目级 AI skill 生命周期入口。它以 `.ai/skills/` 作为唯一事实源；如果项目启用了 Claude project hook，hook 只是执行 mirror refresh，而这份 skill 仍然是同步规则与 proposal 语义的唯一来源。
 
 ## Trigger
 
@@ -52,7 +52,7 @@ origin: dev-tools-skills
 
 配置工具的判断顺序必须是：
 
-1. 先读取 `dt:init` 写入 `.ai/README.md` 的 configured tool mirrors；这份记录是项目级镜像配置的一手说明
+1. 先读取 `dt:init` 写入 `.ai/README.md` 的 `## Configured Tool Mirrors` 段落；这份记录是项目级镜像配置的一手说明
 2. 如果当前会话用户明确要求启用某个工具 mirror，把该工具加入本次同步目标
 3. 兼容旧项目：若存在既有 `.claude/skills/`、`.ai/exports/codex/`、`.codex/` 或 legacy `tool_exports: [claude|codex]` 记录，可视为已配置信号
 4. 若以上都没有，再判定为“未配置”
@@ -82,6 +82,17 @@ origin: dev-tools-skills
 - 单次 `export codex` 只生成 view，不自动把 `codex` 写进 `.ai/README.md`；只有 `dt:init` 写入记录或用户明确要求启用 mirror 时，后续才持续自动同步
 - `export copilot ...`、`export <tool> ...` 只在用户显式要求时执行，用于生成额外 view，而不是替代自动同步
 
+### 2.5 Claude Hook Execution
+
+如果项目由 `dt:init` 生成了 Claude project hook：
+
+- `.claude/settings.json` 的 `PostToolUse` hook 只是执行层，不是规则源
+- hook 只应在 canonical 相关文件被编辑后触发 mirror refresh
+- hook 必须忽略 `.claude/skills/**`、`.ai/exports/**` 等导出层改动，避免循环
+- hook 默认 fail-open，不能因为同步脚本报错而阻塞编辑
+- 只有当当前会话能明确判定为 Claude Code 时，skill 才能把 direct refresh 交给 hook；若环境无法判定，一律执行 direct refresh，不冒险跳过
+- duplicate-check、overlap-check、merge-check、proposal-before-write、configured tools 判定，仍然以本 skill 为准，不能搬进 hook 里各自实现一套
+
 ### 3. Proposal Before Write
 
 除 `list` 外，任何会改动 `.ai/skills/` 的操作都必须先给出 proposal，再等待用户确认。
@@ -104,6 +115,9 @@ origin: dev-tools-skills
 
 ```text
 .claude/
+├── settings.json
+├── hooks/
+│   └── sync-project-skills.sh
 └── skills/
     └── ...
 
@@ -135,7 +149,7 @@ origin: dev-tools-skills
 
 ### `sync`
 
-用于更新已有 project skill，并默认刷新所有“已配置且命中导出策略”的工具镜像，但必须先征求确认。
+用于更新已有 project skill，并默认刷新所有“已配置且命中导出策略”的工具镜像，但必须先征求确认。若项目启用了 Claude project hook，这一套规则也应成为 hook 执行 mirror refresh 时遵循的语义来源。
 
 执行步骤：
 
@@ -151,7 +165,7 @@ origin: dev-tools-skills
    - 实际会同步哪些 skill 到哪些工具路径
    - 哪些工具因未配置而被跳过
 5. 等用户确认后先更新 `.ai/skills/`
-6. 再把实际同步目标内的 skill 刷新到对应工具派生层
+6. 仅当检测到 `.claude/hooks/sync-project-skills.sh` 且当前会话能明确判定为 Claude Code 时，才跳过直接 refresh，交给 hook；若环境无法判定，则仍执行 direct refresh，再把实际同步目标内的 skill 刷新到对应工具派生层
 7. 如果本次是用户明确要求启用某个新工具 mirror，需同步更新 `.ai/README.md`
 8. 最后报告 canonical 变更和各工具镜像变更
 
@@ -171,14 +185,14 @@ origin: dev-tools-skills
    - 新建 skill
    - 融合多个 skill
 5. 用户确认后先写入 canonical source
-6. 再根据已配置工具列表，刷新目标 skill 的对应派生层；没有配置工具则只停留在 canonical source
+6. 仅当检测到 `.claude/hooks/sync-project-skills.sh` 且当前会话能明确判定为 Claude Code 时，才跳过直接 refresh，交给 hook；若环境无法判定，则仍执行 direct refresh，再根据已配置工具列表，刷新目标 skill 的对应派生层；没有配置工具则只停留在 canonical source
 7. 如果本次是用户明确要求启用某个新工具 mirror，需同步更新 `.ai/README.md`
 
 ### `merge`
 
 当两个或多个 skill 已明显重叠时，合并为一个更清晰的 canonical skill，并在 `registry.yml` 中标记被合并项。
 
-如果本次 `merge` 同时启用了新的工具 mirror，也必须同步更新 `.ai/README.md`。
+如果本次 `merge` 同时启用了新的工具 mirror，也必须同步更新 `.ai/README.md`。仅当检测到 `.claude/hooks/sync-project-skills.sh` 且当前会话能明确判定为 Claude Code 时，merge 后的 refresh 才交给 hook；若环境无法判定，则仍执行 direct refresh。
 
 ### `export`
 
