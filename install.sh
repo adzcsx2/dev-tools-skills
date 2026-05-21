@@ -26,7 +26,7 @@ PLUGIN_NAME=""
 VERSION=""
 PLUGIN_KEY=""
 
-COMMON_SKILLS="init study push update-remote-plugins code-note to-public-cloudflare plan-doc project-skills work-report"
+COMMON_SKILLS="init study push update-remote-plugins code-note to-public-cloudflare plan-doc plan-doc-tr project-skills work-report"
 ANDROID_SKILLS="gradle-build-performance update-docs-android android-i18n android-fold-adapter"
 FLUTTER_SKILLS="update-docs-flutter"
 
@@ -39,7 +39,7 @@ has_cmd() { command -v "$1" >/dev/null 2>&1; }
 
 category_desc() {
   case "$1" in
-    common)  echo "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:plan-doc, dt:project-skills, dt:work-report)" ;;
+    common)  echo "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:plan-doc, dt:plan-doc-tr, dt:project-skills, dt:work-report)" ;;
     android) echo "Android tools (adt:gradle-build-performance, adt:update-docs, adt:android-i18n, adt:android-fold-adapter)" ;;
     flutter) echo "Flutter tools (fdt:update-docs)" ;;
     *)       echo "" ;;

@@ -27,7 +27,7 @@ $PluginName = ""
 $Version = ""
 $PluginKey = ""
 
-$CommonSkills = @("init", "study", "push", "update-remote-plugins", "code-note", "to-public-cloudflare", "plan-doc", "project-skills", "work-report")
+$CommonSkills = @("init", "study", "push", "update-remote-plugins", "code-note", "to-public-cloudflare", "plan-doc", "plan-doc-tr", "project-skills", "work-report")
 $AndroidSkills = @("gradle-build-performance", "update-docs-android", "android-i18n", "android-fold-adapter")
 $FlutterSkills = @("update-docs-flutter")
 $AllCategories = @("common", "android", "flutter")
@@ -43,7 +43,7 @@ function Test-Command($cmd) {
 
 function Get-CategoryDesc($cat) {
     switch ($cat) {
-        "common"  { "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:plan-doc, dt:project-skills, dt:work-report)" }
+        "common"  { "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:plan-doc, dt:plan-doc-tr, dt:project-skills, dt:work-report)" }
         "android" { "Android tools (adt:gradle-build-performance, adt:update-docs, adt:android-i18n, adt:android-fold-adapter)" }
         "flutter" { "Flutter tools (fdt:update-docs)" }
         default    { "" }
