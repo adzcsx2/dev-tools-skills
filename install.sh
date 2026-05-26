@@ -27,7 +27,7 @@ VERSION=""
 PLUGIN_KEY=""
 
 COMMON_SKILLS="init study push update-remote-plugins code-note to-public-cloudflare project-skills work-report"
-ANDROID_SKILLS="gradle-build-performance update-docs-android android-i18n android-fold-adapter"
+ANDROID_SKILLS="gradle-build-performance update-docs-android android-i18n android-fold-adapter android-e2e"
 FLUTTER_SKILLS="update-docs-flutter"
 
 info()  { echo -e "${BLUE}[INFO]${NC} $*"; }
@@ -40,7 +40,7 @@ has_cmd() { command -v "$1" >/dev/null 2>&1; }
 category_desc() {
   case "$1" in
     common)  echo "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:project-skills, dt:work-report)" ;;
-    android) echo "Android tools (adt:gradle-build-performance, adt:update-docs, adt:android-i18n, adt:android-fold-adapter)" ;;
+    android) echo "Android tools (adt:gradle-build-performance, adt:update-docs, adt:android-i18n, adt:android-fold-adapter, adt:android-e2e)" ;;
     flutter) echo "Flutter tools (fdt:update-docs)" ;;
     *)       echo "" ;;
   esac

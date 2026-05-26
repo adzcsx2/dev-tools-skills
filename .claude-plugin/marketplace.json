@@ -24,7 +24,8 @@
         "./skills/android-fold-adapter",
         "./skills/update-docs-flutter",
         "./skills/to-public-cloudflare",
-        "./skills/work-report"
+        "./skills/work-report",
+        "./skills/android-e2e"
       ]
     }
   ]

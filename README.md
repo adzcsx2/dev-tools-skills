@@ -59,6 +59,7 @@ cd dev-tools-skills
 | `adt:update-docs`              | 先审计代码改动，再全链路更新 Android 项目相关文档 |
 | `adt:android-i18n`             | 国际化：审计硬编码字符串，生成多语言资源          |
 | `adt:android-fold-adapter`     | 折叠屏适配：诊断和修复折叠屏适配问题              |
+| `adt:android-e2e`              | E2E 视觉测试：基于 Midscene AI 的 Android 端到端测试 |
 
 ### Flutter 工具 — `fdt:` 前缀
 
@@ -91,6 +92,7 @@ dev-tools-skills/
 │   ├── update-docs-android/      # adt:update-docs
 │   ├── android-i18n/             # adt:android-i18n
 │   ├── android-fold-adapter/     # adt:android-fold-adapter
+│   ├── android-e2e/              # adt:android-e2e
 │   └── update-docs-flutter/      # fdt:update-docs
 ├── install.sh
 ├── install.ps1
