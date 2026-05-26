@@ -1,8 +1,9 @@
 ---
 name: adt:android-e2e
-description: "Android E2E visual testing via Midscene. Launch app, navigate screens, verify UI elements, take screenshots. Powered by visual AI — no DOM or accessibility labels required."
+description: "Android E2E visual testing — build, install, connect Midscene, execute test scenarios, and save screenshots to docs/screens/."
 argument-hint: Describe the test scenario (e.g., "验证知识库空状态页面显示", "检查登录流程")
-applyTo: "**/*.kt, **/AndroidManifest.xml"
+dependencies: android-device-automation
+applyTo: "**/*.kt, **/AndroidManifest.xml, **/build.gradle*"
 ---
 
 > **中文环境要求**
@@ -16,156 +17,117 @@ applyTo: "**/*.kt, **/AndroidManifest.xml"
 
 # Android E2E Skill
 
-Vision-driven Android E2E testing using `npx @midscene/android@1`. Operates entirely from screenshots — can interact with ALL visible elements on screen regardless of technology stack (native Android, WebView, Flutter, React Native).
+项目级 Android E2E 视觉测试技能。依赖 `android-device-automation` 技能（来自 [midscene-skills](https://github.com/web-infra-dev/midscene-skills)）提供底层 Midscene 命令。
 
-## Prerequisites
+## 前置依赖
 
-### 1. ADB Device Connected
+| 依赖 | 说明 |
+|------|------|
+| `android-device-automation` skill | 已通过 `npx skills add web-infra-dev/midscene-skills` 安装 |
+| ADB 设备 | `adb devices` 至少有一个 `device` |
+| Midscene 模型 | `~/.zshrc` 中已配置 `MIDSCENE_MODEL_*` 环境变量 |
 
-```bash
-adb devices  # Should show at least one "device"
-```
+## 执行流程
 
-### 2. Midscene Model Configuration
+### Step 1: 构建 App
 
-Model credentials must be configured as environment variables (recommended: `~/.zshrc`):
-
-```bash
-export MIDSCENE_MODEL_NAME="GLM-4.6V"
-export MIDSCENE_MODEL_FAMILY="glm-v"
-export MIDSCENE_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4"
-export MIDSCENE_MODEL_API_KEY="your-api-key"
-```
-
-Supported model families (Midscene v1.8.5+): `doubao-vision`, `doubao-seed`, `gemini`, `qwen2.5-vl`, `qwen3-vl`, `qwen3.5`, `qwen3.6`, `glm-v`, `auto-glm`, `auto-glm-multilingual`, `vlm-ui-tars`, `vlm-ui-tars-doubao`, `vlm-ui-tars-doubao-1.5`, `gpt-5`.
-
-### 3. App Installed on Device
-
-Build and install the APK before running E2E tests:
+使用项目的 Gradle 构建 App：
 
 ```bash
-# Build
+cd android   # 进入 Android 子项目
 ./gradlew assembleLocalEnvDebug
-# Install
+```
+
+### Step 2: 安装到设备
+
+```bash
 adb install -r app/build/outputs/apk/localEnv/debug/*.apk
 ```
 
-## Commands
-
-### `connect` — Connect to Device
+### Step 3: 启动 App
 
 ```bash
-npx @midscene/android@1 connect
-npx @midscene/android@1 connect --deviceId emulator-5554
+adb shell am start -n <package>/<launch-activity>
 ```
 
-### `take_screenshot` — Capture Current Screen
+应从项目 `AndroidManifest.xml` 中获取正确的 package 和 launch activity。
+
+### Step 4: 加载 android-device-automation Skill
+
+通过 Skill tool 调用 `android-device-automation` skill 获取 Midscene 命令的完整说明。该 skill 提供以下命令：
+
+| 命令 | 用法 |
+|------|------|
+| `connect` | `npx -y @midscene/android@1 connect` |
+| `take_screenshot` | `npx -y @midscene/android@1 take_screenshot` |
+| `act` | `npx -y @midscene/android@1 act --prompt "..."` |
+| `assert` | `npx -y @midscene/android@1 assert --prompt "..."` |
+| `launch` | `npx -y @midscene/android@1 launch --uri ...` |
+| `disconnect` | `npx -y @midscene/android@1 disconnect` |
+
+### Step 5: 执行 E2E 测试
+
+**关键规则**（同 android-device-automation）：
+1. **所有 Midscene 命令必须同步执行**，不可后台运行
+2. **一次只运行一个 Midscene 命令**，等待完成后读取输出再决定下一步
+3. **每个命令预留充足时间**，`act` 通常需 30-90 秒
+4. **用 `assert` 做验证**，而非在 `act` 中同时执行和断言
+5. **将关联操作合并到单个 `act`**，减少往返次数
+
+标准测试序列：
 
 ```bash
-npx @midscene/android@1 take_screenshot
+# 1. Connect
+npx -y @midscene/android@1 connect
+
+# 2. Assert app launched
+npx -y @midscene/android@1 assert --prompt "the app is visible on screen"
+
+# 3. Execute test scenario
+npx -y @midscene/android@1 act --prompt "<测试场景描述>"
+
+# 4. Assert expected state
+npx -y @midscene/android@1 assert --prompt "<验证条件>"
+
+# 5. Screenshot
+npx -y @midscene/android@1 take_screenshot
+
+# 6. Disconnect
+npx -y @midscene/android@1 disconnect
 ```
 
-After taking a screenshot, **copy it to the project's `docs/screens/` directory** for documentation:
+### Step 6: 保存截图到 docs/screens/
+
+**强制要求**：所有 E2E 截图必须保存到项目 `docs/screens/` 目录。
 
 ```bash
 mkdir -p docs/screens
-# Midscene prints the screenshot path — copy it:
+# Midscene 输出: "Screenshot saved: /var/folders/.../screenshot-*.png"
 cp <screenshot-path> docs/screens/<descriptive-name>.png
 ```
 
-### `act` — Perform Actions + Verify
-
-Use `act` to interact with the device. It autonomously handles tapping, typing, scrolling, swiping, waiting, and navigation. Describe the goal in natural language:
-
-```bash
-npx @midscene/android@1 act --prompt "点击底部'知识库'标签，验证显示'还没有文件加入知识库'"
-```
-
-Batch related operations into a single `act` command:
-
-```bash
-npx @midscene/android@1 act --prompt "点击文件标签，找到一个PDF文件，长按它，在弹出菜单中点击'加入知识库'，验证 Toast 显示'已加入知识库'"
-```
-
-### `disconnect` — End Session
-
-```bash
-npx @midscene/android@1 disconnect
-```
-
-## Workflow
-
-### Standard E2E Test Flow
-
-1. **Launch app** via ADB (faster than Midscene navigation):
-   ```bash
-   adb shell am start -n com.vertu.vbox/com.vertu.vbox.ui.splash.SplashActivity
-   ```
-
-2. **Connect** Midscene:
-   ```bash
-   npx @midscene/android@1 connect
-   ```
-
-3. **Act + Verify** in a single command:
-   ```bash
-   npx @midscene/android@1 act --prompt "描述你的测试场景..."
-   ```
-
-4. **Take additional screenshots** and copy to `docs/screens/`:
-   ```bash
-   npx @midscene/android@1 take_screenshot
-   cp <screenshot-path> docs/screens/<name>.png
-   ```
-
-5. **Disconnect** when done:
-   ```bash
-   npx @midscene/android@1 disconnect
-   ```
-
-### Screenshot Management
-
-All E2E screenshots MUST be saved to the project's `docs/screens/` directory:
-
-```bash
-# Create directory if not exists
-mkdir -p docs/screens
-
-# After each take_screenshot or act command, save the screenshot
-# Midscene prints: "Screenshot saved: /var/folders/.../screenshot-*.png"
-cp /var/folders/**/screenshot-*.png docs/screens/<name>.png
-```
-
-Naming convention: `<screen-name>-<action>.png`
+命名规范：`<screen-name>-<state>.png`
 - `knowledge-empty-state.png`
-- `knowledge-stats-cards.png`
+- `knowledge-files-list.png`
 - `login-success.png`
 
-## Critical Rules
+### Step 7: 报告结果
 
-1. **Never run Midscene commands in the background.** Each command must finish before the next one starts.
-2. **Run only one Midscene command at a time.** Wait for previous command to finish.
-3. **Allow enough time** — Midscene commands involve AI inference, typical `act` takes 30-90 seconds.
-4. **Always report results** — After completion, summarize: what was tested, key findings, screenshots saved.
-5. **Save ALL screenshots to `docs/screens/`** — This is the mandatory output artifact.
+测试完成后必须主动汇报：
+- 测试了什么场景
+- 关键发现的 UI 状态和数据
+- 截图保存路径
+- 测试通过/失败的结论
 
-## Troubleshooting
+## 故障排查
 
-| Problem | Solution |
-|---------|----------|
+| 问题 | 解决方案 |
+|------|---------|
 | ADB not found | `brew install android-platform-tools` |
-| Device not listed | Check USB connection, enable USB debugging |
-| Device "unauthorized" | Accept the USB debugging prompt on device |
+| Device not listed | 检查 USB 连接，启用 USB 调试 |
+| Device "unauthorized" | 设备上接受 USB 调试授权 |
 | Device "offline" | `adb kill-server && adb start-server` |
-| 401 auth error | Check `MIDSCENE_MODEL_API_KEY` env var |
-| Invalid model family | Check `MIDSCENE_MODEL_FAMILY` matches supported values |
-| Command timeout | Wake device: `adb shell input keyevent KEYCODE_WAKEUP` |
-
-## Checklist
-
-Before marking E2E test complete:
-- [ ] App launched and visible on device
-- [ ] Midscene `act` command(s) executed successfully
-- [ ] All assertions passed (verify with act prompts)
-- [ ] Screenshots saved to `docs/screens/` with descriptive names
-- [ ] Midscene disconnected
+| 401 auth error | 检查 `~/.zshrc` 中 `MIDSCENE_MODEL_API_KEY` |
+| Command timeout | 唤醒设备: `adb shell input keyevent KEYCODE_WAKEUP` |
+| `@midscene/android` not found | `npx -y @midscene/android@1 connect`（加 `-y` 跳过确认） |
+| 多设备冲突 | `connect --deviceId <id>` 指定设备 |
