@@ -35,6 +35,7 @@
 - 支持 `--dry-run` 预览变更范围、风险、验证项和回滚点后再执行
 - 在所有步骤之前自动检测本地 CodeGraph 安装状态，若已安装但项目未初始化 `.codegraph/` 则自动执行 `codegraph init -i`
 - 所有文件生成后自动对产出的规则文件（CLAUDE.md、AGENT.md、Copilot 配置）做完整性审查，检查必备内容是否覆盖、各文件是否一致、是否有遗漏的规则类别，发现 gap 自动补充修复
+- 在所有文件生成和 review 完成后，自动确保 `.codegraph/` 已加入项目的 `.gitignore`，防止 codegraph 索引目录被提交到版本控制
 
 ## 语言要求
 

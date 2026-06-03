@@ -177,6 +177,15 @@ origin: dev-tools-skills
 - 发现缺失或冲突时，补充或修正对应文件
 - 输出一份简短的 review 结论到会话中：列出已覆盖的规则类别、发现的 gap 及是否已修复
 
+### Step 11. Add .codegraph to .gitignore
+
+在所有文件生成和 review 完成后，确保 `.codegraph/` 已加入项目的 `.gitignore`：
+
+- 检查项目根目录是否存在 `.gitignore` 文件，如果不存在则创建
+- 检查 `.gitignore` 中是否已有 `.codegraph/` 条目
+- 如果没有，在 `.gitignore` 末尾追加 `.codegraph/`（前面保留一个空行作为分隔）
+- 如果 Step 0 中未初始化 CodeGraph（未安装或已存在），此步骤仍要执行 — 确保仓库在任何情况下都不会将 codegraph 索引目录提交到版本控制
+
 ## Minimum Rules Generated Files Must Carry
 
 生成的 `CLAUDE.md`、`AGENT.md`、Copilot 项目级配置，至少必须体现这些约束：
