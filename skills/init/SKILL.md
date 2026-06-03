@@ -164,6 +164,19 @@ origin: dev-tools-skills
 - 如果没有可执行验证命令，必须明确写 `not verified`
 - 文档-only 变更至少检查路径、目录规则和规则文件一致性
 
+### Step 10. Code Review Generated Rules
+
+在所有文件生成和验证完成后，对产出的规则文件做一次完整性审查：
+
+- 检查 `CLAUDE.md` 是否完整覆盖了 `references/output-files.md` 要求的 13 项必备内容
+- 检查 `AGENT.md` 是否完整覆盖了 7 项必备内容
+- 检查 Copilot 项目级配置是否涵盖精简版 GP-2 至 GP-9
+- 交叉检查各文件之间的一致性（单一事实来源声明、skill canonical 规则、文档分类规则是否在各文件中一致）
+- 检查是否有遗漏的规则类别：安全、测试、编码风格、Git 工作流、性能、Agent 编排、Hook 系统
+- 对照 `references/general-principles.md` 的 GP-1 至 GP-10，逐项确认关键约束已写入对应文件
+- 发现缺失或冲突时，补充或修正对应文件
+- 输出一份简短的 review 结论到会话中：列出已覆盖的规则类别、发现的 gap 及是否已修复
+
 ## Minimum Rules Generated Files Must Carry
 
 生成的 `CLAUDE.md`、`AGENT.md`、Copilot 项目级配置，至少必须体现这些约束：

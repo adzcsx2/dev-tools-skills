@@ -44,6 +44,7 @@
 10. 当用户要求“总结并加到 skill”时，先做重复 / 重叠 / 融合判断，先提 proposal 再写入
 11. 若本次已升级旧版 AI 规则文件，注明已升级到当前 init 标准
 12. 当前标准只约束后续 AI coding，不主动重构未被需求触碰的既有源码
+13. 禁止在 git commit message 中包含任何形式的 AI 署名行（如 `Co-Authored-By: Claude ... <noreply@anthropic.com>` 等），不限于特定模型版本
 
 若启用 experimental 模式，`CLAUDE.md` 必须基于变更后重新扫描的结果生成。
 
