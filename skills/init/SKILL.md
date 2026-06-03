@@ -96,6 +96,16 @@ origin: dev-tools-skills
 
 ## Execution Workflow
 
+### Step 0. CodeGraph Auto-Init (run first)
+
+在开始任何侦察或文件生成之前，必须先检查并初始化 CodeGraph：
+
+- 检测本机是否安装了 `codegraph` CLI（执行 `which codegraph` 或 `codegraph` 可用性检查）
+- 检测项目根目录下是否已存在 `.codegraph/` 文件夹
+- 当本机已安装 `codegraph` 且项目不存在 `.codegraph/` 时，自动执行 `codegraph init -i` 初始化索引
+- 如果 `codegraph` 未安装或 `.codegraph/` 已存在，静默跳过
+- 此步骤的执行结果应反映在 onboarding 摘要中（标明 CodeGraph 是否已初始化或跳过）
+
 ### Step 1. Parse Mode
 
 - 判断当前是标准模式还是 experimental 模式

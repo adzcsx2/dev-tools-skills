@@ -33,6 +33,7 @@
 - 支持 `--experiment converge` 用于新项目首次版本或早期迁移架构收敛
 - 支持 `--experiment sync` 在新增目录、模块或文件结构后同步更新 AI 规则和路径映射
 - 支持 `--dry-run` 预览变更范围、风险、验证项和回滚点后再执行
+- 在所有步骤之前自动检测本地 CodeGraph 安装状态，若已安装但项目未初始化 `.codegraph/` 则自动执行 `codegraph init -i`
 
 ## 语言要求
 
