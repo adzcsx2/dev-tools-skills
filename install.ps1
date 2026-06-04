@@ -179,47 +179,120 @@ function Ensure-ClaudeLayout {
     Ensure-Directory $MarketplaceDir
 }
 
+# Read the `name` field from a SKILL.md YAML frontmatter (handles quoted/unquoted)
+function Get-SkillName($mdFile) {
+    $inFrontmatter = $false
+    $fenceCount = 0
+    $lineNo = 0
+    foreach ($line in Get-Content $mdFile) {
+        $lineNo++
+        if ($lineNo -eq 1) { $line = $line -replace '^\uFEFF', '' }
+        if ($line -match '^---\s*$') {
+            $fenceCount++
+            if ($fenceCount -eq 1) { $inFrontmatter = $true; continue }
+            if ($fenceCount -ge 2) { break }
+        }
+        if ($inFrontmatter -and $line -match '^name:\s*(.+?)\s*$') {
+            return $matches[1].Trim('"', "'")
+        }
+    }
+    return $null
+}
+
+# Convert a skill name (e.g. dt:push) into a cross-platform-safe Copilot command
+# name (e.g. dt-push). Colons are illegal in Windows file names, so the slash
+# command becomes /dt-push on every platform.
+function Get-PromptCommandName($skillName) {
+    return $skillName -replace ':', '-'
+}
+
+# Build the set of prompt file names this installer would generate (one per skill)
+function Get-ExpectedPromptFiles {
+    $expected = @{}
+    $skillDirs = Get-ChildItem -Path (Join-Path $ScriptDir 'skills') -Directory -ErrorAction SilentlyContinue
+    foreach ($skillDir in $skillDirs) {
+        $mdFile = Join-Path $skillDir.FullName 'SKILL.md'
+        if (-not (Test-Path $mdFile)) { continue }
+        $cmdName = Get-SkillName $mdFile
+        if (-not $cmdName) { continue }
+        $expected["$(Get-PromptCommandName $cmdName).prompt.md"] = $true
+    }
+    return $expected
+}
+
+# Derive the namespace prefixes this installer owns (e.g. dt, adt, fdt) from the
+# generated prompt file names. A prefix is the text before the first hyphen of a
+# command name (dt:push -> dt-push.prompt.md -> dt). Used so cleanup only ever
+# touches files this installer is responsible for, never prompts owned by other
+# tools (e.g. ecc-*.prompt.md from a different plugin).
+function Get-InstallerOwnedPrefixes {
+    $prefixes = @{}
+    foreach ($fname in (Get-ExpectedPromptFiles).Keys) {
+        $prefix = ($fname -split '-', 2)[0]
+        if ($prefix) { $prefixes[$prefix] = $true }
+    }
+    return $prefixes
+}
+
+# Generate one Copilot prompt file per skill, deriving the command name (e.g. dt-push)
+# from each SKILL.md `name` field so the slash command becomes /dt-push.
 function Install-VSCodePrompt {
-    $promptsDir = Join-Path $ScriptDir ".github\prompts"
-    if (-not (Test-Path $promptsDir -PathType Container)) {
-        Write-Warn "VS Code Copilot prompts directory not found: $promptsDir"
+    $skillsDir = Join-Path $ScriptDir 'skills'
+    if (-not (Test-Path $skillsDir -PathType Container)) {
+        Write-Warn "Skills directory not found: $skillsDir"
         return
     }
 
     Ensure-Directory $VSCodePromptsDir
-    $promptFiles = Get-ChildItem -Path $promptsDir -Filter '*.prompt.md' -File -ErrorAction SilentlyContinue
-    if (-not $promptFiles) {
-        Write-Warn "No VS Code Copilot prompt files found in: $promptsDir"
-        return
+    $installedAny = $false
+
+    $skillDirs = Get-ChildItem -Path $skillsDir -Directory -ErrorAction SilentlyContinue
+    foreach ($skillDir in $skillDirs) {
+        $mdFile = Join-Path $skillDir.FullName 'SKILL.md'
+        if (-not (Test-Path $mdFile)) { continue }
+
+        $cmdName = Get-SkillName $mdFile
+        if (-not $cmdName) {
+            Write-Warn "Skipping $mdFile (no name field found)"
+            continue
+        }
+
+        $promptCmd = Get-PromptCommandName $cmdName
+        $targetPath = Join-Path $VSCodePromptsDir "$promptCmd.prompt.md"
+        Copy-Item $mdFile $targetPath -Force
+        Write-Ok "Installed VS Code Copilot prompt: /$promptCmd"
+        $installedAny = $true
     }
 
-    foreach ($promptFile in $promptFiles) {
-        $targetPath = Join-Path $VSCodePromptsDir $promptFile.Name
-        Copy-Item $promptFile.FullName $targetPath -Force
-        Write-Ok "Installed VS Code Copilot prompt: $targetPath"
+    if (-not $installedAny) {
+        Write-Warn "No skills with a SKILL.md found in: $skillsDir"
     }
 
-    # Clean up stale prompts (files in destination that no longer exist in source)
+    # Clean up stale prompts that this installer previously generated but no longer
+    # does. IMPORTANT: only touch files whose namespace prefix (dt/adt/fdt) belongs
+    # to this installer. Prompts owned by other tools (e.g. ecc-*.prompt.md) are
+    # left untouched so installers can coexist in the shared user prompts dir.
+    $expected = Get-ExpectedPromptFiles
+    $ownedPrefixes = Get-InstallerOwnedPrefixes
     $destPromptFiles = Get-ChildItem -Path $VSCodePromptsDir -Filter '*.prompt.md' -File -ErrorAction SilentlyContinue
-    if ($destPromptFiles) {
-        $sourceNames = @{}
-        foreach ($pf in $promptFiles) { $sourceNames[$pf.Name] = $true }
-        foreach ($dpf in $destPromptFiles) {
-            if (-not $sourceNames.ContainsKey($dpf.Name)) {
-                Remove-Item $dpf.FullName -Force
-                Write-Info "Removed stale prompt: $($dpf.FullName)"
-            }
+    foreach ($dpf in $destPromptFiles) {
+        $prefix = ($dpf.Name -split '-', 2)[0]
+        # Skip files not owned by this installer's namespaces.
+        if (-not $ownedPrefixes.ContainsKey($prefix)) { continue }
+
+        if (-not $expected.ContainsKey($dpf.Name)) {
+            Remove-Item $dpf.FullName -Force
+            Write-Info "Removed stale prompt: $($dpf.FullName)"
         }
     }
 }
 
 function Remove-VSCodePrompt {
-    $promptsDir = Join-Path $ScriptDir ".github\prompts"
-    if (-not (Test-Path $promptsDir -PathType Container)) { return }
+    if (-not (Test-Path (Join-Path $ScriptDir 'skills') -PathType Container)) { return }
 
-    $promptFiles = Get-ChildItem -Path $promptsDir -Filter '*.prompt.md' -File -ErrorAction SilentlyContinue
-    foreach ($promptFile in $promptFiles) {
-        $promptPath = Join-Path $VSCodePromptsDir $promptFile.Name
+    $expected = Get-ExpectedPromptFiles
+    foreach ($fname in $expected.Keys) {
+        $promptPath = Join-Path $VSCodePromptsDir $fname
         if (Test-Path $promptPath) {
             Remove-Item $promptPath -Force
             Write-Info "Removed: $promptPath"

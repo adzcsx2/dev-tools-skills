@@ -40,8 +40,13 @@ has_cmd() { command -v "$1" >/dev/null 2>&1; }
 detect_tools() {
   HAS_CLAUDE=false
   HAS_COPILOT=false
-  [ -d "$HOME/.claude" ] && HAS_CLAUDE=true
-  [ -d "$VSCODE_PROMPTS_DIR" ] && HAS_COPILOT=true
+  if [ -d "$HOME/.claude" ]; then HAS_CLAUDE=true; fi
+  # Treat Copilot as available when VS Code is installed, even if the prompts dir
+  # does not exist yet (it is created on install). Using `&&` here would let a
+  # missing dir trip `set -e` and abort the whole installer.
+  if [ -d "$VSCODE_PROMPTS_DIR" ] || [ -d "$(dirname "$VSCODE_PROMPTS_DIR")" ]; then
+    HAS_COPILOT=true
+  fi
 }
 
 select_tools() {
@@ -184,34 +189,106 @@ ensure_claude_layout() {
   ensure_dir "$MARKETPLACE_DIR"
 }
 
-install_vscode_prompt() {
-  local prompts_dir="$SCRIPT_DIR/.github/prompts"
+# Read the `name` field from a SKILL.md YAML frontmatter (handles quoted/unquoted)
+skill_name_from_md() {
+  local md_file="$1"
+  awk '
+    NR == 1 { sub(/^\xef\xbb\xbf/, "") }
+    /^---[[:space:]]*$/ { fence++; next }
+    fence == 1 && /^name:/ {
+      sub(/^name:[[:space:]]*/, "")
+      gsub(/^["'\'']|["'\'']$/, "")
+      print
+      exit
+    }
+  ' "$md_file"
+}
 
-  if [ ! -d "$prompts_dir" ]; then
-    warn "VS Code Copilot prompts directory not found: $prompts_dir"
+# Convert a skill name (e.g. dt:push) into a cross-platform-safe Copilot command
+# name (e.g. dt-push). Colons are illegal in Windows file names, so the slash
+# command becomes /dt-push on every platform.
+prompt_command_name() {
+  echo "$1" | tr ':' '-'
+}
+
+# Build the set of prompt file names this installer would generate (one per skill)
+expected_prompt_files() {
+  local skill_dir
+  for skill_dir in "$SCRIPT_DIR"/skills/*/; do
+    [ -d "$skill_dir" ] || continue
+    local md_file="$skill_dir/SKILL.md"
+    [ -f "$md_file" ] || continue
+    local cmd_name
+    cmd_name="$(skill_name_from_md "$md_file")"
+    [ -n "$cmd_name" ] || continue
+    echo "$(prompt_command_name "$cmd_name").prompt.md"
+  done
+}
+
+# Derive the namespace prefixes this installer owns (e.g. dt, adt, fdt) from the
+# generated prompt file names. A prefix is the text before the first hyphen of a
+# command name (dt:push -> dt-push.prompt.md -> dt). Used so cleanup only ever
+# touches files this installer is responsible for, never prompts owned by other
+# tools (e.g. ecc-*.prompt.md from a different plugin).
+installer_owned_prefixes() {
+  expected_prompt_files | sed -E 's/-.*$//' | sort -u
+}
+
+# Generate one Copilot prompt file per skill, deriving the command name (e.g. dt:push)
+# from each SKILL.md `name` field so the slash command becomes /dt:push.
+install_vscode_prompt() {
+  local skills_dir="$SCRIPT_DIR/skills"
+
+  if [ ! -d "$skills_dir" ]; then
+    warn "Skills directory not found: $skills_dir"
     return
   fi
 
   ensure_dir "$VSCODE_PROMPTS_DIR"
   local installed_any=false
 
-  for prompt_src in "$prompts_dir"/*.prompt.md; do
-    [ -e "$prompt_src" ] || continue
-    cp "$prompt_src" "$VSCODE_PROMPTS_DIR/$(basename "$prompt_src")"
-    ok "Installed VS Code Copilot prompt: $VSCODE_PROMPTS_DIR/$(basename "$prompt_src")"
+  local skill_dir
+  for skill_dir in "$skills_dir"/*/; do
+    [ -d "$skill_dir" ] || continue
+    local md_file="$skill_dir/SKILL.md"
+    [ -f "$md_file" ] || continue
+
+    local cmd_name
+    cmd_name="$(skill_name_from_md "$md_file")"
+    if [ -z "$cmd_name" ]; then
+      warn "Skipping $md_file (no name field found)"
+      continue
+    fi
+
+    local prompt_cmd
+    prompt_cmd="$(prompt_command_name "$cmd_name")"
+    local dest_file="$VSCODE_PROMPTS_DIR/${prompt_cmd}.prompt.md"
+    cp "$md_file" "$dest_file"
+    ok "Installed VS Code Copilot prompt: /${prompt_cmd}"
     installed_any=true
   done
 
   if [ "$installed_any" = false ]; then
-    warn "No VS Code Copilot prompt files found in: $prompts_dir"
+    warn "No skills with a SKILL.md found in: $skills_dir"
   fi
 
-  # Clean up stale prompts (files in destination that no longer exist in source)
+  # Clean up stale prompts that this installer previously generated but no longer
+  # does. IMPORTANT: only touch files whose namespace prefix (dt/adt/fdt) belongs
+  # to this installer. Prompts owned by other tools (e.g. ecc-*.prompt.md) are
+  # left untouched so installers can coexist in the shared user prompts dir.
+  local expected owned_prefixes
+  expected="$(expected_prompt_files)"
+  owned_prefixes="$(installer_owned_prefixes)"
   for dest_file in "$VSCODE_PROMPTS_DIR"/*.prompt.md; do
     [ -e "$dest_file" ] || continue
-    local fname
+    local fname prefix
     fname=$(basename "$dest_file")
-    if [ ! -f "$prompts_dir/$fname" ]; then
+    prefix="${fname%%-*}"
+
+    # Skip files not owned by this installer's namespaces.
+    echo "$owned_prefixes" | grep -Fxq "$prefix" || continue
+
+    if ! echo "$expected" | grep -Fxq "$fname"; then
       rm -f "$dest_file"
       info "Removed stale prompt: $dest_file"
     fi
@@ -219,17 +296,19 @@ install_vscode_prompt() {
 }
 
 remove_vscode_prompt() {
-  local prompts_dir="$SCRIPT_DIR/.github/prompts"
-  [ -d "$prompts_dir" ] || return
+  [ -d "$SCRIPT_DIR/skills" ] || return
 
-  for prompt_src in "$prompts_dir"/*.prompt.md; do
-    [ -e "$prompt_src" ] || continue
-    local prompt_path="$VSCODE_PROMPTS_DIR/$(basename "$prompt_src")"
+  local fname
+  while IFS= read -r fname; do
+    [ -n "$fname" ] || continue
+    local prompt_path="$VSCODE_PROMPTS_DIR/$fname"
     if [ -f "$prompt_path" ]; then
       rm -f "$prompt_path"
       info "Removed: $prompt_path"
     fi
-  done
+  done <<EOF
+$(expected_prompt_files)
+EOF
 }
 
 ensure_settings_plugin() {
