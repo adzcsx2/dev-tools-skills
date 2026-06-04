@@ -41,6 +41,76 @@ function Test-Command($cmd) {
     return [bool](Get-Command $cmd -ErrorAction SilentlyContinue)
 }
 
+function Detect-Tools {
+    $script:HAS_CLAUDE = $false
+    $script:HAS_COPILOT = $false
+    if (Test-Path (Join-Path $env:USERPROFILE ".claude")) {
+        $script:HAS_CLAUDE = $true
+    }
+    if (Test-Path $VSCodePromptsDir) {
+        $script:HAS_COPILOT = $true
+    }
+}
+
+function Select-Tools {
+    Detect-Tools
+
+    Write-Host '========================================' -ForegroundColor Cyan
+    Write-Host '  Select Target Tools' -ForegroundColor Cyan
+    Write-Host '========================================' -ForegroundColor Cyan
+    Write-Host ''
+    Write-Host 'Select tools to install to:'
+    Write-Host ''
+
+    $claudeStatus = '(未安装)'
+    $copilotStatus = '(未安装)'
+    if ($HAS_CLAUDE) { $claudeStatus = '(已安装)' }
+    if ($HAS_COPILOT) { $copilotStatus = '(已安装)' }
+
+    Write-Host "  [1] Claude Code       $claudeStatus" -ForegroundColor Green
+    Write-Host "  [2] VS Code Copilot   $copilotStatus" -ForegroundColor Green
+    Write-Host '  [a] All (自动检测已有工具)' -ForegroundColor Green
+    Write-Host ''
+
+    $choice = Read-Host 'Select'
+
+    switch ($choice) {
+        '1' {
+            if (-not $HAS_CLAUDE) {
+                Write-Err 'Claude Code 未安装，无法选择此选项'
+                exit 1
+            }
+            $script:INSTALL_CLAUDE = $true
+            $script:INSTALL_COPILOT = $false
+        }
+        '2' {
+            if (-not $HAS_COPILOT) {
+                Write-Err 'VS Code Copilot 未安装，无法选择此选项'
+                exit 1
+            }
+            $script:INSTALL_CLAUDE = $false
+            $script:INSTALL_COPILOT = $true
+        }
+        { $_ -match '^[aA]$' } {
+            $script:INSTALL_CLAUDE = $HAS_CLAUDE
+            $script:INSTALL_COPILOT = $HAS_COPILOT
+            if (-not $INSTALL_CLAUDE -and -not $INSTALL_COPILOT) {
+                Write-Err '未检测到 Claude Code 和 VS Code Copilot，无法安装'
+                exit 1
+            }
+        }
+        default {
+            Write-Err "无效选择: $choice"
+            exit 1
+        }
+    }
+
+    Write-Host ''
+    if ($INSTALL_CLAUDE) { Write-Info '将安装到 Claude Code' }
+    if ($INSTALL_COPILOT) { Write-Info '将安装到 VS Code Copilot' }
+    Write-Host ''
+}
+
 function Get-CategoryDesc($cat) {
     switch ($cat) {
         "common"  { "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:project-skills, dt:work-report)" }
@@ -127,6 +197,19 @@ function Install-VSCodePrompt {
         $targetPath = Join-Path $VSCodePromptsDir $promptFile.Name
         Copy-Item $promptFile.FullName $targetPath -Force
         Write-Ok "Installed VS Code Copilot prompt: $targetPath"
+    }
+
+    # Clean up stale prompts (files in destination that no longer exist in source)
+    $destPromptFiles = Get-ChildItem -Path $VSCodePromptsDir -Filter '*.prompt.md' -File -ErrorAction SilentlyContinue
+    if ($destPromptFiles) {
+        $sourceNames = @{}
+        foreach ($pf in $promptFiles) { $sourceNames[$pf.Name] = $true }
+        foreach ($dpf in $destPromptFiles) {
+            if (-not $sourceNames.ContainsKey($dpf.Name)) {
+                Remove-Item $dpf.FullName -Force
+                Write-Info "Removed stale prompt: $($dpf.FullName)"
+            }
+        }
     }
 }
 
@@ -238,7 +321,6 @@ function Reset-ExistingInstallation {
     Remove-SettingsPlugin
     Remove-InstalledPlugin
     Remove-MarketplaceRegistration
-    Remove-VSCodePrompt
     Remove-PathIfExists (Join-Path $CacheDir "$MarketplaceName\$PluginName")
     Remove-PathIfExists (Join-Path $MarketplaceDir $MarketplaceName)
 }
@@ -332,6 +414,7 @@ function Install-TunnelScripts {
 function Uninstall-All {
     Write-Info "Uninstalling $MarketplaceName..."
     Reset-ExistingInstallation
+    Remove-VSCodePrompt
     Write-Ok 'Uninstall complete!'
 }
 
@@ -383,11 +466,16 @@ function Main {
     Load-PluginMetadata
     Ensure-ClaudeLayout
 
+    # Detect installed tools
+    $script:INSTALL_CLAUDE = $true
+    $script:INSTALL_COPILOT = $true
+    Detect-Tools
+
     if ($Help) {
         Write-Host 'Usage: .\install.ps1 [OPTIONS] [CATEGORY...]'
         Write-Host ''
         Write-Host 'Options:'
-        Write-Host '  -All              Install all skill categories'
+        Write-Host '  -All              Install all skill categories (auto-detects Claude/Copilot)'
         Write-Host '  -Uninstall        Remove installed plugin'
         Write-Host '  -Help             Show this help'
         Write-Host ''
@@ -405,8 +493,12 @@ function Main {
 
     $selectedCats = @()
     if ($All) {
+        $script:INSTALL_CLAUDE = $HAS_CLAUDE
+        $script:INSTALL_COPILOT = $HAS_COPILOT
         $selectedCats = @('common', 'android', 'flutter')
     } elseif ($Categories.Count -gt 0) {
+        $script:INSTALL_CLAUDE = $HAS_CLAUDE
+        $script:INSTALL_COPILOT = $HAS_COPILOT
         foreach ($category in $Categories) {
             if ($AllCategories -contains $category) {
                 $selectedCats += $category
@@ -419,37 +511,62 @@ function Main {
         }
         $selectedCats = $selectedCats | Select-Object -Unique
     } else {
-        $selectedCats = Interactive-Select
+        Select-Tools
+        if ($INSTALL_CLAUDE) {
+            $selectedCats = Interactive-Select
+        }
     }
 
-    $allSkills = @()
-    foreach ($category in $selectedCats) {
-        $allSkills += Get-SkillsForCategory $category
-    }
-    $allSkills = $allSkills | Select-Object -Unique
+    # --- Claude Code install ---
+    if ($INSTALL_CLAUDE) {
+        $allSkills = @()
+        foreach ($category in $selectedCats) {
+            $allSkills += Get-SkillsForCategory $category
+        }
+        $allSkills = $allSkills | Select-Object -Unique
 
-    Write-Host 'Will install:' -ForegroundColor Blue
-    foreach ($category in $selectedCats) {
-        Write-Host "  - $category : $(Get-CategoryDesc $category)" -ForegroundColor Green
+        Write-Host 'Installing to Claude Code:' -ForegroundColor Blue
+        foreach ($category in $selectedCats) {
+            Write-Host "  - $category : $(Get-CategoryDesc $category)" -ForegroundColor Green
+        }
+        Write-Host ''
+
+        Reset-ExistingInstallation
+        Ensure-ClaudeLayout
+        Install-Marketplace
+        Install-Skills $allSkills
     }
+
+    # --- VS Code Copilot install ---
+    if ($INSTALL_COPILOT) {
+        Write-Host ''
+        Write-Host 'Installing to VS Code Copilot:' -ForegroundColor Blue
+        Write-Host ''
+
+        Remove-VSCodePrompt
+        Install-VSCodePrompt
+    }
+
     Write-Host ''
-
-    Reset-ExistingInstallation
-    Ensure-ClaudeLayout
-    Install-Marketplace
-    Install-Skills $allSkills
-    Install-VSCodePrompt
-
     Write-Host '========================================' -ForegroundColor Green
     Write-Host '  Installation Complete!' -ForegroundColor Green
     Write-Host '========================================' -ForegroundColor Green
     Write-Host ''
-    Write-Host 'Installed skills:'
-    foreach ($skill in $allSkills) {
-        Write-Host "  - $skill" -ForegroundColor Green
+
+    if ($INSTALL_CLAUDE) {
+        Write-Host 'Installed Claude Code skills:'
+        foreach ($skill in $allSkills) {
+            Write-Host "  - $skill" -ForegroundColor Green
+        }
+        Write-Host ''
     }
-    Write-Host ''
-    Write-Host 'Please restart Claude Code and reload VS Code Copilot chat to load the new commands.'
+
+    if ($INSTALL_COPILOT) {
+        Write-Host 'Installed VS Code Copilot prompts.'
+        Write-Host ''
+    }
+
+    Write-Host 'Please restart Claude Code and/or reload VS Code Copilot chat to load the new commands.'
 }
 
 Main

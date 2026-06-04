@@ -37,6 +37,72 @@ error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
 has_cmd() { command -v "$1" >/dev/null 2>&1; }
 
+detect_tools() {
+  HAS_CLAUDE=false
+  HAS_COPILOT=false
+  [ -d "$HOME/.claude" ] && HAS_CLAUDE=true
+  [ -d "$VSCODE_PROMPTS_DIR" ] && HAS_COPILOT=true
+}
+
+select_tools() {
+  detect_tools
+
+  echo -e "${CYAN}========================================${NC}"
+  echo -e "${CYAN}  Select Target Tools${NC}"
+  echo -e "${CYAN}========================================${NC}"
+  echo ""
+  echo "Select tools to install to:"
+  echo ""
+
+  local claude_status="(未安装)"
+  local copilot_status="(未安装)"
+  $HAS_CLAUDE && claude_status="(已安装)"
+  $HAS_COPILOT && copilot_status="(已安装)"
+
+  echo -e "  ${GREEN}[1]${NC} Claude Code       $claude_status"
+  echo -e "  ${GREEN}[2]${NC} VS Code Copilot   $copilot_status"
+  echo -e "  ${GREEN}[a]${NC} All (自动检测已有工具)"
+  echo ""
+
+  read -r -p "Select: " tool_choice
+
+  case "$tool_choice" in
+    1)
+      if ! $HAS_CLAUDE; then
+        error "Claude Code 未安装，无法选择此选项"
+        exit 1
+      fi
+      INSTALL_CLAUDE=true
+      INSTALL_COPILOT=false
+      ;;
+    2)
+      if ! $HAS_COPILOT; then
+        error "VS Code Copilot 未安装，无法选择此选项"
+        exit 1
+      fi
+      INSTALL_CLAUDE=false
+      INSTALL_COPILOT=true
+      ;;
+    a|A)
+      INSTALL_CLAUDE=$HAS_CLAUDE
+      INSTALL_COPILOT=$HAS_COPILOT
+      if ! $INSTALL_CLAUDE && ! $INSTALL_COPILOT; then
+        error "未检测到 Claude Code 和 VS Code Copilot，无法安装"
+        exit 1
+      fi
+      ;;
+    *)
+      error "无效选择: $tool_choice"
+      exit 1
+      ;;
+  esac
+
+  echo ""
+  $INSTALL_CLAUDE && info "将安装到 Claude Code"
+  $INSTALL_COPILOT && info "将安装到 VS Code Copilot"
+  echo ""
+}
+
 category_desc() {
   case "$1" in
     common)  echo "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:project-skills, dt:work-report)" ;;
@@ -139,6 +205,17 @@ install_vscode_prompt() {
   if [ "$installed_any" = false ]; then
     warn "No VS Code Copilot prompt files found in: $prompts_dir"
   fi
+
+  # Clean up stale prompts (files in destination that no longer exist in source)
+  for dest_file in "$VSCODE_PROMPTS_DIR"/*.prompt.md; do
+    [ -e "$dest_file" ] || continue
+    local fname
+    fname=$(basename "$dest_file")
+    if [ ! -f "$prompts_dir/$fname" ]; then
+      rm -f "$dest_file"
+      info "Removed stale prompt: $dest_file"
+    fi
+  done
 }
 
 remove_vscode_prompt() {
@@ -246,7 +323,6 @@ reset_existing_installation() {
   remove_settings_plugin
   remove_installed_plugin
   remove_marketplace_registration
-  remove_vscode_prompt
   remove_path_if_exists "$CACHE_DIR/$MARKETPLACE_NAME/$PLUGIN_NAME"
   remove_path_if_exists "$MARKETPLACE_DIR/$MARKETPLACE_NAME"
 }
@@ -336,6 +412,7 @@ install_tunnel_scripts() {
 uninstall_all() {
   info "Uninstalling $MARKETPLACE_NAME..."
   reset_existing_installation
+  remove_vscode_prompt
   ok "Uninstall complete!"
 }
 
@@ -393,23 +470,33 @@ main() {
 
   local uninstall=false
   local selected_categories=""
+  INSTALL_CLAUDE=true
+  INSTALL_COPILOT=true
+
+  # Detect installed tools
+  detect_tools
 
   if [ $# -eq 0 ]; then
-    interactive_select
-    selected_categories="$SELECTED_CATEGORIES"
+    select_tools
+    if $INSTALL_CLAUDE; then
+      interactive_select
+      selected_categories="$SELECTED_CATEGORIES"
+    fi
   else
     case "$1" in
       --uninstall|-u)
         uninstall=true
         ;;
       --all|-a)
+        INSTALL_CLAUDE=$HAS_CLAUDE
+        INSTALL_COPILOT=$HAS_COPILOT
         selected_categories="common android flutter"
         ;;
       --help|-h)
         echo "Usage: $0 [OPTIONS] [CATEGORY...]"
         echo ""
         echo "Options:"
-        echo "  --all, -a          Install all skill categories"
+        echo "  --all, -a          Install all skill categories (auto-detects Claude/Copilot)"
         echo "  --uninstall, -u    Remove installed plugin"
         echo "  --help, -h         Show this help"
         echo ""
@@ -420,6 +507,8 @@ main() {
         exit 0
         ;;
       *)
+        INSTALL_CLAUDE=$HAS_CLAUDE
+        INSTALL_COPILOT=$HAS_COPILOT
         for arg in "$@"; do
           case "$arg" in
             common|android|flutter) selected_categories="$selected_categories $arg" ;;
@@ -438,33 +527,55 @@ main() {
     exit 0
   fi
 
-  local all_selected=""
-  for category in $selected_categories; do
-    all_selected="$all_selected $(skills_for_category "$category")"
-  done
+  # --- Claude Code install ---
+  if $INSTALL_CLAUDE; then
+    local all_selected=""
+    for category in $selected_categories; do
+      all_selected="$all_selected $(skills_for_category "$category")"
+    done
 
-  echo -e "${BLUE}Will install:${NC}"
-  for category in $selected_categories; do
-    echo -e "  ${GREEN}- $category${NC}: $(category_desc "$category")"
-  done
+    echo -e "${BLUE}Installing to Claude Code:${NC}"
+    for category in $selected_categories; do
+      echo -e "  ${GREEN}- $category${NC}: $(category_desc "$category")"
+    done
+    echo ""
+
+    reset_existing_installation
+    ensure_claude_layout
+    install_marketplace
+    install_skills "$all_selected"
+  fi
+
+  # --- VS Code Copilot install ---
+  if $INSTALL_COPILOT; then
+    echo ""
+    echo -e "${BLUE}Installing to VS Code Copilot:${NC}"
+    echo ""
+
+    remove_vscode_prompt
+    install_vscode_prompt
+  fi
+
   echo ""
-
-  reset_existing_installation
-  ensure_claude_layout
-  install_marketplace
-  install_skills "$all_selected"
-  install_vscode_prompt
-
   echo -e "${GREEN}========================================${NC}"
   echo -e "${GREEN}  Installation Complete!${NC}"
   echo -e "${GREEN}========================================${NC}"
   echo ""
-  echo "Installed skills:"
-  for skill in $all_selected; do
-    echo -e "  ${GREEN}- $skill${NC}"
-  done
-  echo ""
-  echo "Please restart Claude Code and reload VS Code Copilot chat to load the new commands."
+
+  if $INSTALL_CLAUDE; then
+    echo "Installed Claude Code skills:"
+    for skill in $all_selected; do
+      echo -e "  ${GREEN}- $skill${NC}"
+    done
+    echo ""
+  fi
+
+  if $INSTALL_COPILOT; then
+    echo "Installed VS Code Copilot prompts."
+    echo ""
+  fi
+
+  echo "Please restart Claude Code and/or reload VS Code Copilot chat to load the new commands."
   echo ""
 }
 
