@@ -154,7 +154,7 @@ README_AI.md # 任何 AI 专用衍生文件
 - This `<BRANCH>` branch and worktree are for local AI-driven development only. All commits stay local.
 - A Claude PreToolUse hook (`.claude/hooks/prevent-push.sh`) blocks every `git push` command.
 - AI-context files (CLAUDE.md, AGENT.md, .ai/, .claude/, .codegraph/, AI-only docs) must NEVER be merged into other branches.
-- To bring real source changes back, run `scripts/merge-to-<branch>.sh` from the TARGET branch (whitelist-only checkout). Do NOT use `git merge <BRANCH>`.
+- To bring real source changes back, run `scripts/merge-from-local.sh` (whitelist-only cross-directory sync). It checks out whitelist files from this `<BRANCH>` branch into the original repo directory. Do NOT use `git merge <BRANCH>`.
 - Other branches (main, release, dev, feature/\*) are NOT subject to this restriction.
 ```
 
@@ -171,12 +171,18 @@ README_AI.md # 任何 AI 专用衍生文件
 set -euo pipefail
 
 HOOK_INPUT=$(cat)
-COMMAND=$(echo "$HOOK_INPUT" | jq -r '.tool_input.command // ""')
 
-# Match git push at line start or after a command separator
-if echo "$COMMAND" | grep -qE '(^|[;&|]\s*)git[[:space:]]+push\b'; then
+# Decode command from hook JSON input (pure bash fallback if jq is missing)
+if command -v jq &>/dev/null; then
+  COMMAND=$(echo "$HOOK_INPUT" | jq -r '.tool_input.command // ""')
+else
+  COMMAND=$(echo "$HOOK_INPUT" | grep -o '"command":"[^"]*"' | head -1 | sed 's/"command":"//;s/"$//')
+fi
+
+# Match git push at line start or after common command separators (;, &&, ||, |, newline)
+if echo "$COMMAND" | grep -qE '(^|;|&&|\|\||\||\s)\s*git[[:space:]]+push\b'; then
   echo "[Hook] BLOCKED: git push is forbidden on this local worktree branch" >&2
-  echo "[Hook] Commit locally only. Sync source back via scripts/merge-to-<branch>.sh." >&2
+  echo "[Hook] Commit locally only. Sync source back via scripts/merge-from-local.sh." >&2
   exit 2
 fi
 
@@ -209,66 +215,103 @@ exit 0
 
 ### Step 6. 生成白名单合并脚本
 
-写入 `<WORKTREE_DIR>/scripts/merge-to-<branch>.sh`（英文注释，UTF-8 无 BOM），用**白名单 checkout**而非 `git merge`：
+写入 `<WORKTREE_DIR>/scripts/merge-from-local.sh`（英文注释，UTF-8 无 BOM），用**跨目录白名单 checkout**而非 `git merge`。
+
+与 SKILL.md 之前的版本不同，此脚本采用跨目录模型：从 worktree 目录（`local-*`）把白名单文件同步到原始仓库目录（`remote-*` 或原始目录名）。由于两者共享同一 git 数据库（worktree 机制），无需切换分支即可完成 checkout。
 
 ```bash
 #!/usr/bin/env bash
-# merge-to-<branch>.sh — Sync ONLY real source code from the local worktree branch
-# into the current (target) branch. Init artifacts (CLAUDE.md, .ai/, .claude/,
-# docs/, Copilot config) are intentionally excluded and never merged.
+# merge-from-local.sh — Sync ONLY real source code from the local worktree
+# into the original (remote) project directory. Init artifacts (CLAUDE.md,
+# .ai/, .claude/, docs/, Copilot config) are intentionally excluded.
 #
 # Usage:
-#   bash scripts/merge-to-<branch>.sh        # sync whitelist into current branch
-#   bash scripts/merge-to-<branch>.sh -n     # dry-run preview only
+#   bash scripts/merge-from-local.sh        # sync whitelist into remote project
+#   bash scripts/merge-from-local.sh -n     # dry-run preview only
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-cd "$PROJECT_DIR"
+LOCAL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+LOCAL_NAME="$(basename "$LOCAL_DIR")"
+PARENT_DIR="$(dirname "$LOCAL_DIR")"
+
+# Infer the original repo directory name:
+#   local-<x> -> remote-<x>  (if remote-<x> exists)
+#   otherwise  -> <x>         (strip local- prefix)
+REMOTE_NAME="${LOCAL_NAME#local-}"
+if [ -d "$PARENT_DIR/remote-$REMOTE_NAME" ]; then
+  REMOTE_NAME="remote-$REMOTE_NAME"
+fi
+REMOTE_DIR="$PARENT_DIR/$REMOTE_NAME"
 
 SOURCE_BRANCH="<BRANCH>"
 
 DRY_RUN=false
 [ "${1:-}" = "--dry-run" ] || [ "${1:-}" = "-n" ] && DRY_RUN=true
 
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [ "$CURRENT_BRANCH" = "$SOURCE_BRANCH" ]; then
-  echo "[ERROR] You are ON the local branch. Switch to a target branch first."
-  exit 1
-fi
-if ! git rev-parse --verify "$SOURCE_BRANCH" >/dev/null 2>&1; then
-  echo "[ERROR] Source branch '$SOURCE_BRANCH' not found."
+if [ ! -d "$REMOTE_DIR/.git" ]; then
+  echo "[ERROR] Remote project not found at $REMOTE_DIR"
+  echo "[INFO]  Expected original repo at: $REMOTE_DIR"
   exit 1
 fi
 
 # Whitelist: ONLY real source / build / runtime files. Inferred during dt:local-worktree.
+# README.md IS included — it is rewritten during dt:init as a business file.
 SYNC_PATHS=(
   # <-- filled from Step 2 audit, e.g.:
   # "src"
   # "pom.xml"
   # "Dockerfile"
+  # "README.md"
 )
 
-echo "Target branch: $CURRENT_BRANCH"
-echo "Source branch: $SOURCE_BRANCH"
+echo "Local  (source) : $LOCAL_DIR ($SOURCE_BRANCH)"
+echo "Remote (target) : $REMOTE_DIR"
 echo "--- Whitelist paths ---"
+VALID_PATHS=()
 for p in "${SYNC_PATHS[@]}"; do
-  [ -e "$p" ] || git cat-file -e "$SOURCE_BRANCH:$p" 2>/dev/null && echo "  $p" || echo "  [SKIP] $p (missing)"
+  if [ -e "$LOCAL_DIR/$p" ] || git -C "$LOCAL_DIR" cat-file -e "$SOURCE_BRANCH:$p" 2>/dev/null; then
+    echo "  $p"
+    VALID_PATHS+=("$p")
+  else
+    echo "  [SKIP] $p (missing in local worktree)"
+  fi
 done
+
+if [ ${#VALID_PATHS[@]} -eq 0 ]; then
+  echo "No valid paths to sync. Exiting."
+  exit 0
+fi
 
 if $DRY_RUN; then
   echo "[dry-run] no changes applied"
   exit 0
 fi
 
-git checkout "$SOURCE_BRANCH" -- "${SYNC_PATHS[@]}"
-echo "Done. Review 'git status' then commit on '$CURRENT_BRANCH'."
+cd "$REMOTE_DIR"
+
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+echo "Target branch in remote: $CURRENT_BRANCH"
+
+if [ "$CURRENT_BRANCH" = "$SOURCE_BRANCH" ]; then
+  echo "[ERROR] Remote is ON the '$SOURCE_BRANCH' branch. Switch to a target branch first."
+  exit 1
+fi
+
+# Checkout whitelist files from the local branch into the remote working tree.
+# Since both directories share the same git database (worktree), the local branch
+# is visible from the remote repo context.
+git checkout "$SOURCE_BRANCH" -- "${VALID_PATHS[@]}"
+
+echo "Done. Review 'git status' in $REMOTE_DIR then commit on '$CURRENT_BRANCH'."
 ```
 
-- `SYNC_PATHS` 用 Step 2 确认的白名单填充。
-- 脚本拒绝在 local 分支自身运行。
-- `chmod +x scripts/merge-to-<branch>.sh`。
-- 如检测到 Windows 用户，附带生成 `scripts/merge-to-<branch>.ps1` 等价实现。
+- `SYNC_PATHS` 用 Step 2 确认的白名单填充。**README.md 是业务文件，应纳入白名单**。
+- `REMOTE_DIR` 推断逻辑：`local-<x>` 对应 `remote-<x>`（如存在），否则对应 `<x>`。
+- 脚本在 `REMOTE_DIR` 上下文执行 `git checkout`，利用 worktree 共享 git 数据库的特性。
+- 拒绝在 remote 目录处于 `SOURCE_BRANCH` 时运行。
+- `chmod +x scripts/merge-from-local.sh`。
+- 如检测到 Windows 用户，附带生成 `scripts/merge-from-local.ps1` 等价实现。
 
 ### Step 7. 加固 .gitignore（可选但推荐）
 
