@@ -40,25 +40,26 @@ cd dev-tools-skills
 
 ### 通用工具 — `dt:` 前缀
 
-| Skill                      | 描述                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------- |
-| `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 CLAUDE.md、AGENT.md、Copilot 配置，建立 `.ai/skills/` canonical skill 工作面，并在 Claude Code 项目里生成用于 mirror refresh 的 PostToolUse hook |
-| `dt:study`                 | 修错回源：把已验证的 skill 失误直接沉淀回工作区里的源 SKILL，避免改在缓存副本上 |
-| `dt:push`                  | 一键发布工作流：自动暂存、拉取、按逻辑分组提交、推送，支持 --preview 预览      |
-| `dt:update-remote-plugins` | 远程插件维护：更新配置与文档、验证 install 回流本地是否始终命中最新版本         |
-| `dt:code-note`             | 多语言代码注释：自动检测语言类型并应用对应注释风格                              |
-| `dt:to-public-cloudflare`  | Cloudflare 内网穿透：一键配置 Named Tunnel，自动侦察端口，自动部署全局 tunnel 管理脚本（tunnel-add/start/stop/remove/list），支持健康监测与自动重启 |
-| `dt:project-skills`        | 项目级 skill 生命周期：以 `.ai/skills/` 为唯一事实源，支持审计重复/重叠、确认后同步更新、把实现沉淀成 skill，可显式刷新 mirrors，并作为 Claude project hook 背后的 mirror refresh 规则源 |
-| `dt:work-report`           | 工作日报生成：基于 git log 和未提交改动，自动生成功能性中文日报（每条 ≤30 字），支持自然语言日期参数，并附可执行优化建议 |
+| Skill                      | 描述                                                                                                                                                                                                                                                                                                           |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 CLAUDE.md、AGENT.md、Copilot 配置，建立 `.ai/skills/` canonical skill 工作面，并在 Claude Code 项目里生成用于 mirror refresh 的 PostToolUse hook                                                                                                                     |
+| `dt:study`                 | 修错回源：把已验证的 skill 失误直接沉淀回工作区里的源 SKILL，避免改在缓存副本上                                                                                                                                                                                                                                |
+| `dt:push`                  | 一键发布工作流：自动暂存、拉取、按逻辑分组提交、推送，支持 --preview 预览                                                                                                                                                                                                                                      |
+| `dt:update-remote-plugins` | 远程插件维护：更新配置与文档、验证 install 回流本地是否始终命中最新版本                                                                                                                                                                                                                                        |
+| `dt:code-note`             | 多语言代码注释：自动检测语言类型并应用对应注释风格                                                                                                                                                                                                                                                             |
+| `dt:to-public-cloudflare`  | Cloudflare 内网穿透：一键配置 Named Tunnel，自动侦察端口，自动部署全局 tunnel 管理脚本（tunnel-add/start/stop/remove/list），支持健康监测与自动重启                                                                                                                                                            |
+| `dt:project-skills`        | 项目级 skill 生命周期：以 `.ai/skills/` 为唯一事实源，支持审计重复/重叠、确认后同步更新、把实现沉淀成 skill，可显式刷新 mirrors，并作为 Claude project hook 背后的 mirror refresh 规则源                                                                                                                       |
+| `dt:work-report`           | 工作日报生成：基于 git log 和未提交改动，自动生成功能性中文日报（每条 ≤30 字），支持自然语言日期参数，并附可执行优化建议                                                                                                                                                                                       |
+| `dt:local-worktree`        | 隔离本地开发 worktree：传入原仓库路径，在其同级目录生成独立 local 分支 worktree（`remote-<x>`→`local-<x>`）并执行 dt:init、审计重写 README，保证 CLAUDE.md/.ai/.claude/docs 等初始化产物不污染原分支、不被 push（CLAUDE.md 铁律 + PreToolUse hook 双拦截），合并业务代码时用白名单 checkout 脚本只带走真实源码 |
 
 ### Android 工具 — `adt:` 前缀
 
-| Skill                          | 描述                                              |
-| ------------------------------ | ------------------------------------------------- |
-| `adt:gradle-build-performance` | 诊断和优化 Gradle 构建性能                        |
-| `adt:update-docs`              | 先审计代码改动，再全链路更新 Android 项目相关文档 |
-| `adt:android-i18n`             | 国际化：审计硬编码字符串，生成多语言资源          |
-| `adt:android-fold-adapter`     | 折叠屏适配：诊断和修复折叠屏适配问题              |
+| Skill                          | 描述                                                 |
+| ------------------------------ | ---------------------------------------------------- |
+| `adt:gradle-build-performance` | 诊断和优化 Gradle 构建性能                           |
+| `adt:update-docs`              | 先审计代码改动，再全链路更新 Android 项目相关文档    |
+| `adt:android-i18n`             | 国际化：审计硬编码字符串，生成多语言资源             |
+| `adt:android-fold-adapter`     | 折叠屏适配：诊断和修复折叠屏适配问题                 |
 | `adt:android-e2e`              | E2E 视觉测试：基于 Midscene AI 的 Android 端到端测试 |
 
 ### Flutter 工具 — `fdt:` 前缀
@@ -88,6 +89,7 @@ dev-tools-skills/
 │   ├── to-public-cloudflare/     # dt:to-public-cloudflare
 │   ├── project-skills/           # dt:project-skills
 │   ├── work-report/              # dt:work-report
+│   ├── local-worktree/           # dt:local-worktree
 │   ├── gradle-build-performance/ # adt:gradle-build-performance
 │   ├── update-docs-android/      # adt:update-docs
 │   ├── android-i18n/             # adt:android-i18n

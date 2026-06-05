@@ -26,7 +26,7 @@ PLUGIN_NAME=""
 VERSION=""
 PLUGIN_KEY=""
 
-COMMON_SKILLS="init study push update-remote-plugins code-note to-public-cloudflare project-skills work-report"
+COMMON_SKILLS="init study push update-remote-plugins code-note to-public-cloudflare project-skills work-report local-worktree"
 ANDROID_SKILLS="gradle-build-performance update-docs-android android-i18n android-fold-adapter android-e2e"
 FLUTTER_SKILLS="update-docs-flutter"
 
