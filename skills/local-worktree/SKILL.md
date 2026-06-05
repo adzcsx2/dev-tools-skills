@@ -93,10 +93,17 @@ origin: dev-tools-skills
    - `WORKTREE_DIR="${PARENT_DIR}/${WT_NAME}"`。
    - 示例：`REPO_PATH=.../bim-cloud-manage/remote-bim-cloud-manage` → `WORKTREE_DIR=.../bim-cloud-manage/local-bim-cloud-manage`。
 3. **解析其余参数**：`BRANCH`（默认 `local`）。
-4. **冲突检查**：
-   - `git -C "<REPO_PATH>" rev-parse --verify "<BRANCH>"` 已存在 → 提示用户确认复用或换分支名。
-   - `WORKTREE_DIR` 已存在且非空 → 停止并报告（避免覆盖）。
-5. `--dry-run` 时，从这一步起所有写操作只输出预览，并打印推断出的 `REPO_PATH` / `WORKTREE_DIR` / `BRANCH`。
+4. **Stale worktree 检测与清理**（关键：防止因手动 `rm -rf` 删除目录后重新执行失败）：
+   - 执行 `git -C "<REPO_PATH>" worktree list --porcelain` 检查目标 `WORKTREE_DIR` 是否在 worktree 注册列表中。
+   - 如果 `WORKTREE_DIR` 被注册但磁盘目录已不存在（worktree 状态为 `prunable`）：
+     - 输出中文提示："检测到上一次的 local worktree 目录已被手动删除（如 rm -rf），但 git 仍保留其注册记录。正在自动清理..."
+     - 执行 `git -C "<REPO_PATH>" worktree prune` 清理所有失效的 worktree 注册记录。
+     - 清理完成后继续后续流程（如果 `<BRANCH>` 分支仍存在，会进入下面的分支复用确认流程）。
+   - **重要**：此步骤只清理 git 元数据中的失效 worktree 记录，**绝不触碰原始仓库的任何文件**。
+5. **冲突检查**：
+   - `git -C "<REPO_PATH>" rev-parse --verify "<BRANCH>"` 已存在 → 输出中文提示："检测到 `<BRANCH>` 分支已存在（上次创建），将复用该分支重新创建 worktree"，要求用户确认后继续。
+   - `WORKTREE_DIR` 磁盘目录已存在且非空 → 停止并报告（避免覆盖已有内容）。
+6. `--dry-run` 时，从这一步起所有写操作只输出预览，并打印推断出的 `REPO_PATH` / `WORKTREE_DIR` / `BRANCH`。
 
 ### Step 1. 创建隔离 worktree
 
@@ -339,6 +346,7 @@ echo "Done. Review 'git status' in $REMOTE_DIR then commit on '$CURRENT_BRANCH'.
 - 禁止 push local 分支（CLAUDE.md 规则 + PreToolUse hook 双保险）。
 - 禁止在 commit message 中加入任何 AI 署名（`Co-Authored-By` 等）。
 - 所有生成文件 UTF-8 无 BOM；文档/脚本注释一律英文。
+- 禁止在遇到 stale worktree 报错时使用 `git worktree add -f` 强制覆盖或手动删除原始仓库。必须先执行 `git worktree prune` 清理失效记录，再正常重建。**绝不删除原始仓库目录**。
 
 ## Example Prompts
 
