@@ -148,7 +148,7 @@ README_AI.md # 任何 AI 专用衍生文件
 ### Step 3. 在 worktree 内执行 dt:init
 
 - 在 `<WORKTREE_DIR>` 调用 `dt:init`（标准模式），生成 `CLAUDE.md`、`AGENT.md`、Copilot 配置、`.ai/skills/`、`/docs` 骨架，并（Claude 环境下）bootstrap `.claude/settings.json` + sync hook。
-- init 完成后，**审计项目并重写 `README.md`**：基于真实代码事实重写项目说明、模块结构、构建命令、目录约定。README 属于业务文件，会随白名单合并回主分支，因此内容必须客观、不含 AI 沙盒专属说明。
+- init 完成后，**审计项目并重写 `README.md`**：基于真实代码事实重写项目说明、模块结构、构建命令、目录约定。README 在排除清单中，不同步回原始仓库，因此可包含 AI 沙盒专属说明。
 - 把「local worktree 专属约束」写进 `CLAUDE.md`（见 Step 4），而不是写进 README。
 
 ### Step 4. 写入 CLAUDE.md 的 push-ban 铁律
