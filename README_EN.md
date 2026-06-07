@@ -51,22 +51,20 @@ Installation also registers the global `/dt:init` and `/study` prompts for VS Co
 | `dt:project-skills`        | Project-local skill lifecycle management: use `.ai/skills/` as the canonical source, audit duplicates/overlaps, sync updates after confirmation, promote successful changes into skills, refresh mirrors on explicit invocation, and serve as the mirror-refresh policy behind Claude project hooks                                                                                     |
 | `dt:work-report`           | Daily work report: generate a non-technical Chinese work summary from git log and uncommitted changes (each item ≤ 30 chars), supports natural-language date args, and appends actionable improvement suggestions                                                                                                                                                                       |
 | `dt:local-worktree`        | Isolated local dev worktree: pass the original repo path, create a sibling `local` branch worktree (`remote-<x>`→`local-<x>`), run dt:init, audit and rewrite README, and guarantee init artifacts (CLAUDE.md/.ai/.claude/docs) never pollute the original branch and never get pushed (CLAUDE.md rule + PreToolUse hook). Merges real source back via a whitelist-only checkout script |
+| `dt:update-docs`           | Cross-platform doc generator: auto-detects Android/Flutter/other project types, audits code changes first, then updates all affected docs |
 
 ### Android Tools — `adt:` prefix
 
 | Skill                          | Description                                                             |
 | ------------------------------ | ----------------------------------------------------------------------- |
-| `adt:gradle-build-performance` | Diagnose and optimize Gradle build performance                          |
-| `adt:update-docs`              | Audit code changes first, then update all affected Android project docs |
-| `adt:android-i18n`             | i18n: audit hardcoded strings, generate multi-language resources        |
+| `adt:gradle-build-performance` | Diagnose and optimize Gradle build performance |
+| `adt:android-i18n`             | i18n: audit hardcoded strings, generate multi-language resources |
 | `adt:android-fold-adapter`     | Foldable screen: diagnose and fix fold adaptation issues                |
 | `adt:android-e2e`              | E2E visual testing: Midscene AI-powered Android end-to-end testing      |
 
 ### Flutter Tools — `fdt:` prefix
 
-| Skill             | Description                                                             |
-| ----------------- | ----------------------------------------------------------------------- |
-| `fdt:update-docs` | Audit code changes first, then update all affected Flutter project docs |
+> Flutter doc updates have been merged into `dt:update-docs`, which auto-detects Flutter projects and applies corresponding rules.
 
 ## Project Structure
 
@@ -90,12 +88,11 @@ dev-tools-skills/
 │   ├── project-skills/           # dt:project-skills
 │   ├── work-report/              # dt:work-report
 │   ├── local-worktree/           # dt:local-worktree
+│   ├── update-docs/              # dt:update-docs (Android/Flutter/Generic)
 │   ├── gradle-build-performance/ # adt:gradle-build-performance
-│   ├── update-docs-android/      # adt:update-docs
 │   ├── android-i18n/             # adt:android-i18n
 │   ├── android-fold-adapter/     # adt:android-fold-adapter
-│   ├── android-e2e/              # adt:android-e2e
-│   └── update-docs-flutter/      # fdt:update-docs
+│   └── android-e2e/              # adt:android-e2e
 ├── install.sh
 ├── install.ps1
 ├── uninstall.sh

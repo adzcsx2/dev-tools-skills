@@ -51,22 +51,20 @@ cd dev-tools-skills
 | `dt:project-skills`        | 项目级 skill 生命周期：以 `.ai/skills/` 为唯一事实源，支持审计重复/重叠、确认后同步更新、把实现沉淀成 skill，可显式刷新 mirrors，并作为 Claude project hook 背后的 mirror refresh 规则源                                                                                                                       |
 | `dt:work-report`           | 工作日报生成：基于 git log 和未提交改动，自动生成功能性中文日报（每条 ≤30 字），支持自然语言日期参数，并附可执行优化建议                                                                                                                                                                                       |
 | `dt:local-worktree`        | 隔离本地开发 worktree：传入原仓库路径，在其同级目录生成独立 local 分支 worktree（`remote-<x>`→`local-<x>`）并执行 dt:init、审计重写 README，保证 CLAUDE.md/.ai/.claude/docs 等初始化产物不污染原分支、不被 push（CLAUDE.md 铁律 + PreToolUse hook 双拦截），合并业务代码时用白名单 checkout 脚本只带走真实源码 |
+| `dt:update-docs`           | 跨平台文档自动生成：自动检测 Android/Flutter/其他项目类型，先审计代码改动，再全链路更新所有受影响文档 |
 
 ### Android 工具 — `adt:` 前缀
 
 | Skill                          | 描述                                                 |
 | ------------------------------ | ---------------------------------------------------- |
-| `adt:gradle-build-performance` | 诊断和优化 Gradle 构建性能                           |
-| `adt:update-docs`              | 先审计代码改动，再全链路更新 Android 项目相关文档    |
-| `adt:android-i18n`             | 国际化：审计硬编码字符串，生成多语言资源             |
+| `adt:gradle-build-performance` | 诊断和优化 Gradle 构建性能 |
+| `adt:android-i18n`             | 国际化：审计硬编码字符串，生成多语言资源 |
 | `adt:android-fold-adapter`     | 折叠屏适配：诊断和修复折叠屏适配问题                 |
 | `adt:android-e2e`              | E2E 视觉测试：基于 Midscene AI 的 Android 端到端测试 |
 
 ### Flutter 工具 — `fdt:` 前缀
 
-| Skill             | 描述                                              |
-| ----------------- | ------------------------------------------------- |
-| `fdt:update-docs` | 先审计代码改动，再全链路更新 Flutter 项目相关文档 |
+> Flutter 文档更新已合并到 `dt:update-docs`，自动检测 Flutter 项目并应用对应规则。
 
 ## 项目结构
 
@@ -90,12 +88,11 @@ dev-tools-skills/
 │   ├── project-skills/           # dt:project-skills
 │   ├── work-report/              # dt:work-report
 │   ├── local-worktree/           # dt:local-worktree
+│   ├── update-docs/              # dt:update-docs (Android/Flutter/Generic)
 │   ├── gradle-build-performance/ # adt:gradle-build-performance
-│   ├── update-docs-android/      # adt:update-docs
 │   ├── android-i18n/             # adt:android-i18n
 │   ├── android-fold-adapter/     # adt:android-fold-adapter
-│   ├── android-e2e/              # adt:android-e2e
-│   └── update-docs-flutter/      # fdt:update-docs
+│   └── android-e2e/              # adt:android-e2e
 ├── install.sh
 ├── install.ps1
 ├── uninstall.sh

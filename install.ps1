@@ -27,9 +27,9 @@ $PluginName = ""
 $Version = ""
 $PluginKey = ""
 
-$CommonSkills = @("init", "study", "push", "update-remote-plugins", "code-note", "to-public-cloudflare", "project-skills", "work-report", "local-worktree")
-$AndroidSkills = @("gradle-build-performance", "update-docs-android", "android-i18n", "android-fold-adapter", "android-e2e")
-$FlutterSkills = @("update-docs-flutter")
+$CommonSkills = @("init", "study", "push", "update-remote-plugins", "code-note", "to-public-cloudflare", "project-skills", "work-report", "local-worktree", "update-docs")
+$AndroidSkills = @("gradle-build-performance", "android-i18n", "android-fold-adapter", "android-e2e")
+$FlutterSkills = @()
 $AllCategories = @("common", "android", "flutter")
 
 function Write-Info($msg)  { Write-Host "[INFO] $msg" -ForegroundColor Blue }
@@ -113,9 +113,9 @@ function Select-Tools {
 
 function Get-CategoryDesc($cat) {
     switch ($cat) {
-        "common"  { "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:project-skills, dt:work-report)" }
-        "android" { "Android tools (adt:gradle-build-performance, adt:update-docs, adt:android-i18n, adt:android-fold-adapter, adt:android-e2e)" }
-        "flutter" { "Flutter tools (fdt:update-docs)" }
+        "common"  { "Common tools (dt:init, dt:study, dt:push, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:project-skills, dt:work-report, dt:update-docs)" }
+        "android" { "Android tools (adt:gradle-build-performance, adt:android-i18n, adt:android-fold-adapter, adt:android-e2e)" }
+        "flutter" { "Flutter tools (merged into dt:update-docs)" }
         default    { "" }
     }
 }

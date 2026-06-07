@@ -138,6 +138,7 @@ AGENTS.md
 .claude/
 .codegraph/
 docs/        # 仅当 docs 是本次 init 新建、且原分支无 docs 时排除；若原仓库本就有 docs 业务文档，需向用户确认是否纳入
+README.md    # AI 重写后的 README 可能含本地化说明，不同步回原始仓库
 README_AI.md # 任何 AI 专用衍生文件
 ```
 
@@ -263,13 +264,12 @@ if [ ! -d "$REMOTE_DIR/.git" ]; then
 fi
 
 # Whitelist: ONLY real source / build / runtime files. Inferred during dt:local-worktree.
-# README.md IS included — it is rewritten during dt:init as a business file.
+# README.md is EXCLUDED — it is rewritten during dt:init and should not overwrite the original.
 SYNC_PATHS=(
   # <-- filled from Step 2 audit, e.g.:
   # "src"
   # "pom.xml"
   # "Dockerfile"
-  # "README.md"
 )
 
 echo "Local  (source) : $LOCAL_DIR ($SOURCE_BRANCH)"
@@ -313,7 +313,7 @@ git checkout "$SOURCE_BRANCH" -- "${VALID_PATHS[@]}"
 echo "Done. Review 'git status' in $REMOTE_DIR then commit on '$CURRENT_BRANCH'."
 ```
 
-- `SYNC_PATHS` 用 Step 2 确认的白名单填充。**README.md 是业务文件，应纳入白名单**。
+- `SYNC_PATHS` 用 Step 2 确认的白名单填充。**README.md 已加入排除清单，不同步回原始仓库**。
 - `REMOTE_DIR` 推断逻辑：`local-<x>` 对应 `remote-<x>`（如存在），否则对应 `<x>`。
 - 脚本在 `REMOTE_DIR` 上下文执行 `git checkout`，利用 worktree 共享 git 数据库的特性。
 - 拒绝在 remote 目录处于 `SOURCE_BRANCH` 时运行。
