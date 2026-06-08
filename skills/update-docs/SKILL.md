@@ -487,8 +487,6 @@ README.md shows **3 most recent updates**:
 ```markdown
 ## 文档导航
 
-> 快速访问: [文档中心](docs/) | [更新记录](docs/reports/CHANGELOG.md)
-
 ### 最近更新
 
 | 日期       | 描述                                               |
