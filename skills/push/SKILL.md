@@ -213,6 +213,8 @@ git add <changed doc files>
 git commit -m "chore: bump version to X.Y.Z"
 ```
 
+**标题强制要求**：只要本次提交内容涉及版本号更新，commit title / message 第一行必须明确写出目标版本号 `X.Y.Z`，不得只写“更新版本”“发版准备”等模糊标题。示例：`chore: bump version to 1.2.2`、`docs: 更新版本号到 1.2.2`。
+
 ### Step 4: Logical-Group Commit for Workspace Changes
 
 自动暂存所有工作区变更，按**逻辑分组**提交，同一逻辑变更合并为 1 个 commit。
@@ -336,7 +338,7 @@ Tag 命名格式：直接使用用户提供的版本号，例如 `1.2.2`
 2. 所有 commit message 使用中文
 3. Step 4 按逻辑分组提交；变更文件 ≤ 3 个时整体合为 1 个 commit
 4. TDD 场景下，同一功能的实现、对应测试、需求总结文档必须归入同一个逻辑 commit；只有纯测试修改才单独作为 `test` commit
-5. 版本号仅更新文档中的记录，不修改项目构建文件
+5. 版本号仅更新文档中的记录，不修改项目构建文件；**凡是涉及版本号更新的 commit，标题必须明确包含目标版本号**
 6. 如果某个文件的变更只有代码格式化，commit message 中标注为 `style`
 7. push 失败时自动重试一次；若重试拉取出现冲突，先按严重程度分级：轻冲突（双方修改不同行）自动 merge 不提醒，重冲突（双方修改同一行）才逐文件展示差异让用户选择 `remote` / `local` / `merge`；任何情况下都不得通过创建新分支规避冲突
 8. Tag 直接使用用户提供的版本号，不添加 `v` 前缀，例如 `1.2.2`

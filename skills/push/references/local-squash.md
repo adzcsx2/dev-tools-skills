@@ -87,6 +87,7 @@ git show <sha>
 
 - 不再把未推送 commit 拆成多个逻辑分组；本步骤的目标是把 `@{u}..HEAD` 的全部最终改动压成 **1 个 commit**
 - commit message 必须概括全部未推送改动的最终意图，而不是罗列每个旧 commit message
+- 若被压缩的任一旧 commit 或最终 diff 涉及版本号更新，聚合 commit title / message 第一行必须明确包含目标版本号（如 `chore: 发布 1.2.2 并更新文档`），不得只写“整理提交”“发版准备”等模糊标题
 - 修补型 message（`wip`、`fix typo`、`address review`、`修复上一个提交` 等）只作为判断上下文，**不得**原样保留到最终 message
 - 若多个旧 commit 覆盖多个主题，最终 message 使用能覆盖整体变更的描述，例如 `feat: 完成推送流程优化`、`docs: 完善 push skill 文档`、`refactor: 简化本地提交整理流程`
 - 若无法给出可信的聚合 message，**中止整理**，保留原历史进入 Step 5
@@ -150,6 +151,7 @@ git status --porcelain
 
 - 使用中文描述，按聚合改动判断 type（`feat` / `fix` / `refactor` / `docs` / `chore` / `style` / `test`）
 - 描述概括全部最终改动的核心意图，而非罗列被合并的每个旧 commit message
+- 若聚合改动涉及版本号更新，标题必须明确包含目标版本号
 - 修补型 commit（`wip`、`fix typo` 等）的措辞**不得**保留进最终 message
 - **禁止**追加 `Co-Authored-By` 行
 
