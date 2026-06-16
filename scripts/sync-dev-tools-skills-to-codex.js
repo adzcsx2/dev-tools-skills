@@ -15,6 +15,14 @@ const promptRoot = process.argv[4] || path.join(homeDir, ".codex", "prompts");
 const marker = ".codex-dev-tools-skills-wrapper";
 const promptMarker = "<!-- codex-dev-tools-skills-generated -->";
 
+function parseBooleanFlag(value, defaultValue) {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  return !["0", "false", "no", "off"].includes(String(value).trim().toLowerCase());
+}
+
 function fail(message) {
   console.error(message);
   process.exit(1);
@@ -154,9 +162,12 @@ function writeFileNoBom(filePath, content) {
 }
 
 function main() {
+  const syncPrompts = parseBooleanFlag(process.env.DEV_TOOLS_SYNC_CODEX_PROMPTS, false);
   const sourceSkills = listSourceSkills(sourceRoot);
   fs.mkdirSync(outputRoot, { recursive: true });
-  fs.mkdirSync(promptRoot, { recursive: true });
+  if (syncPrompts) {
+    fs.mkdirSync(promptRoot, { recursive: true });
+  }
 
   const expected = new Set();
   const expectedPrompts = new Set();
@@ -185,19 +196,21 @@ function main() {
       }),
     );
 
-    const promptPath = path.join(promptRoot, `${codexName}.md`);
-    expectedPrompts.add(promptPath);
-    writeFileNoBom(
-      promptPath,
-      buildPrompt({
-        originalName: frontmatter.name,
-        codexName,
-        description: frontmatter.description,
-      }),
-    );
-
     created.push(`${codexName} -> ${frontmatter.name}`);
-    prompts.push(`/prompts:${codexName} -> ${frontmatter.name}`);
+
+    if (syncPrompts) {
+      const promptPath = path.join(promptRoot, `${codexName}.md`);
+      expectedPrompts.add(promptPath);
+      writeFileNoBom(
+        promptPath,
+        buildPrompt({
+          originalName: frontmatter.name,
+          codexName,
+          description: frontmatter.description,
+        }),
+      );
+      prompts.push(`/prompts:${codexName} -> ${frontmatter.name}`);
+    }
   }
 
   for (const entry of fs.readdirSync(outputRoot, { withFileTypes: true })) {
@@ -211,14 +224,16 @@ function main() {
     }
   }
 
-  for (const entry of fs.readdirSync(promptRoot, { withFileTypes: true })) {
-    if (!entry.isFile() || !entry.name.endsWith(".md")) {
-      continue;
-    }
-    const promptPath = path.join(promptRoot, entry.name);
-    const content = fs.readFileSync(promptPath, "utf8");
-    if (content.includes(promptMarker) && !expectedPrompts.has(promptPath)) {
-      fs.rmSync(promptPath, { force: true });
+  if (fs.existsSync(promptRoot)) {
+    for (const entry of fs.readdirSync(promptRoot, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith(".md")) {
+        continue;
+      }
+      const promptPath = path.join(promptRoot, entry.name);
+      const content = fs.readFileSync(promptPath, "utf8");
+      if (content.includes(promptMarker) && !expectedPrompts.has(promptPath)) {
+        fs.rmSync(promptPath, { force: true });
+      }
     }
   }
 
@@ -226,9 +241,13 @@ function main() {
   for (const line of created) {
     console.log(`- ${line}`);
   }
-  console.log(`Synced ${prompts.length} Codex prompt alias(es) to ${promptRoot}`);
-  for (const line of prompts) {
-    console.log(`- ${line}`);
+  if (syncPrompts) {
+    console.log(`Synced ${prompts.length} Codex prompt alias(es) to ${promptRoot}`);
+    for (const line of prompts) {
+      console.log(`- ${line}`);
+    }
+  } else {
+    console.log(`Codex prompt alias sync disabled; removed generated prompt aliases from ${promptRoot}`);
   }
 }
 

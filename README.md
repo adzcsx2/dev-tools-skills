@@ -34,7 +34,7 @@ cd dev-tools-skills
 .\uninstall.ps1
 ```
 
-安装完成后，还会额外为 VS Code Copilot 注册全局 prompt，并为 Codex 同步兼容 skill wrapper（例如 `$dt-init`、`$dt-push`）和 `/prompts:dt-*` alias。
+安装完成后，还会额外为 VS Code Copilot 注册全局 prompt，并为 Codex 同步兼容 skill wrapper（例如 `$dt-init`、`$dt-push`）。Codex 的 `/prompts:dt-*` alias 默认不生成；如需兼容旧入口，可设置 `DEV_TOOLS_SYNC_CODEX_PROMPTS=1`。
 
 ## 包含的 Skills
 

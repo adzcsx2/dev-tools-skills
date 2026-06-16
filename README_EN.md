@@ -34,7 +34,7 @@ For cleanup only, use:
 .\uninstall.ps1
 ```
 
-Installation also registers global prompts for VS Code Copilot and syncs Codex-compatible skill wrappers (for example `$dt-init`, `$dt-push`) plus `/prompts:dt-*` aliases.
+Installation also registers global prompts for VS Code Copilot and syncs Codex-compatible skill wrappers (for example `$dt-init`, `$dt-push`). Codex `/prompts:dt-*` aliases are disabled by default; set `DEV_TOOLS_SYNC_CODEX_PROMPTS=1` if you need the legacy prompt aliases.
 
 ## Included Skills
 

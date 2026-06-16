@@ -467,6 +467,7 @@ install_codex_sync() {
   chmod +x "$CODEX_SYNC_TARGET"
 
   info "Syncing Codex skill wrappers..."
+  export DEV_TOOLS_SYNC_CODEX_PROMPTS="${DEV_TOOLS_SYNC_CODEX_PROMPTS:-0}"
   node "$CODEX_SYNC_TARGET" "$SCRIPT_DIR"
   ok "Codex skill wrappers synced."
 }
@@ -725,7 +726,7 @@ main() {
   fi
 
   if $INSTALL_CODEX; then
-    echo "Synced Codex skill wrappers and prompt aliases."
+    echo "Synced Codex skill wrappers."
     echo ""
   fi
 

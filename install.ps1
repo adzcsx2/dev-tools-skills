@@ -459,6 +459,9 @@ function Install-CodexSync {
     Copy-Item $CodexSyncSource $CodexSyncTarget -Force
 
     Write-Info 'Syncing Codex skill wrappers...'
+    if (-not $env:DEV_TOOLS_SYNC_CODEX_PROMPTS) {
+        $env:DEV_TOOLS_SYNC_CODEX_PROMPTS = '0'
+    }
     & node $CodexSyncTarget $ScriptDir
     if ($LASTEXITCODE -ne 0) {
         Write-Err 'Codex skill wrapper sync failed.'
@@ -712,7 +715,7 @@ function Main {
     }
 
     if ($INSTALL_CODEX) {
-        Write-Host 'Synced Codex skill wrappers and prompt aliases.'
+        Write-Host 'Synced Codex skill wrappers.'
         Write-Host ''
     }
 
