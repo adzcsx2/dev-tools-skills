@@ -6,6 +6,11 @@ REPO_URL="git@github.com:adzcsx2/dev-tools-skills.git"
 VSCODE_PROMPTS_DIR="${VSCODE_USER_PROMPTS_FOLDER:-$HOME/Library/Application Support/Code/User/prompts}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_JSON="$SCRIPT_DIR/.claude-plugin/plugin.json"
+CODEX_DIR="${CODEX_DIR:-$HOME/.codex}"
+CODEX_SCRIPTS_DIR="$CODEX_DIR/scripts"
+CODEX_SYNC_SCRIPT_NAME="sync-dev-tools-skills-to-codex.js"
+CODEX_SYNC_SOURCE="$SCRIPT_DIR/scripts/$CODEX_SYNC_SCRIPT_NAME"
+CODEX_SYNC_TARGET="$CODEX_SCRIPTS_DIR/$CODEX_SYNC_SCRIPT_NAME"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -40,12 +45,16 @@ has_cmd() { command -v "$1" >/dev/null 2>&1; }
 detect_tools() {
   HAS_CLAUDE=false
   HAS_COPILOT=false
+  HAS_CODEX=false
   if [ -d "$HOME/.claude" ]; then HAS_CLAUDE=true; fi
   # Treat Copilot as available when VS Code is installed, even if the prompts dir
   # does not exist yet (it is created on install). Using `&&` here would let a
   # missing dir trip `set -e` and abort the whole installer.
   if [ -d "$VSCODE_PROMPTS_DIR" ] || [ -d "$(dirname "$VSCODE_PROMPTS_DIR")" ]; then
     HAS_COPILOT=true
+  fi
+  if [ -d "$CODEX_DIR" ] || has_cmd codex || [ -d "/Applications/Codex.app" ]; then
+    HAS_CODEX=true
   fi
 }
 
@@ -61,11 +70,14 @@ select_tools() {
 
   local claude_status="(未安装)"
   local copilot_status="(未安装)"
+  local codex_status="(未安装)"
   $HAS_CLAUDE && claude_status="(已安装)"
   $HAS_COPILOT && copilot_status="(已安装)"
+  $HAS_CODEX && codex_status="(已安装)"
 
   echo -e "  ${GREEN}[1]${NC} Claude Code       $claude_status"
   echo -e "  ${GREEN}[2]${NC} VS Code Copilot   $copilot_status"
+  echo -e "  ${GREEN}[3]${NC} Codex             $codex_status"
   echo -e "  ${GREEN}[a]${NC} All (自动检测已有工具)"
   echo ""
 
@@ -79,6 +91,7 @@ select_tools() {
       fi
       INSTALL_CLAUDE=true
       INSTALL_COPILOT=false
+      INSTALL_CODEX=false
       ;;
     2)
       if ! $HAS_COPILOT; then
@@ -87,12 +100,23 @@ select_tools() {
       fi
       INSTALL_CLAUDE=false
       INSTALL_COPILOT=true
+      INSTALL_CODEX=false
+      ;;
+    3)
+      if ! $HAS_CODEX; then
+        error "Codex 未安装，无法选择此选项"
+        exit 1
+      fi
+      INSTALL_CLAUDE=false
+      INSTALL_COPILOT=false
+      INSTALL_CODEX=true
       ;;
     a|A)
       INSTALL_CLAUDE=$HAS_CLAUDE
       INSTALL_COPILOT=$HAS_COPILOT
-      if ! $INSTALL_CLAUDE && ! $INSTALL_COPILOT; then
-        error "未检测到 Claude Code 和 VS Code Copilot，无法安装"
+      INSTALL_CODEX=$HAS_CODEX
+      if ! $INSTALL_CLAUDE && ! $INSTALL_COPILOT && ! $INSTALL_CODEX; then
+        error "未检测到 Claude Code、VS Code Copilot 和 Codex，无法安装"
         exit 1
       fi
       ;;
@@ -105,6 +129,7 @@ select_tools() {
   echo ""
   $INSTALL_CLAUDE && info "将安装到 Claude Code"
   $INSTALL_COPILOT && info "将安装到 VS Code Copilot"
+  $INSTALL_CODEX && info "将同步到 Codex"
   echo ""
 }
 
@@ -415,12 +440,35 @@ copy_workspace_snapshot() {
   if [ -d "$SCRIPT_DIR/.github" ]; then
     cp -R "$SCRIPT_DIR/.github" "$target/"
   fi
+  if [ -d "$SCRIPT_DIR/scripts" ]; then
+    cp -R "$SCRIPT_DIR/scripts" "$target/"
+  fi
 
   for file in README.md README_EN.md CLAUDE.md LICENSE install.sh install.ps1 uninstall.sh uninstall.ps1; do
     if [ -e "$SCRIPT_DIR/$file" ]; then
       cp "$SCRIPT_DIR/$file" "$target/"
     fi
   done
+}
+
+install_codex_sync() {
+  if [ ! -f "$CODEX_SYNC_SOURCE" ]; then
+    warn "Codex sync script not found: $CODEX_SYNC_SOURCE"
+    return
+  fi
+
+  if ! has_cmd node; then
+    warn "Node.js not found; skipped Codex skill wrapper sync."
+    return
+  fi
+
+  ensure_dir "$CODEX_SCRIPTS_DIR"
+  cp "$CODEX_SYNC_SOURCE" "$CODEX_SYNC_TARGET"
+  chmod +x "$CODEX_SYNC_TARGET"
+
+  info "Syncing Codex skill wrappers..."
+  node "$CODEX_SYNC_TARGET" "$SCRIPT_DIR"
+  ok "Codex skill wrappers synced."
 }
 
 install_marketplace() {
@@ -538,19 +586,11 @@ main() {
   echo -e "${CYAN}dev-tools-skills Installer${NC}"
   echo ""
 
-  if ! has_cmd git; then
-    error "git is required but not installed."
-    exit 1
-  fi
-
-  require_jq
-  load_plugin_metadata
-  ensure_claude_layout
-
   local uninstall=false
   local selected_categories=""
   INSTALL_CLAUDE=true
   INSTALL_COPILOT=true
+  INSTALL_CODEX=true
 
   # Detect installed tools
   detect_tools
@@ -569,13 +609,14 @@ main() {
       --all|-a)
         INSTALL_CLAUDE=$HAS_CLAUDE
         INSTALL_COPILOT=$HAS_COPILOT
+        INSTALL_CODEX=$HAS_CODEX
         selected_categories="common android flutter"
         ;;
       --help|-h)
         echo "Usage: $0 [OPTIONS] [CATEGORY...]"
         echo ""
         echo "Options:"
-        echo "  --all, -a          Install all skill categories (auto-detects Claude/Copilot)"
+        echo "  --all, -a          Install all skill categories (auto-detects Claude/Copilot/Codex)"
         echo "  --uninstall, -u    Remove installed plugin"
         echo "  --help, -h         Show this help"
         echo ""
@@ -588,6 +629,7 @@ main() {
       *)
         INSTALL_CLAUDE=$HAS_CLAUDE
         INSTALL_COPILOT=$HAS_COPILOT
+        INSTALL_CODEX=$HAS_CODEX
         for arg in "$@"; do
           case "$arg" in
             common|android|flutter) selected_categories="$selected_categories $arg" ;;
@@ -602,12 +644,32 @@ main() {
   fi
 
   if [ "$uninstall" = true ]; then
+    if ! has_cmd git; then
+      error "git is required but not installed."
+      exit 1
+    fi
+    require_jq
+    load_plugin_metadata
+    ensure_claude_layout
     uninstall_all
     exit 0
   fi
 
+  if ! $INSTALL_CLAUDE && ! $INSTALL_COPILOT && ! $INSTALL_CODEX; then
+    error "未检测到 Claude Code、VS Code Copilot 和 Codex，无法安装"
+    exit 1
+  fi
+
   # --- Claude Code install ---
   if $INSTALL_CLAUDE; then
+    if ! has_cmd git; then
+      error "git is required but not installed."
+      exit 1
+    fi
+    require_jq
+    load_plugin_metadata
+    ensure_claude_layout
+
     local all_selected=""
     for category in $selected_categories; do
       all_selected="$all_selected $(skills_for_category "$category")"
@@ -635,6 +697,14 @@ main() {
     install_vscode_prompt
   fi
 
+  # --- Codex skill wrapper sync ---
+  if $INSTALL_CODEX; then
+    echo ""
+    echo -e "${BLUE}Syncing to Codex:${NC}"
+    echo ""
+    install_codex_sync
+  fi
+
   echo ""
   echo -e "${GREEN}========================================${NC}"
   echo -e "${GREEN}  Installation Complete!${NC}"
@@ -654,7 +724,12 @@ main() {
     echo ""
   fi
 
-  echo "Please restart Claude Code and/or reload VS Code Copilot chat to load the new commands."
+  if $INSTALL_CODEX; then
+    echo "Synced Codex skill wrappers and prompt aliases."
+    echo ""
+  fi
+
+  echo "Please restart the installed target tools to load the new commands."
   echo ""
 }
 

@@ -14,6 +14,11 @@ $RepoUrl = "git@github.com:adzcsx2/dev-tools-skills.git"
 $VSCodePromptsDir = if ($env:VSCODE_USER_PROMPTS_FOLDER) { $env:VSCODE_USER_PROMPTS_FOLDER } else { Join-Path $env:APPDATA "Code\User\prompts" }
 $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.ScriptName }
 $PluginJson = Join-Path $ScriptDir ".claude-plugin\plugin.json"
+$CodexDir = if ($env:CODEX_DIR) { $env:CODEX_DIR } else { Join-Path $env:USERPROFILE ".codex" }
+$CodexScriptsDir = Join-Path $CodexDir "scripts"
+$CodexSyncScriptName = "sync-dev-tools-skills-to-codex.js"
+$CodexSyncSource = Join-Path $ScriptDir "scripts\$CodexSyncScriptName"
+$CodexSyncTarget = Join-Path $CodexScriptsDir $CodexSyncScriptName
 
 $ClaudeDir = if ($env:CLAUDE_DIR) { $env:CLAUDE_DIR } else { Join-Path $env:USERPROFILE ".claude" }
 $PluginsDir = Join-Path $ClaudeDir "plugins"
@@ -44,11 +49,15 @@ function Test-Command($cmd) {
 function Detect-Tools {
     $script:HAS_CLAUDE = $false
     $script:HAS_COPILOT = $false
+    $script:HAS_CODEX = $false
     if (Test-Path (Join-Path $env:USERPROFILE ".claude")) {
         $script:HAS_CLAUDE = $true
     }
     if (Test-Path $VSCodePromptsDir) {
         $script:HAS_COPILOT = $true
+    }
+    if ((Test-Path $CodexDir) -or (Test-Command 'codex')) {
+        $script:HAS_CODEX = $true
     }
 }
 
@@ -64,11 +73,14 @@ function Select-Tools {
 
     $claudeStatus = '(未安装)'
     $copilotStatus = '(未安装)'
+    $codexStatus = '(未安装)'
     if ($HAS_CLAUDE) { $claudeStatus = '(已安装)' }
     if ($HAS_COPILOT) { $copilotStatus = '(已安装)' }
+    if ($HAS_CODEX) { $codexStatus = '(已安装)' }
 
     Write-Host "  [1] Claude Code       $claudeStatus" -ForegroundColor Green
     Write-Host "  [2] VS Code Copilot   $copilotStatus" -ForegroundColor Green
+    Write-Host "  [3] Codex             $codexStatus" -ForegroundColor Green
     Write-Host '  [a] All (自动检测已有工具)' -ForegroundColor Green
     Write-Host ''
 
@@ -82,6 +94,7 @@ function Select-Tools {
             }
             $script:INSTALL_CLAUDE = $true
             $script:INSTALL_COPILOT = $false
+            $script:INSTALL_CODEX = $false
         }
         '2' {
             if (-not $HAS_COPILOT) {
@@ -90,12 +103,23 @@ function Select-Tools {
             }
             $script:INSTALL_CLAUDE = $false
             $script:INSTALL_COPILOT = $true
+            $script:INSTALL_CODEX = $false
+        }
+        '3' {
+            if (-not $HAS_CODEX) {
+                Write-Err 'Codex 未安装，无法选择此选项'
+                exit 1
+            }
+            $script:INSTALL_CLAUDE = $false
+            $script:INSTALL_COPILOT = $false
+            $script:INSTALL_CODEX = $true
         }
         { $_ -match '^[aA]$' } {
             $script:INSTALL_CLAUDE = $HAS_CLAUDE
             $script:INSTALL_COPILOT = $HAS_COPILOT
-            if (-not $INSTALL_CLAUDE -and -not $INSTALL_COPILOT) {
-                Write-Err '未检测到 Claude Code 和 VS Code Copilot，无法安装'
+            $script:INSTALL_CODEX = $HAS_CODEX
+            if (-not $INSTALL_CLAUDE -and -not $INSTALL_COPILOT -and -not $INSTALL_CODEX) {
+                Write-Err '未检测到 Claude Code、VS Code Copilot 和 Codex，无法安装'
                 exit 1
             }
         }
@@ -108,6 +132,7 @@ function Select-Tools {
     Write-Host ''
     if ($INSTALL_CLAUDE) { Write-Info '将安装到 Claude Code' }
     if ($INSTALL_COPILOT) { Write-Info '将安装到 VS Code Copilot' }
+    if ($INSTALL_CODEX) { Write-Info '将同步到 Codex' }
     Write-Host ''
 }
 
@@ -407,6 +432,9 @@ function Copy-WorkspaceSnapshot {
     if (Test-Path (Join-Path $ScriptDir '.github')) {
         Copy-Item -Path (Join-Path $ScriptDir '.github') -Destination $Target -Recurse -Force
     }
+    if (Test-Path (Join-Path $ScriptDir 'scripts')) {
+        Copy-Item -Path (Join-Path $ScriptDir 'scripts') -Destination $Target -Recurse -Force
+    }
 
     foreach ($file in @('README.md', 'README_EN.md', 'CLAUDE.md', 'LICENSE', 'install.sh', 'install.ps1', 'uninstall.sh', 'uninstall.ps1')) {
         $source = Join-Path $ScriptDir $file
@@ -414,6 +442,29 @@ function Copy-WorkspaceSnapshot {
             Copy-Item -Path $source -Destination $Target -Force
         }
     }
+}
+
+function Install-CodexSync {
+    if (-not (Test-Path $CodexSyncSource -PathType Leaf)) {
+        Write-Warn "Codex sync script not found: $CodexSyncSource"
+        return
+    }
+
+    if (-not (Test-Command 'node')) {
+        Write-Warn 'Node.js not found; skipped Codex skill wrapper sync.'
+        return
+    }
+
+    Ensure-Directory $CodexScriptsDir
+    Copy-Item $CodexSyncSource $CodexSyncTarget -Force
+
+    Write-Info 'Syncing Codex skill wrappers...'
+    & node $CodexSyncTarget $ScriptDir
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err 'Codex skill wrapper sync failed.'
+        exit $LASTEXITCODE
+    }
+    Write-Ok 'Codex skill wrappers synced.'
 }
 
 function Install-Marketplace {
@@ -531,24 +582,17 @@ function Main {
     Write-Host 'dev-tools-skills Installer' -ForegroundColor Cyan
     Write-Host ''
 
-    if (-not (Test-Command 'git')) {
-        Write-Err 'git is required but not installed.'
-        exit 1
-    }
-
-    Load-PluginMetadata
-    Ensure-ClaudeLayout
-
     # Detect installed tools
     $script:INSTALL_CLAUDE = $true
     $script:INSTALL_COPILOT = $true
+    $script:INSTALL_CODEX = $true
     Detect-Tools
 
     if ($Help) {
         Write-Host 'Usage: .\install.ps1 [OPTIONS] [CATEGORY...]'
         Write-Host ''
         Write-Host 'Options:'
-        Write-Host '  -All              Install all skill categories (auto-detects Claude/Copilot)'
+        Write-Host '  -All              Install all skill categories (auto-detects Claude/Copilot/Codex)'
         Write-Host '  -Uninstall        Remove installed plugin'
         Write-Host '  -Help             Show this help'
         Write-Host ''
@@ -560,6 +604,12 @@ function Main {
     }
 
     if ($Uninstall) {
+        if (-not (Test-Command 'git')) {
+            Write-Err 'git is required but not installed.'
+            exit 1
+        }
+        Load-PluginMetadata
+        Ensure-ClaudeLayout
         Uninstall-All
         exit 0
     }
@@ -568,10 +618,12 @@ function Main {
     if ($All) {
         $script:INSTALL_CLAUDE = $HAS_CLAUDE
         $script:INSTALL_COPILOT = $HAS_COPILOT
+        $script:INSTALL_CODEX = $HAS_CODEX
         $selectedCats = @('common', 'android', 'flutter')
     } elseif ($Categories.Count -gt 0) {
         $script:INSTALL_CLAUDE = $HAS_CLAUDE
         $script:INSTALL_COPILOT = $HAS_COPILOT
+        $script:INSTALL_CODEX = $HAS_CODEX
         foreach ($category in $Categories) {
             if ($AllCategories -contains $category) {
                 $selectedCats += $category
@@ -590,8 +642,20 @@ function Main {
         }
     }
 
+    if (-not $INSTALL_CLAUDE -and -not $INSTALL_COPILOT -and -not $INSTALL_CODEX) {
+        Write-Err '未检测到 Claude Code、VS Code Copilot 和 Codex，无法安装'
+        exit 1
+    }
+
     # --- Claude Code install ---
     if ($INSTALL_CLAUDE) {
+        if (-not (Test-Command 'git')) {
+            Write-Err 'git is required but not installed.'
+            exit 1
+        }
+        Load-PluginMetadata
+        Ensure-ClaudeLayout
+
         $allSkills = @()
         foreach ($category in $selectedCats) {
             $allSkills += Get-SkillsForCategory $category
@@ -620,6 +684,14 @@ function Main {
         Install-VSCodePrompt
     }
 
+    # --- Codex skill wrapper sync ---
+    if ($INSTALL_CODEX) {
+        Write-Host ''
+        Write-Host 'Syncing to Codex:' -ForegroundColor Blue
+        Write-Host ''
+        Install-CodexSync
+    }
+
     Write-Host ''
     Write-Host '========================================' -ForegroundColor Green
     Write-Host '  Installation Complete!' -ForegroundColor Green
@@ -639,7 +711,12 @@ function Main {
         Write-Host ''
     }
 
-    Write-Host 'Please restart Claude Code and/or reload VS Code Copilot chat to load the new commands.'
+    if ($INSTALL_CODEX) {
+        Write-Host 'Synced Codex skill wrappers and prompt aliases.'
+        Write-Host ''
+    }
+
+    Write-Host 'Please restart the installed target tools to load the new commands.'
 }
 
 Main

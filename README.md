@@ -22,7 +22,7 @@ cd dev-tools-skills
 
 选择性安装请查看 `./install.sh --help`。
 
-`install.sh` 和 `install.ps1` 现在会先清理旧缓存、旧注册信息和旧 marketplace 目录，再按当前仓库 `.claude-plugin/plugin.json` 中的最新版本重新安装，避免 Claude 继续命中历史 skill 缓存。
+`install.sh` 和 `install.ps1` 会自动检测 Claude Code、VS Code Copilot 和 Codex。Claude Code 安装会先清理旧缓存、旧注册信息和旧 marketplace 目录，再按当前仓库 `.claude-plugin/plugin.json` 中的最新版本重新安装，避免 Claude 继续命中历史 skill 缓存。
 
 如需单独清理，可使用：
 
@@ -34,7 +34,7 @@ cd dev-tools-skills
 .\uninstall.ps1
 ```
 
-安装完成后，还会额外为 VS Code Copilot 注册全局的 `/dt:init` 和 `/study` prompt。
+安装完成后，还会额外为 VS Code Copilot 注册全局 prompt，并为 Codex 同步兼容 skill wrapper（例如 `$dt-init`、`$dt-push`）和 `/prompts:dt-*` alias。
 
 ## 包含的 Skills
 
@@ -78,6 +78,8 @@ dev-tools-skills/
 ├── .claude-plugin/
 │   ├── marketplace.json
 │   └── plugin.json
+├── scripts/
+│   └── sync-dev-tools-skills-to-codex.js
 ├── skills/
 │   ├── init/                     # dt:init
 │   ├── study/                    # dt:study

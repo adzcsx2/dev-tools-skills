@@ -22,7 +22,7 @@ cd dev-tools-skills
 
 For selective installation, see `./install.sh --help`.
 
-`install.sh` and `install.ps1` now clear old cache entries, stale registrations, and the previous marketplace directory before reinstalling the latest version from `.claude-plugin/plugin.json`, so Claude does not keep using an older cached skill.
+`install.sh` and `install.ps1` auto-detect Claude Code, VS Code Copilot, and Codex. Claude Code installation clears old cache entries, stale registrations, and the previous marketplace directory before reinstalling the latest version from `.claude-plugin/plugin.json`, so Claude does not keep using an older cached skill.
 
 For cleanup only, use:
 
@@ -34,7 +34,7 @@ For cleanup only, use:
 .\uninstall.ps1
 ```
 
-Installation also registers the global `/dt:init` and `/study` prompts for VS Code Copilot.
+Installation also registers global prompts for VS Code Copilot and syncs Codex-compatible skill wrappers (for example `$dt-init`, `$dt-push`) plus `/prompts:dt-*` aliases.
 
 ## Included Skills
 
@@ -78,6 +78,8 @@ dev-tools-skills/
 ├── .claude-plugin/
 │   ├── marketplace.json
 │   └── plugin.json
+├── scripts/
+│   └── sync-dev-tools-skills-to-codex.js
 ├── skills/
 │   ├── init/                     # dt:init
 │   ├── study/                    # dt:study
