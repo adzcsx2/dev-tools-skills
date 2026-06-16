@@ -40,17 +40,13 @@ function sanitizeDescription(value) {
 }
 
 function parseFrontmatter(filePath) {
-  const text = fs.readFileSync(filePath, "utf8");
-  if (!text.startsWith("---\n")) {
+  const text = fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "");
+  const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
+  if (!match) {
     fail(`Missing YAML frontmatter: ${filePath}`);
   }
 
-  const end = text.indexOf("\n---", 4);
-  if (end === -1) {
-    fail(`Unclosed YAML frontmatter: ${filePath}`);
-  }
-
-  const yaml = text.slice(4, end).split(/\r?\n/);
+  const yaml = match[1].split(/\r?\n/);
   const frontmatter = {};
 
   for (const line of yaml) {
