@@ -1,0 +1,92 @@
+{
+  "version": "2026-06-16",
+  "default_escalation": "ambiguous requirements, security-sensitive changes, external publishing, repeated failures, or user-requested deep review",
+  "routes": {
+    "adt-android-e2e": {
+      "preferred_model": "high-reasoning",
+      "tier": "reasoning",
+      "reason": "Android E2E visual diagnosis requires interpretation of UI state, device behavior, and test failures."
+    },
+    "adt-android-fold-adapter": {
+      "preferred_model": "high-reasoning",
+      "tier": "reasoning",
+      "reason": "Foldable adaptation work requires layout, lifecycle, and device-state reasoning."
+    },
+    "adt-android-i18n": {
+      "preferred_model": "GPT-5.3-codex-spark",
+      "tier": "spark-with-escalation",
+      "reason": "Hardcoded-string audits and resource generation are mostly mechanical.",
+      "escalation": "translation semantics, plural rules, or locale-sensitive behavior need product judgment"
+    },
+    "adt-gradle-build-performance": {
+      "preferred_model": "GPT-5.3-codex-spark",
+      "tier": "spark-with-escalation",
+      "reason": "Gradle performance audits are mostly structured diagnostics.",
+      "escalation": "multi-module build architecture or dependency strategy changes are required"
+    },
+    "dt-code-note": {
+      "preferred_model": "GPT-5.3-codex-spark",
+      "tier": "spark",
+      "reason": "Adding Chinese comments is a localized, low-risk source annotation task."
+    },
+    "dt-execute-loop": {
+      "preferred_model": "high-reasoning",
+      "tier": "reasoning",
+      "reason": "Loop orchestration requires safety, stop-condition, and result-audit judgment."
+    },
+    "dt-init": {
+      "preferred_model": "high-reasoning",
+      "tier": "reasoning",
+      "reason": "Project initialization requires stack detection, rules synthesis, and scoped enforcement judgment."
+    },
+    "dt-init-root": {
+      "preferred_model": "high-reasoning",
+      "tier": "reasoning",
+      "reason": "Multi-repository initialization requires repository boundary and policy judgment."
+    },
+    "dt-local-worktree": {
+      "preferred_model": "GPT-5.3-codex-spark",
+      "tier": "spark-with-escalation",
+      "reason": "Worktree creation and merge-script generation are procedural.",
+      "escalation": "source whitelist inference is ambiguous or push-ban policy needs redesign"
+    },
+    "dt-project-skills": {
+      "preferred_model": "high-reasoning",
+      "tier": "reasoning",
+      "reason": "Skill deduplication, overlap detection, and merge proposals require semantic judgment."
+    },
+    "dt-push": {
+      "preferred_model": "GPT-5.3-codex-spark",
+      "tier": "spark-with-escalation",
+      "reason": "Commit, pull, and push workflow is mostly deterministic git automation.",
+      "escalation": "conflicts, divergent history, ambiguous staging, or release-risk decisions appear"
+    },
+    "dt-study": {
+      "preferred_model": "high-reasoning",
+      "tier": "reasoning",
+      "reason": "Capturing a reusable root cause into a source skill requires abstraction judgment."
+    },
+    "dt-to-public-cloudflare": {
+      "preferred_model": "GPT-5.3-codex-spark",
+      "tier": "spark-with-escalation",
+      "reason": "Cloudflare tunnel setup is mostly procedural CLI and config work.",
+      "escalation": "DNS ownership, credential scope, network exposure, or deployment policy is unclear"
+    },
+    "dt-update-docs": {
+      "preferred_model": "high-reasoning",
+      "tier": "reasoning",
+      "reason": "Documentation generation depends on code-change audit, evidence mapping, and architecture interpretation."
+    },
+    "dt-update-remote-plugins": {
+      "preferred_model": "GPT-5.3-codex-spark",
+      "tier": "spark-with-escalation",
+      "reason": "Refreshing generated docs, metadata, install verification, commit, and push are procedural.",
+      "escalation": "skill audit finds semantic conflicts or install verification fails repeatedly"
+    },
+    "dt-work-report": {
+      "preferred_model": "GPT-5.3-codex-spark",
+      "tier": "spark",
+      "reason": "Work reports are git-data summarization with fixed wording rules."
+    }
+  }
+}

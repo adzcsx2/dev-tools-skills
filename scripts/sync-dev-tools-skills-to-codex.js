@@ -14,6 +14,7 @@ const outputRoot = process.argv[3] || path.join(homeDir, ".agents", "skills");
 const promptRoot = process.argv[4] || path.join(homeDir, ".codex", "prompts");
 const marker = ".codex-dev-tools-skills-wrapper";
 const promptMarker = "<!-- codex-dev-tools-skills-generated -->";
+const modelRouteManifestFile = path.join("manifests", "codex-model-routes.json");
 
 function parseBooleanFlag(value, defaultValue) {
   if (value === undefined || value === null || value === "") {
@@ -45,6 +46,10 @@ function escapeYamlString(value) {
 
 function sanitizeDescription(value) {
   return String(value).replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function sanitizeRouteText(value) {
+  return String(value || "").replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
 }
 
 function parseFrontmatter(filePath) {
@@ -100,9 +105,88 @@ function listSourceSkills(root) {
     .sort((a, b) => a.skillPath.localeCompare(b.skillPath));
 }
 
-function buildWrapper({ sourceDir, sourceSkillPath, originalName, codexName, description }) {
+function normalizeModelRoute(rawRoute) {
+  if (!rawRoute || typeof rawRoute !== "object" || Array.isArray(rawRoute)) {
+    return null;
+  }
+
+  const preferredModel = sanitizeRouteText(rawRoute.preferred_model || rawRoute.preferredModel);
+  const tier = sanitizeRouteText(rawRoute.tier);
+  const reason = sanitizeRouteText(rawRoute.reason);
+  const escalation = sanitizeRouteText(rawRoute.escalation);
+
+  if (!preferredModel && !tier && !reason && !escalation) {
+    return null;
+  }
+
+  return {
+    preferredModel,
+    tier,
+    reason,
+    escalation,
+  };
+}
+
+function loadCodexModelRoutes(root) {
+  const routePath = path.join(root, modelRouteManifestFile);
+  if (!fs.existsSync(routePath)) {
+    return {};
+  }
+
+  const parsed = JSON.parse(fs.readFileSync(routePath, "utf8"));
+  const rawRoutes = parsed && typeof parsed === "object" && !Array.isArray(parsed)
+    ? (parsed.routes || parsed)
+    : {};
+  const routes = {};
+
+  for (const [skillName, rawRoute] of Object.entries(rawRoutes)) {
+    const route = normalizeModelRoute(rawRoute);
+    if (route) {
+      routes[skillName] = route;
+    }
+  }
+
+  return routes;
+}
+
+function buildModelRouteSection(modelRoute) {
+  if (!modelRoute) {
+    return "";
+  }
+
+  const lines = [
+    "## Codex Model Route",
+    "",
+  ];
+
+  if (modelRoute.preferredModel) {
+    lines.push(`- Preferred model: \`${modelRoute.preferredModel}\``);
+  }
+  if (modelRoute.tier) {
+    lines.push(`- Route tier: \`${modelRoute.tier}\``);
+  }
+  if (modelRoute.reason) {
+    lines.push(`- Reason: ${modelRoute.reason}`);
+  }
+  if (modelRoute.escalation) {
+    lines.push(`- Escalate when: ${modelRoute.escalation}`);
+  }
+
+  lines.push(
+    "",
+    "Use this route when the runtime supports model selection. If model",
+    "selection is not available, treat it as operator guidance for whether this",
+    "workflow needs high-reasoning execution.",
+    "",
+  );
+
+  return `${lines.join("\n")}\n`;
+}
+
+function buildWrapper({ sourceDir, sourceSkillPath, originalName, codexName, description, modelRoute }) {
   const invocation = originalName.includes(":") ? `/${originalName}` : originalName;
   const safeDescription = sanitizeDescription(description);
+  const modelRouteSection = buildModelRouteSection(modelRoute);
 
   return `---
 name: ${codexName}
@@ -131,7 +215,7 @@ directory above. If the source skill mentions Claude-only tools or slash-command
 behavior, map the intent to available Codex capabilities and explain any
 material difference to the user.
 
-User invocation mapping:
+${modelRouteSection}User invocation mapping:
 
 - Claude-style command text: \`${invocation}\`
 - Codex explicit skill mention: \`$${codexName}\`
@@ -173,6 +257,7 @@ function main() {
   const expectedPrompts = new Set();
   const created = [];
   const prompts = [];
+  const modelRoutes = loadCodexModelRoutes(sourceRoot);
 
   for (const source of sourceSkills) {
     const frontmatter = parseFrontmatter(source.skillPath);
@@ -193,6 +278,7 @@ function main() {
         originalName: frontmatter.name,
         codexName,
         description: frontmatter.description,
+        modelRoute: modelRoutes[codexName],
       }),
     );
 
