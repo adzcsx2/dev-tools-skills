@@ -46,6 +46,7 @@ Installation also registers global prompts for VS Code Copilot and syncs Codex-c
 | `dt:init-root`             | Multi-repository product-root init: run `dt:init` and `dt:update-docs` in order, then configure root local git, child-repository `.gitignore` entries, and a root commit-only/no-push policy                                                                                                                               |
 | `dt:study`                 | Study verified skill mistakes: capture them back into the workspace source skill and avoid cached copies                                                                                                                                                                                                                                                                                |
 | `dt:push`                  | One-push release workflow: auto stage, pull, logical-group commit, push with --preview support                                                                                                                                                                                                                                                                                          |
+| `dt:execute-loop`          | Serial execution loop: run the same follow-up command + prompt through fresh subagents, defaults to 3 runs and supports `-N`                                                                                                                                                                                                                                                            |
 | `dt:update-remote-plugins` | Remote plugin maintenance: update docs and config, then verify install-based local refresh uses the latest version                                                                                                                                                                                                                                                                      |
 | `dt:code-note`             | Multi-language code annotation: auto-detect language and apply comment style                                                                                                                                                                                                                                                                                                            |
 | `dt:to-public-cloudflare`  | Cloudflare tunnel: one-click Named Tunnel setup, auto-detect project port, deploy global tunnel management scripts (tunnel-add/start/stop/remove/list) with health monitoring and auto-restart                                                                                                                                                                                          |
@@ -86,6 +87,7 @@ dev-tools-skills/
 │   ├── init-root/                # dt:init-root
 │   ├── study/                    # dt:study
 │   ├── push/                     # dt:push
+│   ├── execute-loop/             # dt:execute-loop
 │   ├── update-remote-plugins/    # dt:update-remote-plugins
 │   ├── code-note/                # dt:code-note
 │   ├── to-public-cloudflare/     # dt:to-public-cloudflare
@@ -105,7 +107,7 @@ dev-tools-skills/
 
 ## Version
 
-v1.3.1
+v1.3.7
 
 ## License
 

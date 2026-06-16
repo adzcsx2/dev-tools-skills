@@ -46,6 +46,7 @@ cd dev-tools-skills
 | `dt:init-root`             | 多仓库产品根目录初始化：按顺序执行 `dt:init` 和 `dt:update-docs`，再配置根目录本地 git、子项目 `.gitignore` 忽略和 root 只 commit 不 push 策略                                                                                                     |
 | `dt:study`                 | 修错回源：把已验证的 skill 失误直接沉淀回工作区里的源 SKILL，避免改在缓存副本上                                                                                                                                                                                                                                |
 | `dt:push`                  | 一键发布工作流：自动暂存、拉取、按逻辑分组提交、推送，支持 --preview 预览                                                                                                                                                                                                                                      |
+| `dt:execute-loop`          | 串行执行循环：用多个全新子代理重复执行同一个后续 command + prompt，默认 3 轮，支持 `-N` 指定次数                                                                                                                                                                                                                |
 | `dt:update-remote-plugins` | 远程插件维护：更新配置与文档、验证 install 回流本地是否始终命中最新版本                                                                                                                                                                                                                                        |
 | `dt:code-note`             | 多语言代码注释：自动检测语言类型并应用对应注释风格                                                                                                                                                                                                                                                             |
 | `dt:to-public-cloudflare`  | Cloudflare 内网穿透：一键配置 Named Tunnel，自动侦察端口，自动部署全局 tunnel 管理脚本（tunnel-add/start/stop/remove/list），支持健康监测与自动重启                                                                                                                                                            |
@@ -86,6 +87,7 @@ dev-tools-skills/
 │   ├── init-root/                # dt:init-root
 │   ├── study/                    # dt:study
 │   ├── push/                     # dt:push
+│   ├── execute-loop/             # dt:execute-loop
 │   ├── update-remote-plugins/    # dt:update-remote-plugins
 │   ├── code-note/                # dt:code-note
 │   ├── to-public-cloudflare/     # dt:to-public-cloudflare
@@ -105,7 +107,7 @@ dev-tools-skills/
 
 ## 版本
 
-v1.3.1
+v1.3.7
 
 ## License
 

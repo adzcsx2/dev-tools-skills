@@ -31,7 +31,7 @@ PLUGIN_NAME=""
 VERSION=""
 PLUGIN_KEY=""
 
-COMMON_SKILLS="init init-root study push update-remote-plugins code-note to-public-cloudflare project-skills work-report local-worktree update-docs"
+COMMON_SKILLS="init init-root study push execute-loop update-remote-plugins code-note to-public-cloudflare project-skills work-report local-worktree update-docs"
 ANDROID_SKILLS="gradle-build-performance android-i18n android-fold-adapter android-e2e"
 FLUTTER_SKILLS=""
 
@@ -135,7 +135,7 @@ select_tools() {
 
 category_desc() {
   case "$1" in
-    common)  echo "Common tools (dt:init, dt:init-root, dt:study, dt:push, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:project-skills, dt:work-report, dt:update-docs)" ;;
+    common)  echo "Common tools (dt:init, dt:init-root, dt:study, dt:push, dt:execute-loop, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:project-skills, dt:work-report, dt:update-docs)" ;;
     android) echo "Android tools (adt:gradle-build-performance, adt:android-i18n, adt:android-fold-adapter, adt:android-e2e)" ;;
     flutter) echo "Flutter tools (merged into dt:update-docs)" ;;
     *)       echo "" ;;
