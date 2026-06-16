@@ -43,6 +43,7 @@ cd dev-tools-skills
 | Skill                      | 描述                                                                                                                                                                                                                                                                                                           |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 CLAUDE.md、AGENT.md、Copilot 配置，建立 `.ai/skills/` canonical skill 工作面，并在 Claude Code 项目里生成用于 mirror refresh 的 PostToolUse hook                                                                                                                     |
+| `dt:init-root`             | 多仓库产品根目录初始化：按顺序执行 `dt:init` 和 `dt:update-docs`，再配置根目录本地 git、子项目 `.gitignore` 忽略和 root 只 commit 不 push 策略                                                                                                     |
 | `dt:study`                 | 修错回源：把已验证的 skill 失误直接沉淀回工作区里的源 SKILL，避免改在缓存副本上                                                                                                                                                                                                                                |
 | `dt:push`                  | 一键发布工作流：自动暂存、拉取、按逻辑分组提交、推送，支持 --preview 预览                                                                                                                                                                                                                                      |
 | `dt:update-remote-plugins` | 远程插件维护：更新配置与文档、验证 install 回流本地是否始终命中最新版本                                                                                                                                                                                                                                        |
@@ -82,6 +83,7 @@ dev-tools-skills/
 │   └── sync-dev-tools-skills-to-codex.js
 ├── skills/
 │   ├── init/                     # dt:init
+│   ├── init-root/                # dt:init-root
 │   ├── study/                    # dt:study
 │   ├── push/                     # dt:push
 │   ├── update-remote-plugins/    # dt:update-remote-plugins

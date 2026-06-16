@@ -13,6 +13,7 @@
       "version": "1.3.6",
       "skills": [
         "./skills/init",
+        "./skills/init-root",
         "./skills/study",
         "./skills/push",
         "./skills/update-remote-plugins",
