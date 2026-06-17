@@ -1,6 +1,6 @@
 # dt:init
 
-统一跨技术栈项目初始化入口。现在采用“主 skill 编排 + references 细则”结构：主 `SKILL.md` 负责按步骤执行，详细规则拆分在 `references/` 下。基于真实代码和配置，生成或优化 CLAUDE.md、AGENT.md、Copilot 项目级指令，建立 `.ai/skills/` 项目级 canonical skill 工作面，生成 Claude/Codex 项目级 hook，建立 `/docs` 分类规则，并输出简洁的代码库入门摘要。
+统一跨技术栈项目初始化入口。现在采用“主 skill 编排 + references 细则”结构：主 `SKILL.md` 负责按步骤执行，详细规则拆分在 `references/` 下。基于真实代码和配置，生成或优化 CLAUDE.md、AGENT.md、Copilot 项目级指令，建立 `/docs` 分类规则和必要 scoped rules，并通过 `dt:install-project-hooks` 生成 Claude/Codex final rule audit 项目级 hook，输出简洁的代码库入门摘要。
 
 ---
 
@@ -9,11 +9,10 @@
 - 支持 Android、Flutter、React、Python、Java、Node.js 等项目
 - 检测真实构建文件、入口点、目录结构和已有编码规范
 - 生成或优化 CLAUDE.md、AGENT.md 及 Copilot 可读的项目配置
-- 创建或升级 `.ai/README.md`、`.ai/skills/registry.yml`、`.ai/skills/.updates/`、`.ai/skills/project-skills/SKILL.md`，并检测/记录项目里哪些工具镜像已经配置
-- 生成 Claude 项目 hook：`.claude/settings.json`、`.claude/hooks/sync-project-skills.sh`、`.claude/hooks/final-rule-audit.sh`
-- 生成 Codex 项目 hook：`.codex/hooks.json`、`.codex/hooks/sync-project-skills.sh`、`.codex/hooks/final-rule-audit.sh`
-- 把“项目级 skill 只改 `.ai/skills/` canonical source”的规则写入生成的 CLAUDE.md 与 AGENT.md
-- 建立 hook-first 的 project-skills 工作流：`.ai/skills/` 是事实源；Claude/Codex project hook 负责在 canonical 改动后执行 mirror refresh
+- 不再创建 `.ai/skills` 多端同步、configured mirrors 或工具镜像导出层
+- 通过 `dt:install-project-hooks` 生成 Claude 项目 hook：`.claude/settings.json`、`.claude/hooks/final-rule-audit.sh`
+- 通过 `dt:install-project-hooks` 生成 Codex 项目 hook：`.codex/hooks.json`、`.codex/hooks/final-rule-audit.sh`
+- 不生成 `sync-project-skills.sh`，不注册 `PostToolUse` mirror refresh hook
 - 建立 final rule audit 收尾 gate：任务完成前重新审计适用规则、已修改文件和最小验证结果，发现违反规则时先修复
 - 建立 `/docs` 根目录及标准分类体系，**强制创建缺失的标准分类目录**（plan、product、design、guide、modules、references、checklist、reports）
 - 审计、性能、评估、复盘类报告默认按 `docs/reports/<report-topic>/` 主题目录组织，支持同一主题二次、三次审计持续追加；持续更新日志如 `CHANGELOG.md` 可保留在 `docs/reports/` 根下

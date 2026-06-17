@@ -24,7 +24,7 @@
 - 第一个参数是原仓库路径；worktree 默认创建在原仓库**同级目录**，命名 `remote-<x>`→`local-<x>`，否则 `local-<repo>`
 - **Stale worktree 自动恢复**：如果之前的 local worktree 目录被手动删除（如 `rm -rf`），重新执行时会自动执行 `git worktree prune` 清理失效的 git 注册记录，然后正常重建 worktree，无需任何手动干预
 - 用 `git -C <repo> worktree add -b local` 创建独立分支与工作目录，初始化产物只活在 local 分支
-- 在 worktree 内调用 `dt:init` 生成 CLAUDE.md / AGENT.md / Copilot 配置 / .ai/skills / docs，并审计重写 README
+- 在 worktree 内调用 `dt:init` 生成 CLAUDE.md / AGENT.md / Copilot 配置 / docs / final rule audit hook，并审计重写 README
 - 在 CLAUDE.md 写死 push-ban 铁律，并生成 Claude PreToolUse hook（`prevent-push.sh`）拦截一切 `git push`
 - 合并回主分支用跨目录白名单 checkout 脚本（`merge-from-local.sh`），从 worktree 目录把白名单文件直接同步到原始仓库目录，无需切换分支，显式排除 CLAUDE.md / .ai/ / .claude/ / .codegraph/ / docs / README 等初始化产物
 - 业务白名单由审计项目后自动推断（源码模块 + 构建文件 + 运行资源），并向用户确认

@@ -134,7 +134,6 @@ CLAUDE.md
 AGENT.md
 AGENTS.md
 .github/copilot-instructions.md
-.ai/
 .claude/
 .codegraph/
 docs/        # 仅当 docs 是本次 init 新建、且原分支无 docs 时排除；若原仓库本就有 docs 业务文档，需向用户确认是否纳入
@@ -147,7 +146,7 @@ README_AI.md # 任何 AI 专用衍生文件
 
 ### Step 3. 在 worktree 内执行 dt:init
 
-- 在 `<WORKTREE_DIR>` 调用 `dt:init`（标准模式），生成 `CLAUDE.md`、`AGENT.md`、Copilot 配置、`.ai/skills/`、`/docs` 骨架，并（Claude 环境下）bootstrap `.claude/settings.json` + sync hook。
+- 在 `<WORKTREE_DIR>` 调用 `dt:init`（标准模式），生成 `CLAUDE.md`、`AGENT.md`、Copilot 配置、`/docs` 骨架，并通过 `dt:install-project-hooks` bootstrap final rule audit 项目 hook。
 - init 完成后，**审计项目并重写 `README.md`**：基于真实代码事实重写项目说明、模块结构、构建命令、目录约定。README 在排除清单中，不同步回原始仓库，因此可包含 AI 沙盒专属说明。
 - 把「local worktree 专属约束」写进 `CLAUDE.md`（见 Step 4），而不是写进 README。
 
@@ -161,7 +160,7 @@ README_AI.md # 任何 AI 专用衍生文件
 - **ABSOLUTE RULE: Never push to remote on this branch.**
 - This `<BRANCH>` branch and worktree are for local AI-driven development only. All commits stay local.
 - A Claude PreToolUse hook (`.claude/hooks/prevent-push.sh`) blocks every `git push` command.
-- AI-context files (CLAUDE.md, AGENT.md, .ai/, .claude/, .codegraph/, AI-only docs) must NEVER be merged into other branches.
+- AI-context files (CLAUDE.md, AGENT.md, .claude/, .codegraph/, AI-only docs) must NEVER be merged into other branches.
 - To bring real source changes back, run `scripts/merge-from-local.sh` (whitelist-only cross-directory sync). It checks out whitelist files from this `<BRANCH>` branch into the original repo directory. Do NOT use `git merge <BRANCH>`.
 - Other branches (main, release, dev, feature/\*) are NOT subject to this restriction.
 ```
@@ -197,7 +196,7 @@ fi
 exit 0
 ```
 
-在 `<WORKTREE_DIR>/.claude/settings.json` 注册（与 init 生成的 PostToolUse sync hook 合并，不互相覆盖）：
+在 `<WORKTREE_DIR>/.claude/settings.json` 注册（与 init 生成的 Stop hook 合并，不互相覆盖）：
 
 ```json
 {

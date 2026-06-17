@@ -7,10 +7,12 @@ const path = require("path");
 const repoRoot = path.resolve(__dirname, "..");
 const snapshotRoot = path.join(repoRoot, "codex-sync", "snapshot");
 const manifestPath = path.join(snapshotRoot, "manifest.json");
+const codexSnapshotRoot = path.join(snapshotRoot, "codex");
 const platform = process.platform;
 const homeDir = os.homedir();
 const codexDir = process.env.CODEX_DIR || path.join(homeDir, ".codex");
 const agentsDir = process.env.AGENTS_DIR || path.join(homeDir, ".agents");
+const homePlaceholder = "__CODEX_SYNC_HOME__";
 
 const mode = process.argv[2];
 
@@ -55,16 +57,59 @@ function copyFile(source, target) {
   fs.copyFileSync(source, target);
 }
 
-function normalizeHomeReferences(content) {
-  return content.split(homeDir).join("~");
+function isTextFile(filePath) {
+  const textExtensions = new Set([
+    ".conf",
+    ".env",
+    ".ini",
+    ".js",
+    ".json",
+    ".md",
+    ".ps1",
+    ".py",
+    ".sh",
+    ".toml",
+    ".ts",
+    ".txt",
+    ".yaml",
+    ".yml",
+  ]);
+  const basename = path.basename(filePath).toLowerCase();
+  return textExtensions.has(path.extname(filePath).toLowerCase()) ||
+    basename === "license" ||
+    basename === "notice";
 }
 
-function copyCodexFile(source, target) {
-  const textExtensions = new Set([".json", ".md", ".toml"]);
-  if (textExtensions.has(path.extname(source).toLowerCase())) {
-    writeText(target, normalizeHomeReferences(readText(source)));
+function toPortableText(content) {
+  return content.split(homeDir).join(homePlaceholder);
+}
+
+function fromPortableText(content) {
+  return content.split(homePlaceholder).join(homeDir);
+}
+
+function copySnapshotFile(source, target, manifest, manifestPathLabel) {
+  if (isTextFile(source)) {
+    const content = readText(source);
+    const sensitiveLine = findSensitiveLine(content);
+    if (sensitiveLine) {
+      manifest.skipped.push(`${manifestPathLabel}:sensitive:${sensitiveLine}`);
+      return false;
+    }
+    writeText(target, toPortableText(content));
+    return true;
+  }
+
+  copyFile(source, target);
+  return true;
+}
+
+function applyPortableSnapshotFile(source, target) {
+  if (isTextFile(source)) {
+    writeText(target, fromPortableText(readText(source)));
     return;
   }
+
   copyFile(source, target);
 }
 
@@ -117,15 +162,91 @@ function isGeneratedSkillDir(skillDir) {
   return content.includes("Codex bridge for legacy Claude");
 }
 
-function sanitizeCodexConfig(content) {
-  const excludedTopLevelKeys = new Set(["notify"]);
+function isPlaceholderSecretValue(value) {
+  const normalized = value.trim().replace(/^["']|["']$/g, "");
+  return normalized === "" ||
+    normalized === "null" ||
+    normalized === "string" ||
+    normalized === "undefined" ||
+    normalized.includes("<") ||
+    normalized.includes("xxx") ||
+    normalized.includes("your-") ||
+    normalized.includes("example") ||
+    normalized.startsWith("$") ||
+    normalized.startsWith("${") ||
+    normalized.startsWith("%");
+}
+
+function isSensitiveKey(key) {
+  return /(?:token|secret|password|api[_-]?key|authorization|bearer|client[_-]?secret|access[_-]?key|refresh[_-]?token|private[_-]?key|auth[_-]?token)/i.test(key);
+}
+
+function isSensitiveAssignment(line) {
+  const keyMatch = line.match(/^\s*(?:export\s+)?["']?([A-Za-z0-9_.-]+)["']?\s*([:=])\s*(.+?)\s*,?\s*$/);
+  if (!keyMatch) {
+    return false;
+  }
+  const operator = keyMatch[2];
+  const value = keyMatch[3].trim();
+  const isQuotedLiteral = /^["'][^"']+["']$/.test(value);
+  const isEnvLiteral = operator === "=" && /^[A-Za-z0-9._:/+=@-]+$/.test(value);
+  return isSensitiveKey(keyMatch[1]) &&
+    (isQuotedLiteral || isEnvLiteral || containsSensitiveLiteral(value)) &&
+    !isPlaceholderSecretValue(value);
+}
+
+function containsSensitiveLiteral(line) {
+  return /(?:Bearer\s+[A-Za-z0-9._-]+|sk-[A-Za-z0-9_-]{10,}|gh[pousr]_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{10,})/.test(line);
+}
+
+function containsSensitiveOption(line) {
+  const optionMatch = line.match(/--(?:token|secret|password|api-key|client-secret|access-key|refresh-token|private-key)\s+([^\s\\]+)/i);
+  return Boolean(optionMatch && !isPlaceholderSecretValue(optionMatch[1]));
+}
+
+function sensitiveLabel(line) {
+  const keyMatch = line.match(/^\s*(?:export\s+)?["']?([A-Za-z0-9_.-]+)["']?\s*[:=]/);
+  if (keyMatch) {
+    return keyMatch[1];
+  }
+  const optionMatch = line.match(/--((?:token|secret|password|api-key|client-secret|access-key|refresh-token|private-key))/i);
+  if (optionMatch) {
+    return optionMatch[1];
+  }
+  return "sensitive_literal";
+}
+
+function findSensitiveLine(content) {
+  const lines = content.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (isSensitiveAssignment(line) || containsSensitiveLiteral(line) || containsSensitiveOption(line)) {
+      return `line_${index + 1}_${sensitiveLabel(line)}`;
+    }
+  }
+  return "";
+}
+
+function shouldSkipConfigSection(sectionName) {
   const excludedSectionPrefixes = [
     "hooks.state",
     "marketplaces",
     "projects.",
     "mcp_servers.node_repl",
   ];
+  if (excludedSectionPrefixes.some((prefix) => (
+    sectionName === prefix ||
+    sectionName.startsWith(`${prefix}.`) ||
+    sectionName.startsWith(prefix)
+  ))) {
+    return true;
+  }
 
+  return /^mcp_servers\.[^.]+\.(env|headers)$/i.test(sectionName);
+}
+
+function sanitizeCodexConfig(content, manifest) {
+  const excludedTopLevelKeys = new Set(["notify"]);
   const output = [];
   let currentSection = "";
   let skippingSection = false;
@@ -134,11 +255,10 @@ function sanitizeCodexConfig(content) {
     const sectionMatch = line.match(/^\s*\[([^\]]+)\]\s*$/);
     if (sectionMatch) {
       currentSection = sectionMatch[1].trim();
-      skippingSection = excludedSectionPrefixes.some((prefix) => (
-        currentSection === prefix ||
-        currentSection.startsWith(`${prefix}.`) ||
-        currentSection.startsWith(prefix)
-      ));
+      skippingSection = shouldSkipConfigSection(currentSection);
+      if (skippingSection) {
+        manifest.skipped.push(`codex/config.${platform}.toml:[${currentSection}]`);
+      }
       if (!skippingSection) {
         output.push(line);
       }
@@ -152,14 +272,22 @@ function sanitizeCodexConfig(content) {
     if (!currentSection) {
       const keyMatch = line.match(/^\s*([A-Za-z0-9_-]+)\s*=/);
       if (keyMatch && excludedTopLevelKeys.has(keyMatch[1])) {
+        manifest.skipped.push(`codex/config.${platform}.toml:${keyMatch[1]}`);
         continue;
       }
+    }
+
+    if (isSensitiveAssignment(line) || containsSensitiveLiteral(line)) {
+      const keyMatch = line.match(/^\s*([A-Za-z0-9_.-]+)\s*=/);
+      const label = keyMatch ? keyMatch[1] : "sensitive_literal";
+      manifest.skipped.push(`codex/config.${platform}.toml:${currentSection ? `${currentSection}.` : ""}${label}`);
+      continue;
     }
 
     output.push(line);
   }
 
-  return `${output.join("\n").replace(/\n{3,}/g, "\n\n").trim()}\n`;
+  return `${toPortableText(output.join("\n").replace(/\n{3,}/g, "\n\n").trim())}\n`;
 }
 
 function shouldSkipCodexFile(relativePath) {
@@ -201,9 +329,11 @@ function copyCodexEntry(relativePath, manifest) {
         manifest.skipped.push(`codex/${fileRelative}`);
         continue;
       }
-      const target = path.join(snapshotRoot, "codex", ...fileRelative.split("/"));
-      copyCodexFile(file, target);
-      manifest.files.push(`codex/${fileRelative}`);
+      const target = path.join(codexSnapshotRoot, ...fileRelative.split("/"));
+      const manifestPathLabel = `codex/${fileRelative}`;
+      if (copySnapshotFile(file, target, manifest, manifestPathLabel)) {
+        manifest.files.push(manifestPathLabel);
+      }
     }
     return;
   }
@@ -213,9 +343,11 @@ function copyCodexEntry(relativePath, manifest) {
     return;
   }
 
-  const target = path.join(snapshotRoot, "codex", ...relativePath.split("/"));
-  copyCodexFile(source, target);
-  manifest.files.push(`codex/${relativePath}`);
+  const target = path.join(codexSnapshotRoot, ...relativePath.split("/"));
+  const manifestPathLabel = `codex/${relativePath}`;
+  if (copySnapshotFile(source, target, manifest, manifestPathLabel)) {
+    manifest.files.push(manifestPathLabel);
+  }
 }
 
 function copySanitizedConfig(manifest) {
@@ -224,18 +356,42 @@ function copySanitizedConfig(manifest) {
     return;
   }
 
-  const sanitized = sanitizeCodexConfig(readText(source));
-  const platformPath = path.join(snapshotRoot, "codex", `config.${platform}.toml`);
-  const sharedPath = path.join(snapshotRoot, "codex", "config.shared.toml");
+  const sanitized = sanitizeCodexConfig(readText(source), manifest);
+  const platformPath = path.join(codexSnapshotRoot, `config.${platform}.toml`);
   writeText(platformPath, sanitized);
-  writeText(sharedPath, sanitized);
   manifest.files.push(`codex/config.${platform}.toml`);
-  manifest.files.push("codex/config.shared.toml");
+}
+
+function resetCurrentSnapshotContent() {
+  ensureDir(snapshotRoot);
+  removeIfExists(path.join(snapshotRoot, "agents"));
+  removeIfExists(manifestPath);
+
+  if (!exists(codexSnapshotRoot)) {
+    return;
+  }
+
+  for (const entry of fs.readdirSync(codexSnapshotRoot, { withFileTypes: true })) {
+    const fullPath = path.join(codexSnapshotRoot, entry.name);
+    if (entry.isFile() && /^config\.(darwin|win32|linux)\.toml$/.test(entry.name)) {
+      if (entry.name === `config.${platform}.toml`) {
+        removeIfExists(fullPath);
+      }
+      continue;
+    }
+    removeIfExists(fullPath);
+  }
+}
+
+function refreshManifestFiles(manifest) {
+  manifest.files = listFiles(snapshotRoot)
+    .filter((file) => file !== manifestPath)
+    .map((file) => relativePosix(snapshotRoot, file))
+    .sort();
 }
 
 function pushSnapshot() {
-  removeIfExists(snapshotRoot);
-  ensureDir(snapshotRoot);
+  resetCurrentSnapshotContent();
 
   const manifest = {
     schema: 1,
@@ -245,7 +401,8 @@ function pushSnapshot() {
     skipped: [],
     notes: [
       "Codex auth, sessions, logs, sqlite databases, caches, plugin caches, project trust state, and hook trust hashes are intentionally excluded.",
-      "config.toml is saved as config.shared.toml plus a sanitized platform-specific file such as config.darwin.toml or config.win32.toml.",
+      "config.toml is saved as a sanitized platform-specific file such as config.darwin.toml or config.win32.toml.",
+      "A push updates only the current platform config and preserves other platform config files already in the snapshot.",
     ],
   };
 
@@ -276,14 +433,16 @@ function pushSnapshot() {
       for (const file of listFiles(skillDir)) {
         const relative = `skills/${entry.name}/${relativePosix(skillDir, file)}`;
         const target = path.join(snapshotRoot, "agents", ...relative.split("/"));
-        copyFile(file, target);
-        manifest.files.push(`agents/${relative}`);
+        const manifestPathLabel = `agents/${relative}`;
+        if (copySnapshotFile(file, target, manifest, manifestPathLabel)) {
+          manifest.files.push(manifestPathLabel);
+        }
       }
     }
   }
 
-  manifest.files.sort();
-  manifest.skipped.sort();
+  manifest.skipped = manifest.skipped.map(toPortableText).sort();
+  refreshManifestFiles(manifest);
   writeText(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
   ok(`Saved ${manifest.files.length} file(s) to ${snapshotRoot}`);
@@ -292,13 +451,9 @@ function pushSnapshot() {
 }
 
 function currentPlatformConfigFile() {
-  const platformSpecific = path.join(snapshotRoot, "codex", `config.${platform}.toml`);
+  const platformSpecific = path.join(codexSnapshotRoot, `config.${platform}.toml`);
   if (exists(platformSpecific)) {
     return platformSpecific;
-  }
-  const shared = path.join(snapshotRoot, "codex", "config.shared.toml");
-  if (exists(shared)) {
-    return shared;
   }
   return null;
 }
@@ -323,7 +478,7 @@ function applySnapshotFile(source, target, backupRoot, applyManifest) {
   const targetRoot = isInside(target, codexDir) ? codexDir : agentsDir;
   assertInside(target, targetRoot);
   backupFile(target, backupRoot, applyManifest);
-  copyFile(source, target);
+  applyPortableSnapshotFile(source, target);
   applyManifest.applied.push(target);
 }
 
@@ -346,10 +501,9 @@ function pullSnapshot() {
     applyManifest.skipped.push(`codex/config.toml: no config.${platform}.toml in snapshot`);
   }
 
-  const codexRoot = path.join(snapshotRoot, "codex");
-  for (const file of listFiles(codexRoot)) {
-    const relative = relativePosix(codexRoot, file);
-    if (/^config\.(darwin|win32|linux|shared)\.toml$/.test(relative)) {
+  for (const file of listFiles(codexSnapshotRoot)) {
+    const relative = relativePosix(codexSnapshotRoot, file);
+    if (/^config\.(darwin|win32|linux)\.toml$/.test(relative)) {
       continue;
     }
     const target = path.join(codexDir, ...relative.split("/"));

@@ -39,7 +39,7 @@ pull 不会写入或覆盖：
 - Windows: `config.win32.toml`
 - Linux: `config.linux.toml`
 
-如果快照里没有当前平台的配置，pull 会回退到 `config.shared.toml`；如果 shared 也不存在，才会跳过 `config.toml` 并继续同步其他内容。
+如果快照里没有当前平台的配置，pull 会跳过 `config.toml` 并继续同步其他内容。需要平台专属配置时，先在对应系统上执行一次 `dt:codex-sync-push` 生成该平台的配置文件。
 
 ## Execution
 

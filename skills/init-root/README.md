@@ -1,12 +1,12 @@
 # dt:init-root
 
-多仓库产品根目录初始化编排入口：先执行 `dt:init`，包含 Claude/Codex 项目级 hook 初始化，再执行 `dt:update-docs`，最后补充根目录本地 git、子项目忽略规则和 push 策略。
+多仓库产品根目录初始化编排入口：先执行 `dt:init`，包含 final rule audit 项目级 hook 初始化，再执行 `dt:update-docs`，最后补充根目录本地 git、子项目忽略规则和 push 策略。
 
 ## 功能
 
 - 适用于前端、后端、管理端、移动端等子项目各自拥有 `.git` 的产品根目录
 - 不复制 `dt:init` 逻辑；执行时直接读取并执行 `dt:init`
-- 继承 `dt:init` 的 Claude/Codex hook 初始化：project-skills mirror refresh 与 final rule audit 收尾审计
+- 继承 `dt:init` 通过 `dt:install-project-hooks` 安装的 final rule audit 收尾审计 hook
 - `dt:init` 完成后继续执行 `dt:update-docs`，生成跨端定位文档
 - 扫描根目录直接子级 git 项目，并写入根 `.gitignore`
 - 在根目录初始化本地 git 仓库，但不配置 remote

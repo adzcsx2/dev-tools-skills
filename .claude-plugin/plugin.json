@@ -1,7 +1,7 @@
 {
   "name": "dev-tools-skills",
-  "description": "All-in-one development toolkit: universal project init (dt:init), study assistant (dt:study), git push (dt:push), serial command execution loop (dt:execute-loop), plugin management (dt:update-remote-plugins), Codex config sync (dt:codex-sync-push/pull), code annotation (dt:code-note), Cloudflare tunnel (dt:to-public-cloudflare), project-local skill lifecycle management (dt:project-skills), work report generator (dt:work-report), local worktree isolation (dt:local-worktree), Android tools (adt:*), and Flutter tools (fdt:*).",
-  "version": "1.3.8",
+  "description": "All-in-one development toolkit: universal project init (dt:init), project hook installer (dt:install-project-hooks), study assistant (dt:study), git push (dt:push), serial command execution loop (dt:execute-loop), plugin management (dt:update-remote-plugins), Codex config sync (dt:codex-sync-push/pull), code annotation (dt:code-note), Cloudflare tunnel (dt:to-public-cloudflare), work report generator (dt:work-report), local worktree isolation (dt:local-worktree), Android tools (adt:*), and Flutter tools (fdt:*).",
+  "version": "1.3.9",
   "author": {
     "name": "adzcsx2",
     "url": "https://github.com/adzcsx2"

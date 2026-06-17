@@ -42,15 +42,15 @@ Installation also registers global prompts for VS Code Copilot and syncs Codex-c
 
 | Skill                      | Description                                                                                                                                                                                                                                                                                                                                                                             |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dt:init`                  | Universal project init: detect the real stack, generate or optimize CLAUDE.md, AGENT.md, Copilot instructions, bootstrap a canonical `.ai/skills/` workspace, and generate Claude/Codex project hooks for mirror refresh and final rule audit                                                                                                                                                |
-| `dt:init-root`             | Multi-repository product-root init: run `dt:init` and `dt:update-docs` in order, inherit Claude/Codex project hook initialization, then configure root local git, child-repository `.gitignore` entries, a root commit-only/no-push policy, and the root-level `dt:push` child-repository orchestration boundary              |
+| `dt:init`                  | Universal project init: detect the real stack, generate or optimize CLAUDE.md, AGENT.md, Copilot instructions, establish docs taxonomy and scoped rules, and use `dt:install-project-hooks` to generate Claude/Codex final rule audit project hooks                                                                                                                                        |
+| `dt:init-root`             | Multi-repository product-root init: run `dt:init` and `dt:update-docs` in order, inherit final rule audit project hook initialization, then configure root local git, child-repository `.gitignore` entries, a root commit-only/no-push policy, and the root-level `dt:push` child-repository orchestration boundary              |
 | `dt:study`                 | Study verified skill mistakes: capture them back into the workspace source skill and avoid cached copies                                                                                                                                                                                                                                                                                |
 | `dt:push`                  | One-push release workflow: auto stage, pull, logical-group commit, push with --preview support                                                                                                                                                                                                                                                                                          |
 | `dt:execute-loop`          | Serial execution loop: run the same follow-up command + prompt through fresh subagents, defaults to 3 runs and supports `-N`                                                                                                                                                                                                                                                            |
 | `dt:update-remote-plugins` | Remote plugin maintenance: update docs and config, then verify install-based local refresh uses the latest version                                                                                                                                                                                                                                                                      |
 | `dt:code-note`             | Multi-language code annotation: auto-detect language and apply comment style                                                                                                                                                                                                                                                                                                            |
 | `dt:to-public-cloudflare`  | Cloudflare tunnel: one-click Named Tunnel setup, auto-detect project port, deploy global tunnel management scripts (tunnel-add/start/stop/remove/list) with health monitoring and auto-restart                                                                                                                                                                                          |
-| `dt:project-skills`        | Project-local skill lifecycle management: use `.ai/skills/` as the canonical source, audit duplicates/overlaps, sync updates after confirmation, promote successful changes into skills, refresh mirrors on explicit invocation, and serve as the mirror-refresh policy behind Claude/Codex project hooks                                                                               |
+| `dt:install-project-hooks` | Project hook installation: generate Claude/Codex final rule audit hooks and serve as the single registry for future project hooks                                                                                                                                                                                                                                                       |
 | `dt:work-report`           | Daily work report: generate a non-technical Chinese work summary from git log and uncommitted changes (each item ≤ 30 chars), supports natural-language date args, and appends actionable improvement suggestions                                                                                                                                                                       |
 | `dt:local-worktree`        | Isolated local dev worktree: pass the original repo path, create a sibling `local` branch worktree (`remote-<x>`→`local-<x>`), run dt:init, audit and rewrite README, and guarantee init artifacts (CLAUDE.md/.ai/.claude/docs) never pollute the original branch and never get pushed (CLAUDE.md rule + PreToolUse hook). Merges real source back via a whitelist-only checkout script |
 | `dt:update-docs`           | Cross-platform doc generator: auto-detects Android/Flutter/other project types, audits code changes first, then updates all affected docs |
@@ -93,7 +93,7 @@ dev-tools-skills/
 │   ├── update-remote-plugins/    # dt:update-remote-plugins
 │   ├── code-note/                # dt:code-note
 │   ├── to-public-cloudflare/     # dt:to-public-cloudflare
-│   ├── project-skills/           # dt:project-skills
+│   ├── install-project-hooks/    # dt:install-project-hooks
 │   ├── work-report/              # dt:work-report
 │   ├── local-worktree/           # dt:local-worktree
 │   ├── update-docs/              # dt:update-docs (Android/Flutter/Generic)
@@ -111,7 +111,7 @@ dev-tools-skills/
 
 ## Version
 
-v1.3.8
+v1.3.9
 
 ## License
 

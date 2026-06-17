@@ -1,6 +1,6 @@
 ---
 name: dt:init
-description: "Initialize AI project context for any codebase. Detect the real stack, generate or update CLAUDE.md, AGENT.md, Copilot instructions, bootstrap canonical .ai/skills, and generate project-level Claude/Codex hooks for mirror refresh and final rule audit."
+description: "Initialize AI project context for any codebase. Detect the real stack, generate or update CLAUDE.md, AGENT.md, Copilot instructions, docs taxonomy, scoped rules, and project-level Claude/Codex final-rule-audit hooks."
 argument-hint: "[optional focus] [--experiment [converge|sync]] [--dry-run]"
 origin: dev-tools-skills
 ---
@@ -28,10 +28,9 @@ origin: dev-tools-skills
 - 需要为项目补充或优化 `CLAUDE.md`
 - 需要让 VS Code Copilot 直接读取项目级规则
 - 需要输出可快速浏览的代码库 onboarding 摘要
-- 需要建立或升级 `.ai/skills/` 项目级 canonical skill 工作面
 - 项目曾经执行过 init，但需要把旧版规则文件升级到当前标准
-- 项目进入 Claude Code 或 Codex 工作流，需要生成项目级 hook 来执行 project-skills mirror refresh 与任务收尾规则审计
-- 项目需要补齐 `/docs` 分类规则、报告归档规则和 project-skills 约束
+- 项目进入 Claude Code 或 Codex 工作流，需要生成项目级 hook 来执行任务收尾规则审计
+- 项目需要补齐 `/docs` 分类规则、报告归档规则和 scoped rules 约束
 - 用户显式要求 `--experiment converge` 或 `--experiment sync`
 
 ## Command Parameters
@@ -48,12 +47,12 @@ origin: dev-tools-skills
 `dt:init` 只负责这几件事：
 
 1. 基于真实代码侦察仓库事实
-2. 按 reference 协议建立 `/docs`、`.ai/skills/`、configured mirrors 记录和项目级规则文件
-3. 在 Claude Code 与 Codex 项目里 bootstrap 项目级 hook：project-skills mirror refresh 与任务收尾规则审计
+2. 按 reference 协议建立 `/docs`、项目级规则文件和必要的 scoped rules
+3. 通过 `dt:install-project-hooks` 在 Claude Code 与 Codex 项目里 bootstrap 项目级 final rule audit hook
 4. 增量升级已有 `CLAUDE.md`、`AGENT.md`、Copilot 配置，不无脑覆盖
 5. 生成 onboarding 摘要与最小验证结果
 
-完整同步语义、proposal 规则、duplicate-check / overlap-check / merge-check，统一由 `dt:project-skills` 负责；`init` 不重复展开那套细则。
+项目级 `.ai/skills` 多端同步、configured mirrors 和 `sync-project-skills.sh` 默认能力已经移除；`init` 不再生成或维护这些文件。
 
 ## Required Outputs
 
@@ -63,13 +62,12 @@ origin: dev-tools-skills
 2. 项目根目录 `CLAUDE.md`
 3. 项目根目录 `AGENT.md`
 4. Copilot 可读取的项目级配置（`AGENTS.md` 或 `.github/copilot-instructions.md` 二选一）
-5. `.ai/README.md`、`.ai/skills/registry.yml`、`.ai/skills/.updates/`、`.ai/skills/project-skills/SKILL.md`
-6. 项目级 Claude/Codex hook：
-   - Claude：`.claude/settings.json`、`.claude/hooks/sync-project-skills.sh`、`.claude/hooks/final-rule-audit.sh`
-   - Codex：`.codex/hooks.json`、`.codex/hooks/sync-project-skills.sh`、`.codex/hooks/final-rule-audit.sh`
-7. `/docs` 文档根目录及必要分类目录骨架
-8. （仅当项目有真实关注点或明确隔离价值时）按主题拆分的 `.ai/rules/<topic>.md` 与 `src/` / `tests/` 等目录级隔离规则
-9. 可选 checklist（仅用户明确要求时）
+5. 项目级 Claude/Codex final rule audit hook（由 `dt:install-project-hooks` 生成）：
+   - Claude：`.claude/settings.json`、`.claude/hooks/final-rule-audit.sh`
+   - Codex：`.codex/hooks.json`、`.codex/hooks/final-rule-audit.sh`
+6. `/docs` 文档根目录及必要分类目录骨架
+7. （仅当项目有真实关注点或明确隔离价值时）按主题拆分的 `.ai/rules/<topic>.md` 与 `src/` / `tests/` 等目录级隔离规则
+8. 可选 checklist（仅用户明确要求时）
 
 ## Mandatory Read Order
 
@@ -93,7 +91,7 @@ origin: dev-tools-skills
 
 执行要求：
 
-- 未读取必需 reference 前，不得开始生成 `CLAUDE.md`、`AGENT.md`、Copilot 配置或 hook 文件
+- 未读取必需 reference 前，不得开始生成 `CLAUDE.md`、`AGENT.md`、Copilot 配置或调用 hook 安装
 - `dt:init` 负责**编排顺序**，reference 负责**细节规则**
 - 不要在主 skill 里再把 reference 全文复述一遍
 - 如果 reference 与旧版项目规则冲突，按 reference + 真实代码做增量升级，不要直接跳过
@@ -141,10 +139,10 @@ origin: dev-tools-skills
 
 ### Step 6. Project Bootstrap
 
-- 按 `references/project-bootstrap.md` 建立 `.ai/skills/` canonical source
-- 写入 `.ai/README.md` 的 configured mirrors 固定段落
-- bootstrap 项目内 `project-skills` 元 skill
-- 按 `references/claude-hook-bootstrap.md` 生成或增量升级 Claude/Codex project hook
+- 按 `references/project-bootstrap.md` 识别并增量升级项目级 AI 规则文件
+- 不创建 `.ai/skills/`、`.ai/exports/`、`.claude/skills/`
+- 不写入 configured mirrors，不安装 `sync-project-skills.sh`
+- 按 `references/claude-hook-bootstrap.md` 了解项目 hook 安装委托规则；具体 hook 生成由 `dt:install-project-hooks` 负责
 
 ### Step 7. Scoped Rules And Enforcement
 
@@ -174,6 +172,16 @@ origin: dev-tools-skills
   - 可选 checklist
 - 同时落实 `references/scoped-rules-and-enforcement.md` 的产出：模块化规则索引、目录级隔离规则、Linter 强制说明、分步工作流段落
 
+### Step 9.5. Install Project Hooks
+
+- 读取并执行 `skills/install-project-hooks/SKILL.md`
+- 默认安装 Claude 与 Codex 项目级 hooks；如用户明确只启用某一工具，则透传对应参数
+- 当前默认只生成 final rule audit hook：
+  - Claude：`.claude/settings.json`、`.claude/hooks/final-rule-audit.sh`
+  - Codex：`.codex/hooks.json`、`.codex/hooks/final-rule-audit.sh`
+- 带 `--dry-run` 时只输出 hook 文件和配置预览，不写盘
+- 不生成 `sync-project-skills.sh`，不注册 `PostToolUse`
+
 ### Step 10. Minimal Verification
 
 - 优先运行与改动范围最小相关的 test / lint / typecheck / build / smoke
@@ -187,21 +195,22 @@ origin: dev-tools-skills
 - 检查 `CLAUDE.md` 是否完整覆盖了 `references/output-files.md` 要求的 19 项必备内容（其中 SR 相关项按本项目栈裁剪）
 - 检查 `AGENT.md` 是否完整覆盖了 8 项必备内容
 - 检查 Copilot 项目级配置是否涵盖精简版 GP-2 至 GP-9
-- 交叉检查各文件之间的一致性（单一事实来源声明、skill canonical 规则、文档分类规则是否在各文件中一致）
+- 交叉检查各文件之间的一致性（单一事实来源声明、hook 安装规则、文档分类规则是否在各文件中一致）
 - 检查是否有遗漏的规则类别：安全、测试、编码风格、Git 工作流、性能、Agent 编排、Hook 系统
 - 对照 `references/general-principles.md` 的 GP-1 至 GP-10，逐项确认关键约束已写入对应文件
 - 对照 `references/scoped-rules-and-enforcement.md` 的 SR-1 至 SR-9，确认模块化规则索引、目录级隔离、Linter 强制说明、分步工作流、依赖注入隔离、集成测试与环境防呆已按本项目栈裁剪写入对应文件；确认没有跨栈套用错误写法
 - 发现缺失或冲突时，补充或修正对应文件
 - 输出一份简短的 review 结论到会话中：列出已覆盖的规则类别、发现的 gap 及是否已修复
 
-### Step 11.5. Final Rule Audit Hook Verification
+### Step 11.5. Project Hook Verification
 
 在所有文件生成、验证和规则文件 review 完成后，检查本次生成或升级的项目级 hook 是否完整：
 
-- Claude 项目 hook 必须包含 project-skills mirror refresh 与 final rule audit 两类脚本
-- Codex 项目 hook 必须包含 `.codex/hooks.json`，并注册 project-skills mirror refresh 与 final rule audit 两类脚本
+- Claude 项目 hook 必须包含 `.claude/settings.json` 与 `.claude/hooks/final-rule-audit.sh`
+- Codex 项目 hook 必须包含 `.codex/hooks.json` 与 `.codex/hooks/final-rule-audit.sh`
 - `final-rule-audit.sh` 的职责是提醒/阻断 AI 在最终回复前重新读取适用规则、审计已修改文件、运行最小验证，并在发现违反规则时先修复再回复
 - hook 脚本不得自动改业务代码；自动修复必须由 AI agent 在 hook 反馈后显式执行，避免无上下文脚本破坏代码
+- 不得生成或注册 `sync-project-skills.sh` / `PostToolUse` mirror refresh hook
 - 若当前工具不支持某个 hook 事件或无法验证事件语义，必须保留脚本与配置预览，并在 onboarding 摘要中写明 `not verified`
 
 ### Step 12. Add .codegraph to .gitignore
@@ -217,9 +226,6 @@ origin: dev-tools-skills
 
 生成的 `CLAUDE.md`、`AGENT.md`、Copilot 项目级配置，至少必须体现这些约束：
 
-- `.ai/skills/` 是唯一 canonical source
-- 工具导出层不是事实源，不手改 `.claude/skills/`、`.ai/exports/`
-- 如果项目存在 Claude/Codex project hook，则 canonical 改动后由 hook 触发 mirror refresh
 - 如果项目存在 Claude/Codex final rule audit hook，则任务收尾前必须重新读取项目规则、审计已修改文件、发现违反规则时先修改再回复
 - 任务聚合文档使用 `docs/plan/<task-slug>/`
 - 审计 / 性能 / 评估 / 复盘类报告使用 `docs/reports/<report-topic>/`
@@ -248,7 +254,7 @@ origin: dev-tools-skills
 - 未传入 `--experiment` 却自动进入 experimental 模式
 - 把旧版规则文件升级误解为主动重构项目源码
 - 把审计 / 性能 / 评估 / 复盘类报告直接平铺到 `docs/reports/`
-- 把 `.claude/skills/`、`.ai/exports/` 当作事实源直接修改
+- 重新引入 `.ai/skills` 多端同步、configured mirrors、`sync-project-skills.sh` 或 `PostToolUse` mirror refresh hook
 - 未完成最小验证就宣称已通过
 - 把所有规则塞进单个超长 `CLAUDE.md`，不做模块化与索引
 - 擅自引入项目尚未采用的新 Linter / IDE 规则机制，而非增量补充已有工具

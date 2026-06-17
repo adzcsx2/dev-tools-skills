@@ -50,10 +50,11 @@
       "reason": "Worktree creation and merge-script generation are procedural.",
       "escalation": "source whitelist inference is ambiguous or push-ban policy needs redesign"
     },
-    "dt-project-skills": {
-      "preferred_model": "high-reasoning",
-      "tier": "reasoning",
-      "reason": "Skill deduplication, overlap detection, and merge proposals require semantic judgment."
+    "dt-install-project-hooks": {
+      "preferred_model": "GPT-5.3-codex-spark",
+      "tier": "spark-with-escalation",
+      "reason": "Project hook installation is procedural JSON and shell generation.",
+      "escalation": "hook registry semantics change or tool runtime behavior is ambiguous"
     },
     "dt-push": {
       "preferred_model": "GPT-5.3-codex-spark",

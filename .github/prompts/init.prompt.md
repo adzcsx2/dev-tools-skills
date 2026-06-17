@@ -1,6 +1,6 @@
-﻿---
+---
 name: "init"
-description: "Initialize AI project context for any codebase: detect the real stack, summarize the repo, generate or update CLAUDE.md, AGENT.md (universal AI tool rules), Copilot project instructions, bootstrap a canonical .ai/skills workspace, and for Claude Code projects generate a PostToolUse hook for project skill mirror refresh."
+description: "Initialize AI project context for any codebase: detect the real stack, summarize the repo, generate or update CLAUDE.md, AGENT.md (universal AI tool rules), Copilot project instructions, docs taxonomy, scoped rules, and final rule audit project hooks."
 argument-hint: "[optional focus] [--experiment [converge|sync]] [--dry-run]"
 agent: "agent"
 model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
@@ -30,12 +30,11 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - 生成或优化项目根目录的 AGENT.md（通用 AI 工具规范）
 - 为 VS Code Copilot 增加项目级配置：如果项目已有 AGENTS.md 就更新它，否则创建或更新 .github/copilot-instructions.md
 - 不要同时维护 AGENTS.md 和 .github/copilot-instructions.md 两套项目级指令
-- 建立项目级 AI framework：创建或升级 `.ai/README.md`、`.ai/skills/registry.yml`、`.ai/skills/.updates/` 和 `.ai/skills/project-skills/SKILL.md`
-- 记录项目里哪些 tool mirrors 已经配置，并写回 `.ai/README.md`
-- 如果当前环境是 Claude Code，或用户明确要求 Claude 项目自动化，生成 `.claude/settings.json` 和 `.claude/hooks/sync-project-skills.sh`
-- 把 configured tool mirrors 写回 `.ai/README.md`，供后续 `dt:project-skills` 优先复用
-- 项目级 skill 的唯一事实源是 `.ai/skills/`；如果后续要改 skill，只能改 canonical source，不能直接改工具导出层
-- `dt:init` 只负责 bootstrap canonical source、configured mirror record 和 Claude hook；完整 sync 语义由 `dt:project-skills` 负责
+- 不再创建 `.ai/skills` 多端同步、configured mirrors 或工具镜像导出层
+- 读取并执行 `skills/install-project-hooks/SKILL.md`，为 Claude/Codex 生成 final rule audit 项目级 hook
+- 如果当前环境是 Claude Code，或用户明确要求 Claude 项目自动化，生成 `.claude/settings.json` 和 `.claude/hooks/final-rule-audit.sh`
+- 如果当前环境是 Codex，或用户明确要求 Codex 项目自动化，生成 `.codex/hooks.json` 和 `.codex/hooks/final-rule-audit.sh`
+- 不生成 `sync-project-skills.sh`，不注册 `PostToolUse` mirror refresh hook
 - 统一项目文档到 `/docs`，建立标准文档分类；已有语义等价目录时必须复用，不能重复创建同义目录
 - 默认遵循先搜索、先复用、最小改动、局部一致
 - 如果项目曾经执行过 init，必须把旧版 CLAUDE.md、AGENT.md、AGENTS.md 或 Copilot 指令增量升级到当前 init 标准，而不是只报告已存在
@@ -77,8 +76,7 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - 如果缺少某个需要的分类且不存在语义等价目录，则创建对应分类目录
 - 报告类文档（审计、性能、评估、复盘）默认先创建 `docs/reports/<report-topic>/` 主题目录，再在目录内创建报告文件；不要把单个报告 `.md` 直接放在 `docs/reports/` 根下；持续更新日志如 `CHANGELOG.md` 可保留在 `docs/reports/` 根下
 - 生成的 CLAUDE.md 和 Copilot 项目级配置必须写入文档归档规则，确保后续 AI 不在根目录或 `/docs` 下乱建同义文档目录
-- 生成的 CLAUDE.md 和 AGENT.md 必须显式写入 project-skills 规则：用户说“帮我总结一下加到 skill 里”时，先做重复检查、重叠检查、融合判断，再给 proposal，确认后才写入 `.ai/skills/`
-- 生成的 CLAUDE.md 和 AGENT.md 必须显式写入：项目级 skill 只改 `.ai/skills/` canonical source；如果项目有 Claude project hook，则后续 mirror refresh 由 hook 驱动，工具镜像不能直接手改
+- 生成的 CLAUDE.md 和 AGENT.md 必须显式写入：如果项目存在 final rule audit hook，最终回复前必须复审适用规则、已修改文件和最小验证结果；发现违反规则时先修复
 
 关于 AI vibe coding，必须写入这些规则：
 

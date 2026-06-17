@@ -14,7 +14,6 @@
 - GP-7 AI Vibe Coding Constraints（精简版）
 - GP-8 Copilot Config Exclusivity
 - GP-9 Documentation Taxonomy（精简版）
-- `.ai/skills/` canonical-only 规则与 project-skills proposal-first 工作流
 - SR 维度（精简版，按栈裁剪）：规则模块化 + 索引、目录级 Mock 隔离、Linter 强制边界、接口 -> 确认 -> 业务 -> 测试 分步工作流、依赖注入隔离、集成测试反 Mock 与环境防呆（见 `scoped-rules-and-enforcement.md`）
 
 ## CLAUDE.md
@@ -41,8 +40,8 @@
 6. Copilot 配置互斥规则
 7. 文档根目录、分类映射、新文档落位规则（含任务聚合与审计 / 性能 / 评估 / 复盘 reports 主题目录规则）
 8. 真实目录结构、默认构建与测试方式
-9. 项目级 skill 的唯一事实源是 `.ai/skills/`，修改 skill 时只改 canonical source，不手改导出层；若项目生成了 Claude/Codex project hook，则后续 refresh 由 hook 触发
-10. 当用户要求“总结并加到 skill”时，先做重复 / 重叠 / 融合判断，先提 proposal 再写入
+9. 若项目生成了 Claude/Codex final rule audit hook，最终回复前必须复审适用规则、已修改文件和最小验证结果；发现违反规则时先修复
+10. 明确 `.ai/skills` 多端同步、configured mirrors、`sync-project-skills.sh` 和 `PostToolUse` mirror refresh 不属于当前 init 默认能力
 11. 若本次已升级旧版 AI 规则文件，注明已升级到当前 init 标准
 12. 当前标准只约束后续 AI coding，不主动重构未被需求触碰的既有源码
 13. 禁止在 git commit message 中包含任何形式的 AI 署名行（如 `Co-Authored-By: Claude ... <noreply@anthropic.com>` 等），不限于特定模型版本
@@ -73,7 +72,7 @@
 2. 单一事实来源：构建文件胜过文档，目录扫描结果胜过经验推断
 3. 通用编码规范：复用优先、AI vibe coding 约束、触碰文件与计划触发、最小验证、文件命名约定、提交信息格式
 4. Copilot 项目级配置互斥：不同时维护 `AGENTS.md` 与 `.github/copilot-instructions.md`
-5. 项目级 skill 规则：`.ai/skills/` 是唯一事实源，只改 canonical source；若存在 Claude/Codex project hook，则 mirror refresh 由 hook 从 canonical source 驱动；若存在 final rule audit hook，则任务收尾前重新审计规则与已修改文件
+5. 项目级 hook 规则：若存在 final rule audit hook，则任务收尾前重新审计规则、已修改文件与最小验证结果；`.ai/skills` 多端同步和 mirror refresh 不属于当前 init 默认能力
 6. 关键路径索引：主入口、公共组件/工具类位置、文档目录结构、任务聚合子目录约定，以及审计 / 性能 / 评估 / 复盘报告的 `docs/reports/<report-topic>/` 目录约定
 7. 常用命令：构建、测试、运行命令
 8. 规则与强制：规则按主题模块化、主文件只写索引；生产目录禁止 Mock、测试目录允许 Mock；记录由 Linter 强制的边界；遵循接口 -> 确认 -> 业务 -> 测试 的分步工作流；外部依赖经注入隔离、补集成测试与环境防呆（均按本项目栈裁剪，不适用的栈不写）
@@ -93,7 +92,7 @@
 - 只保留对所有任务都有帮助的规则
 - 必须包含精简版 GP-2 至 GP-9：单一事实来源、复用优先、触碰文件与计划触发、最小验证、AI vibe coding、配置文件互斥、文档归档规则
 - 必须包含精简版 SR 维度：生产目录禁止 Mock、测试目录允许 Mock；记录由 Linter 强制的依赖边界；遵循接口 -> 确认 -> 业务 -> 测试 分步工作流；外部依赖经注入隔离、补集成测试与环境防呆（按本项目栈裁剪）；细则按需读取 `.ai/rules/<topic>.md`
-- 如果项目已建立 `.ai/skills/`，必须补一句：项目级 skill 只改 `.ai/skills/` canonical source，不手改导出层；若项目存在 Claude/Codex project hook，则 hook 负责后续 refresh；若存在 final rule audit hook，则任务收尾前必须复审规则与已修改文件
+- 如果项目已安装 final rule audit hook，必须补一句：任务收尾前必须复审规则、已修改文件和最小验证结果；发现违反规则时先修复
 
 若启用 experimental 模式，Copilot 项目级配置必须基于变更后重新扫描结果更新。
 
@@ -107,7 +106,6 @@
 - 我想改哪里该看哪里
 - 文档应该放在哪个 `/docs` 分类目录
 - 审计 / 性能 / 评估 / 复盘类报告应放在 `docs/reports/<report-topic>/`；`CHANGELOG.md` 可保留在 `docs/reports/` 根下
-- 项目级 skill 在 `.ai/skills/`；若项目生成了 Claude/Codex project hook，则 canonical 改动后会自动触发 mirror refresh，否则只维护 canonical source
 - 任务收尾规则：若项目生成了 final rule audit hook，最终回复前必须复审适用规则、已修改文件和最小验证结果；发现违反规则时先修复
 - 规则如何组织：主控文件红线 + 索引、细则在哪、生产目录禁止 Mock、哪些边界由 Linter 强制、后续写代码遵循接口 -> 确认 -> 业务 -> 测试
 

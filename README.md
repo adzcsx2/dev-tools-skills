@@ -42,15 +42,15 @@ cd dev-tools-skills
 
 | Skill                      | 描述                                                                                                                                                                                                                                                                                                           |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 CLAUDE.md、AGENT.md、Copilot 配置，建立 `.ai/skills/` canonical skill 工作面，并生成 Claude/Codex 项目级 hook，用于 mirror refresh 和任务收尾规则审计                                                                                                                  |
-| `dt:init-root`             | 多仓库产品根目录初始化：按顺序执行 `dt:init` 和 `dt:update-docs`，继承 Claude/Codex 项目级 hook 初始化，再配置根目录本地 git、子项目 `.gitignore` 忽略、root 只 commit 不 push 策略，以及根目录 `dt:push` 子仓库编排边界                              |
+| `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 CLAUDE.md、AGENT.md、Copilot 配置，建立 docs 分类与 scoped rules，并通过 `dt:install-project-hooks` 生成 Claude/Codex final rule audit 项目级 hook                                                                                                                  |
+| `dt:init-root`             | 多仓库产品根目录初始化：按顺序执行 `dt:init` 和 `dt:update-docs`，继承 final rule audit 项目级 hook 初始化，再配置根目录本地 git、子项目 `.gitignore` 忽略、root 只 commit 不 push 策略，以及根目录 `dt:push` 子仓库编排边界                              |
 | `dt:study`                 | 修错回源：把已验证的 skill 失误直接沉淀回工作区里的源 SKILL，避免改在缓存副本上                                                                                                                                                                                                                                |
 | `dt:push`                  | 一键发布工作流：自动暂存、拉取、按逻辑分组提交、推送，支持 --preview 预览                                                                                                                                                                                                                                      |
 | `dt:execute-loop`          | 串行执行循环：用多个全新子代理重复执行同一个后续 command + prompt，默认 3 轮，支持 `-N` 指定次数                                                                                                                                                                                                                |
 | `dt:update-remote-plugins` | 远程插件维护：更新配置与文档、验证 install 回流本地是否始终命中最新版本                                                                                                                                                                                                                                        |
 | `dt:code-note`             | 多语言代码注释：自动检测语言类型并应用对应注释风格                                                                                                                                                                                                                                                             |
 | `dt:to-public-cloudflare`  | Cloudflare 内网穿透：一键配置 Named Tunnel，自动侦察端口，自动部署全局 tunnel 管理脚本（tunnel-add/start/stop/remove/list），支持健康监测与自动重启                                                                                                                                                            |
-| `dt:project-skills`        | 项目级 skill 生命周期：以 `.ai/skills/` 为唯一事实源，支持审计重复/重叠、确认后同步更新、把实现沉淀成 skill，可显式刷新 mirrors，并作为 Claude/Codex project hook 背后的 mirror refresh 规则源                                                                                                                 |
+| `dt:install-project-hooks` | 项目级 hook 安装：为 Claude/Codex 生成 final rule audit hook，作为未来新增项目 hook 的统一 registry                                                                                                                                                                                                            |
 | `dt:work-report`           | 工作日报生成：基于 git log 和未提交改动，自动生成功能性中文日报（每条 ≤30 字），支持自然语言日期参数，并附可执行优化建议                                                                                                                                                                                       |
 | `dt:local-worktree`        | 隔离本地开发 worktree：传入原仓库路径，在其同级目录生成独立 local 分支 worktree（`remote-<x>`→`local-<x>`）并执行 dt:init、审计重写 README，保证 CLAUDE.md/.ai/.claude/docs 等初始化产物不污染原分支、不被 push（CLAUDE.md 铁律 + PreToolUse hook 双拦截），合并业务代码时用白名单 checkout 脚本只带走真实源码 |
 | `dt:update-docs`           | 跨平台文档自动生成：自动检测 Android/Flutter/其他项目类型，先审计代码改动，再全链路更新所有受影响文档 |
@@ -93,7 +93,7 @@ dev-tools-skills/
 │   ├── update-remote-plugins/    # dt:update-remote-plugins
 │   ├── code-note/                # dt:code-note
 │   ├── to-public-cloudflare/     # dt:to-public-cloudflare
-│   ├── project-skills/           # dt:project-skills
+│   ├── install-project-hooks/    # dt:install-project-hooks
 │   ├── work-report/              # dt:work-report
 │   ├── local-worktree/           # dt:local-worktree
 │   ├── update-docs/              # dt:update-docs (Android/Flutter/Generic)
@@ -111,7 +111,7 @@ dev-tools-skills/
 
 ## 版本
 
-v1.3.8
+v1.3.9
 
 ## License
 

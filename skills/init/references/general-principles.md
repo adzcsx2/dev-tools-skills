@@ -15,8 +15,8 @@
 - 项目特有规则：以已有 `CLAUDE.md`、`AGENTS.md`、`.github/copilot-instructions.md`、README、开发规范文档为准
 - 真实目录结构：以源码扫描结果为准
 - 默认命令：以 package scripts、Makefile、Gradle、Maven、Flutter、Python 工具配置为准
-- 项目级 canonical skills：以 `.ai/skills/` 为唯一事实源；工具导出层不是事实源
-- 项目已配置的 tool mirrors：以仓库中真实存在的工具目录、导出目录或用户明确要求为准；生成的通用规则文件本身不自动等价为已启用 mirror
+- 项目级 hooks：以 `dt:install-project-hooks` 的 hook registry 为准；`dt:init` 只负责调用，不复制 hook 安装细节
+- `.ai/skills` 多端同步、configured mirrors、工具导出层不再是默认 init 能力
 - 若文档与代码冲突，以代码和构建配置为准
 
 ## GP-3 Reuse-First

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-06-17T05:49:38.446Z",
+  "generatedAt": "2026-06-17T06:21:31.911Z",
   "sourcePlatform": "darwin",
   "files": [
     "agents/skills/dws/LICENSE",
@@ -45,8 +45,7 @@
     "codex/AGENTS.md",
     "codex/browser/config.toml",
     "codex/computer-use/config.json",
-    "codex/config.darwin.toml",
-    "codex/config.shared.toml"
+    "codex/config.darwin.toml"
   ],
   "skipped": [
     "agents/skills/adt-android-e2e",
@@ -59,8 +58,8 @@
     "agents/skills/dt-execute-loop",
     "agents/skills/dt-init",
     "agents/skills/dt-init-root",
+    "agents/skills/dt-install-project-hooks",
     "agents/skills/dt-local-worktree",
-    "agents/skills/dt-project-skills",
     "agents/skills/dt-push",
     "agents/skills/dt-study",
     "agents/skills/dt-to-public-cloudflare",
@@ -151,10 +150,43 @@
     "agents/skills/ecc-skill-health",
     "agents/skills/ecc-test-coverage",
     "agents/skills/ecc-update-codemaps",
-    "agents/skills/ecc-update-docs"
+    "agents/skills/ecc-update-docs",
+    "codex/config.darwin.toml:[hooks.state.\"__CODEX_SYNC_HOME__/Documents/BackendWorkplace/vemory-meeting-backend/.codex/hooks.json:post_tool_use:0:0\"]",
+    "codex/config.darwin.toml:[hooks.state.\"__CODEX_SYNC_HOME__/Documents/FlutterWorkplace/metaself/.codex/hooks.json:post_tool_use:0:0\"]",
+    "codex/config.darwin.toml:[hooks.state.\"__CODEX_SYNC_HOME__/Documents/FlutterWorkplace/metaself/.codex/hooks.json:post_tool_use:0:1\"]",
+    "codex/config.darwin.toml:[hooks.state.\"__CODEX_SYNC_HOME__/Documents/FlutterWorkplace/vemory-flutter/.codex/hooks.json:post_tool_use:0:0\"]",
+    "codex/config.darwin.toml:[hooks.state.\"__CODEX_SYNC_HOME__/Documents/FlutterWorkplace/vemory/.codex/hooks.json:post_tool_use:0:0\"]",
+    "codex/config.darwin.toml:[hooks.state.\"__CODEX_SYNC_HOME__/Documents/FlutterWorkplace/vemory/vemory-flutter/.codex/hooks.json:post_tool_use:0:0\"]",
+    "codex/config.darwin.toml:[hooks.state.\"__CODEX_SYNC_HOME__/Documents/FlutterWorkplace/vemory/vemory-meeting-backend/.codex/hooks.json:post_tool_use:0:0\"]",
+    "codex/config.darwin.toml:[hooks.state.\"__CODEX_SYNC_HOME__/Documents/github/ECC/.codex/hooks.json:post_tool_use:0:0\"]",
+    "codex/config.darwin.toml:[hooks.state]",
+    "codex/config.darwin.toml:[marketplaces.openai-bundled]",
+    "codex/config.darwin.toml:[marketplaces.openai-primary-runtime]",
+    "codex/config.darwin.toml:[mcp_servers.node_repl.env]",
+    "codex/config.darwin.toml:[mcp_servers.node_repl]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/BackendWorkplace/vemory-meeting-backend\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/Codex/2026-06-16/claude-claude-md-agent-md-claude\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/Codex/2026-06-16/codex\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/Codex/2026-06-16/ecc-plan-users-hoyn-agents-skills\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/Codex/2026-06-16/files-mentioned-by-the-user-atrust\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/Codex/2026-06-16/mac-open-in-codex\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/Codex/2026-06-16/users-hoyn-open-vpn-clash-add\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/Codex/2026-06-17/mac-codex-codex-hook-codex\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/FlutterWorkplace/metaself\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/FlutterWorkplace/vemory\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/FlutterWorkplace/vemory-flutter\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/FlutterWorkplace/vemory/vemory-flutter\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/FlutterWorkplace/vemory/vemory-meeting-backend\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/github/ECC\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/github/dev-tools-skills\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/小园长/上报端\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/小园长/天工云配置文件\"]",
+    "codex/config.darwin.toml:[projects.\"__CODEX_SYNC_HOME__/Documents/小园长/监管端\"]",
+    "codex/config.darwin.toml:notify"
   ],
   "notes": [
     "Codex auth, sessions, logs, sqlite databases, caches, plugin caches, project trust state, and hook trust hashes are intentionally excluded.",
-    "config.toml is saved as config.shared.toml plus a sanitized platform-specific file such as config.darwin.toml or config.win32.toml."
+    "config.toml is saved as a sanitized platform-specific file such as config.darwin.toml or config.win32.toml.",
+    "A push updates only the current platform config and preserves other platform config files already in the snapshot."
   ]
 }

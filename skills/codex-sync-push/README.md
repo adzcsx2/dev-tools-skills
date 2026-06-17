@@ -7,7 +7,8 @@
 - 白名单采集 `~/.codex` 中可复用的配置文件
 - 保存非 dev-tools 自动生成的 `~/.agents/skills`
 - 排除登录态、sessions、logs、sqlite、cache、plugin cache、安装 ID 等本机私有状态
-- 将 `config.toml` 保存为 `config.shared.toml` 和 `config.darwin.toml` / `config.win32.toml` 等平台专属清洗版本
+- 将 `config.toml` 保存为 `config.darwin.toml` / `config.win32.toml` 等平台专属清洗版本
+- push 只更新当前系统对应的配置文件，并保留快照里已有的其他平台配置文件
 - 保存完成后要求继续执行 `dt:update-remote-plugins`
 
 ## 用法

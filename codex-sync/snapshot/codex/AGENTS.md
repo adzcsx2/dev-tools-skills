@@ -9,13 +9,13 @@ instructions from these files when they exist.
 
 Always treat these as global personal guidance for every project:
 
-- `~/.claude/CLAUDE.md`
-- `~/.claude/AGENTS.md`
-- `~/.claude/rules/**/*.md`
-- `~/.claude/the-security-guide.md`
+- `__CODEX_SYNC_HOME__/.claude/CLAUDE.md`
+- `__CODEX_SYNC_HOME__/.claude/AGENTS.md`
+- `__CODEX_SYNC_HOME__/.claude/rules/**/*.md`
+- `__CODEX_SYNC_HOME__/.claude/the-security-guide.md`
 
-Use `~/.claude/agents/*.md`, `~/.claude/skills/**/SKILL.md`,
-and `~/.claude/commands/**/*.md` as user-level workflow references
+Use `__CODEX_SYNC_HOME__/.claude/agents/*.md`, `__CODEX_SYNC_HOME__/.claude/skills/**/SKILL.md`,
+and `__CODEX_SYNC_HOME__/.claude/commands/**/*.md` as user-level workflow references
 when the current task names or clearly matches one of those workflows. Do not
 load old plans, histories, caches, logs, or transient session files as rules
 unless the user explicitly asks.
@@ -23,8 +23,8 @@ unless the user explicitly asks.
 ### dev-tools-skills command bridge
 
 Legacy Claude command skills from
-`~/Documents/github/dev-tools-skills/skills/` are exposed to Codex as
-generated wrappers under `~/.agents/skills/`. Map command names by
+`__CODEX_SYNC_HOME__/Documents/github/dev-tools-skills/skills/` are exposed to Codex as
+generated wrappers under `__CODEX_SYNC_HOME__/.agents/skills/`. Map command names by
 replacing `:` with `-`:
 
 - `/dt:init` or `dt:init` -> `$dt-init`
@@ -40,10 +40,10 @@ picked up at use time. If skills are added, removed, or renamed in that repo,
 refresh wrappers with:
 
 ```bash
-node ~/.codex/scripts/sync-dev-tools-skills-to-codex.js
+node __CODEX_SYNC_HOME__/.codex/scripts/sync-dev-tools-skills-to-codex.js
 ```
 
-Generated slash prompt aliases also exist under `~/.codex/prompts/`,
+Generated slash prompt aliases also exist under `__CODEX_SYNC_HOME__/.codex/prompts/`,
 for example `/prompts:dt-init`, but skills are the primary interface.
 
 ### Project-level rules
@@ -58,7 +58,7 @@ project root and current working directory:
 - `.claude/rules/**/*.md`
 
 Codex natively loads `AGENTS.md` and `AGENTS.override.md`. The fallback
-filenames above are configured in `~/.codex/config.toml` for projects
+filenames above are configured in `__CODEX_SYNC_HOME__/.codex/config.toml` for projects
 that have only legacy Claude-style instruction files. If a directory contains
 both `AGENTS.md` and legacy files, read the legacy files explicitly because
 Codex loads at most one instruction file per directory during automatic
