@@ -1,6 +1,6 @@
 ---
 name: dt:init-root
-description: "Initialize a multi-repository project root by running dt:init first, then dt:update-docs, then configuring root-only local git behavior and ignoring child git projects. Use when a parent folder represents one product made from frontend/backend/other child repositories."
+description: "Initialize a multi-repository project root by running dt:init first, then dt:update-docs, then configuring root commit-only/no-push behavior, child-repository ignores, and root-level dt:push orchestration boundaries. Use when a parent folder represents one product made from frontend/backend/other child repositories."
 argument-hint: "[optional focus] [--dry-run]"
 origin: dev-tools-skills
 ---
@@ -79,6 +79,7 @@ The root repository is local-only coordination state.
 - Do not add a remote to the root repository
 - Do not change child repositories
 - Create or update `.ai/init-root.yml` with the detected child project list and `root_git_policy: commit_only_no_push`
+- This policy means the root repository itself is commit-only/no-push; `dt:push` from root may still orchestrate detected child git repositories from their own directories.
 - If `--dry-run` is present, only preview these changes
 
 ### Step 5. Ignore Child Projects From Root Git
@@ -104,8 +105,9 @@ Rules:
 Update root `AGENT.md` with a concise "Multi-Repo Root Git Policy" section:
 
 - Root repository is local-only coordination state
-- Running `dt:push` from root must commit root files only and must not push
-- Child projects must be committed and pushed from their own directories
+- Running `dt:push` from root may orchestrate detected child git repositories from their own directories
+- Root files are committed only in the root repository and the root repository must not push
+- Child projects are committed and pushed from their own repositories, never through root git staging
 - Do not stage child project contents from the root repository
 - Do not add a root remote unless the user explicitly asks
 

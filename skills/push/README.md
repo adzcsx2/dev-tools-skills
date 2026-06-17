@@ -12,7 +12,7 @@
 - 工作区有未暂存的变更，需要一键提交推送
 - 已提交但尚未 push 的本地 commit 也会直接推送到远程
 - 本地堆积多个未推送的零散 commit（全部自己提交、中途无他人提交）时，压成 1 个干净 commit 后再推送
-- 如果当前目录是 `dt:init-root` 初始化出的多仓库根目录（存在 `.ai/init-root.yml` 且标记 `root_git_policy: commit_only_no_push`），只创建 root 本地 commit，绝不 push；子项目需进入各自目录分别执行 `dt:push`
+- 如果当前目录是 `dt:init-root` 初始化出的多仓库根目录（存在 `.ai/init-root.yml` 且标记 `root_git_policy: commit_only_no_push`），会先发现直接子级 git 仓库并在各子仓库目录执行普通 `dt:push`；root 仓库只创建本地 commit，绝不 push
 
 ## 用法
 
@@ -30,7 +30,7 @@
 - 凡是提交内容涉及版本号更新，commit 标题必须明确包含目标版本号，例如 `chore: bump version to 1.2.2` 或 `docs: 更新版本号到 1.2.2`
 - **本地 commit 整理（推送前）**：仅当本地有 ≥ 2 个未推送 commit、全部由当前用户提交、中途无他人提交且无 merge commit 时，用 `git reset --soft` 把这些 commit 压成 1 个干净 commit；**只动 `@{u}..HEAD` 内未推送提交，已推送的提交绝不 reset / rebase / amend / force-push**；整理只改历史结构、不改最终代码；中途出现他人提交或校验不通过时保留原历史原样推送
 - **全程只在当前分支操作，绝不创建新分支**；冲突按严重程度分级：轻冲突（双方改不同行）自动 merge 不提醒，重冲突（双方改同一行）才逐文件提示用户三选一（remote / local / merge）；无冲突时静默继续
-- **init-root 根目录例外**：root 仓库是本地协调状态，允许没有 remote；执行时跳过 pull、squash、push 和 tag push，只提交未被 `.gitignore` 忽略的 root 文件
+- **init-root 根目录例外**：root 仓库是本地协调状态，允许没有 remote；执行时先编排直接子级 git 仓库按普通规则提交/推送，再跳过 root 的 pull、squash、push 和 tag push，只提交未被 `.gitignore` 忽略的 root 文件
 
 ## 结构
 
