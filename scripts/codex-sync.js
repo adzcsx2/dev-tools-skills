@@ -226,8 +226,11 @@ function copySanitizedConfig(manifest) {
 
   const sanitized = sanitizeCodexConfig(readText(source));
   const platformPath = path.join(snapshotRoot, "codex", `config.${platform}.toml`);
+  const sharedPath = path.join(snapshotRoot, "codex", "config.shared.toml");
   writeText(platformPath, sanitized);
+  writeText(sharedPath, sanitized);
   manifest.files.push(`codex/config.${platform}.toml`);
+  manifest.files.push("codex/config.shared.toml");
 }
 
 function pushSnapshot() {
@@ -242,7 +245,7 @@ function pushSnapshot() {
     skipped: [],
     notes: [
       "Codex auth, sessions, logs, sqlite databases, caches, plugin caches, project trust state, and hook trust hashes are intentionally excluded.",
-      "config.toml is saved as a sanitized platform-specific file such as config.darwin.toml or config.win32.toml.",
+      "config.toml is saved as config.shared.toml plus a sanitized platform-specific file such as config.darwin.toml or config.win32.toml.",
     ],
   };
 
@@ -293,6 +296,10 @@ function currentPlatformConfigFile() {
   if (exists(platformSpecific)) {
     return platformSpecific;
   }
+  const shared = path.join(snapshotRoot, "codex", "config.shared.toml");
+  if (exists(shared)) {
+    return shared;
+  }
   return null;
 }
 
@@ -342,7 +349,7 @@ function pullSnapshot() {
   const codexRoot = path.join(snapshotRoot, "codex");
   for (const file of listFiles(codexRoot)) {
     const relative = relativePosix(codexRoot, file);
-    if (/^config\.(darwin|win32|linux)\.toml$/.test(relative)) {
+    if (/^config\.(darwin|win32|linux|shared)\.toml$/.test(relative)) {
       continue;
     }
     const target = path.join(codexDir, ...relative.split("/"));

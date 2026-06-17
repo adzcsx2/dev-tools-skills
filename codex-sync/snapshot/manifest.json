@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-06-17T05:45:42.302Z",
+  "generatedAt": "2026-06-17T05:49:38.446Z",
   "sourcePlatform": "darwin",
   "files": [
     "agents/skills/dws/LICENSE",
@@ -45,7 +45,8 @@
     "codex/AGENTS.md",
     "codex/browser/config.toml",
     "codex/computer-use/config.json",
-    "codex/config.darwin.toml"
+    "codex/config.darwin.toml",
+    "codex/config.shared.toml"
   ],
   "skipped": [
     "agents/skills/adt-android-e2e",
@@ -53,6 +54,8 @@
     "agents/skills/adt-android-i18n",
     "agents/skills/adt-gradle-build-performance",
     "agents/skills/dt-code-note",
+    "agents/skills/dt-codex-sync-pull",
+    "agents/skills/dt-codex-sync-push",
     "agents/skills/dt-execute-loop",
     "agents/skills/dt-init",
     "agents/skills/dt-init-root",
@@ -152,6 +155,6 @@
   ],
   "notes": [
     "Codex auth, sessions, logs, sqlite databases, caches, plugin caches, project trust state, and hook trust hashes are intentionally excluded.",
-    "config.toml is saved as a sanitized platform-specific file such as config.darwin.toml or config.win32.toml."
+    "config.toml is saved as config.shared.toml plus a sanitized platform-specific file such as config.darwin.toml or config.win32.toml."
   ]
 }

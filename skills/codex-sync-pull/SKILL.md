@@ -33,13 +33,13 @@ pull 不会写入或覆盖：
 - sessions、logs、sqlite、cache、plugin cache
 - `installation_id`
 
-`config.toml` 只会应用当前平台对应的清洗配置：
+`config.toml` 会优先应用当前平台对应的清洗配置：
 
 - macOS: `config.darwin.toml`
 - Windows: `config.win32.toml`
 - Linux: `config.linux.toml`
 
-如果快照里没有当前平台的配置，pull 会跳过 `config.toml` 并继续同步其他内容。
+如果快照里没有当前平台的配置，pull 会回退到 `config.shared.toml`；如果 shared 也不存在，才会跳过 `config.toml` 并继续同步其他内容。
 
 ## Execution
 
