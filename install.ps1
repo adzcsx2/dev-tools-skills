@@ -531,11 +531,12 @@ function Install-Marketplace {
     Ensure-Directory $MarketplaceDir
     Remove-PathIfExists $target
 
-    try {
-        git clone $RepoUrl $target 2>$null
+    & git clone $RepoUrl $target 2>$null
+    if ($LASTEXITCODE -eq 0) {
         Write-Ok 'Cloned marketplace from remote'
-    } catch {
+    } else {
         Write-Warn 'Git clone failed, using local workspace snapshot...'
+        Remove-PathIfExists $target
         Copy-WorkspaceSnapshot -Target $target
     }
 
