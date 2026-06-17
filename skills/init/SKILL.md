@@ -1,6 +1,6 @@
 ---
 name: dt:init
-description: "Initialize AI project context for any codebase. Detect the real stack, generate or update CLAUDE.md, AGENT.md, Copilot instructions, bootstrap canonical .ai/skills, and for Claude Code projects generate a project-level PostToolUse hook for project-skill mirror refresh."
+description: "Initialize AI project context for any codebase. Detect the real stack, generate or update CLAUDE.md, AGENT.md, Copilot instructions, bootstrap canonical .ai/skills, and generate project-level Claude/Codex hooks for mirror refresh and final rule audit."
 argument-hint: "[optional focus] [--experiment [converge|sync]] [--dry-run]"
 origin: dev-tools-skills
 ---
@@ -30,7 +30,7 @@ origin: dev-tools-skills
 - 需要输出可快速浏览的代码库 onboarding 摘要
 - 需要建立或升级 `.ai/skills/` 项目级 canonical skill 工作面
 - 项目曾经执行过 init，但需要把旧版规则文件升级到当前标准
-- 项目进入 Claude Code 工作流，需要生成项目级 hook 来执行 project-skills mirror refresh
+- 项目进入 Claude Code 或 Codex 工作流，需要生成项目级 hook 来执行 project-skills mirror refresh 与任务收尾规则审计
 - 项目需要补齐 `/docs` 分类规则、报告归档规则和 project-skills 约束
 - 用户显式要求 `--experiment converge` 或 `--experiment sync`
 
@@ -49,7 +49,7 @@ origin: dev-tools-skills
 
 1. 基于真实代码侦察仓库事实
 2. 按 reference 协议建立 `/docs`、`.ai/skills/`、configured mirrors 记录和项目级规则文件
-3. 在 Claude Code 项目里 bootstrap `.claude/settings.json` 与 `.claude/hooks/sync-project-skills.sh`
+3. 在 Claude Code 与 Codex 项目里 bootstrap 项目级 hook：project-skills mirror refresh 与任务收尾规则审计
 4. 增量升级已有 `CLAUDE.md`、`AGENT.md`、Copilot 配置，不无脑覆盖
 5. 生成 onboarding 摘要与最小验证结果
 
@@ -64,7 +64,9 @@ origin: dev-tools-skills
 3. 项目根目录 `AGENT.md`
 4. Copilot 可读取的项目级配置（`AGENTS.md` 或 `.github/copilot-instructions.md` 二选一）
 5. `.ai/README.md`、`.ai/skills/registry.yml`、`.ai/skills/.updates/`、`.ai/skills/project-skills/SKILL.md`
-6. （仅当前环境为 Claude Code，或用户明确要求 Claude 项目自动化时）`.claude/settings.json` 与 `.claude/hooks/sync-project-skills.sh`
+6. 项目级 Claude/Codex hook：
+   - Claude：`.claude/settings.json`、`.claude/hooks/sync-project-skills.sh`、`.claude/hooks/final-rule-audit.sh`
+   - Codex：`.codex/hooks.json`、`.codex/hooks/sync-project-skills.sh`、`.codex/hooks/final-rule-audit.sh`
 7. `/docs` 文档根目录及必要分类目录骨架
 8. （仅当项目有真实关注点或明确隔离价值时）按主题拆分的 `.ai/rules/<topic>.md` 与 `src/` / `tests/` 等目录级隔离规则
 9. 可选 checklist（仅用户明确要求时）
@@ -142,7 +144,7 @@ origin: dev-tools-skills
 - 按 `references/project-bootstrap.md` 建立 `.ai/skills/` canonical source
 - 写入 `.ai/README.md` 的 configured mirrors 固定段落
 - bootstrap 项目内 `project-skills` 元 skill
-- 如果适用，再按 `references/claude-hook-bootstrap.md` 生成 Claude project hook
+- 按 `references/claude-hook-bootstrap.md` 生成或增量升级 Claude/Codex project hook
 
 ### Step 7. Scoped Rules And Enforcement
 
@@ -192,6 +194,16 @@ origin: dev-tools-skills
 - 发现缺失或冲突时，补充或修正对应文件
 - 输出一份简短的 review 结论到会话中：列出已覆盖的规则类别、发现的 gap 及是否已修复
 
+### Step 11.5. Final Rule Audit Hook Verification
+
+在所有文件生成、验证和规则文件 review 完成后，检查本次生成或升级的项目级 hook 是否完整：
+
+- Claude 项目 hook 必须包含 project-skills mirror refresh 与 final rule audit 两类脚本
+- Codex 项目 hook 必须包含 `.codex/hooks.json`，并注册 project-skills mirror refresh 与 final rule audit 两类脚本
+- `final-rule-audit.sh` 的职责是提醒/阻断 AI 在最终回复前重新读取适用规则、审计已修改文件、运行最小验证，并在发现违反规则时先修复再回复
+- hook 脚本不得自动改业务代码；自动修复必须由 AI agent 在 hook 反馈后显式执行，避免无上下文脚本破坏代码
+- 若当前工具不支持某个 hook 事件或无法验证事件语义，必须保留脚本与配置预览，并在 onboarding 摘要中写明 `not verified`
+
 ### Step 12. Add .codegraph to .gitignore
 
 在所有文件生成和 review 完成后，确保 `.codegraph/` 已加入项目的 `.gitignore`：
@@ -207,7 +219,8 @@ origin: dev-tools-skills
 
 - `.ai/skills/` 是唯一 canonical source
 - 工具导出层不是事实源，不手改 `.claude/skills/`、`.ai/exports/`
-- 如果项目存在 Claude project hook，则 canonical 改动后由 hook 触发 mirror refresh
+- 如果项目存在 Claude/Codex project hook，则 canonical 改动后由 hook 触发 mirror refresh
+- 如果项目存在 Claude/Codex final rule audit hook，则任务收尾前必须重新读取项目规则、审计已修改文件、发现违反规则时先修改再回复
 - 任务聚合文档使用 `docs/plan/<task-slug>/`
 - 审计 / 性能 / 评估 / 复盘类报告使用 `docs/reports/<report-topic>/`
 - `CHANGELOG.md` 这类持续更新日志可保留在 `docs/reports/` 根下

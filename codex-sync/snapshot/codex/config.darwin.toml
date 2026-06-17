@@ -1,0 +1,43 @@
+sandbox_mode = "danger-full-access"
+approval_policy = "on-request"
+personality = "pragmatic"
+model = "gpt-5.5"
+model_reasoning_effort = "high"
+project_doc_fallback_filenames = ["CLAUDE.md", "claude.md", "AGENT.md", "agent.md"]
+project_doc_max_bytes = 65536
+service_tier = "default"
+
+[mcp_servers]
+
+[mcp_servers.figma]
+type = "http"
+url = "https://mcp.figma.com/mcp"
+
+[mcp_servers.codegraph]
+command = "codegraph"
+args = ["serve", "--mcp"]
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."chrome@openai-bundled"]
+enabled = true
+
+[features]
+js_repl = false
+
+[desktop]
+conversationDetailMode = "STEPS_COMMANDS"
+ambient-suggestions-enabled = false

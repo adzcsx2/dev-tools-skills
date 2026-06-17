@@ -56,7 +56,8 @@ bootstrapped `.ai/skills/project-skills/SKILL.md` 至少包含这些内容：
 - 标题明确为项目内 project-skills 元 skill
 - 写清 `.ai/skills/` 是唯一事实源
 - 写清 mirror refresh 只从 canonical source 派生，不手改 `.claude/skills/`、`.ai/exports/`
-- 写清如果项目存在 `.claude/hooks/sync-project-skills.sh`，则 Claude 会在 canonical 改动后自动触发 refresh
+- 写清如果项目存在 `.claude/hooks/sync-project-skills.sh` 或 `.codex/hooks/sync-project-skills.sh`，对应工具会在 canonical 改动后自动触发 refresh
+- 写清如果项目存在 `.claude/hooks/final-rule-audit.sh` 或 `.codex/hooks/final-rule-audit.sh`，对应工具会在任务收尾前提示/执行规则复审
 - 写清“帮我总结一下加到 skill 里”默认触发 duplicate-check、overlap-check、proposal、确认后写入
 
 建议最小模板：
@@ -71,7 +72,8 @@ description: Canonical project-local skill governance.
 
 - Canonical source: `.ai/skills/`
 - Do not hand-edit `.claude/skills/` or other exports
-- If `.claude/hooks/sync-project-skills.sh` exists, Claude triggers mirror refresh after canonical edits
+- If `.claude/hooks/sync-project-skills.sh` or `.codex/hooks/sync-project-skills.sh` exists, the corresponding tool triggers mirror refresh after canonical edits
+- If `.claude/hooks/final-rule-audit.sh` or `.codex/hooks/final-rule-audit.sh` exists, the corresponding tool runs the final rule audit before task completion
 - Configured tool mirrors are recorded in `.ai/README.md`
 - When the user says "summarize into a skill": duplicate-check -> overlap-check -> proposal -> confirm -> write
 ```
@@ -98,7 +100,7 @@ description: Canonical project-local skill governance.
 
 最少要求：
 
-- 记录 configured tool mirrors，供后续 `dt:project-skills` 与 Claude hook 读取
+- 记录 configured tool mirrors，供后续 `dt:project-skills` 与 Claude/Codex hook 读取
 - 记录 `.ai/skills/` 是 canonical source，工具侧文件不是事实源
 - 如果当前没有已配置 tool mirror，也必须把空状态写清楚
 - 如果项目未来新增或移除 tool mirror，必须先更新 `.ai/README.md`
@@ -120,7 +122,7 @@ description: Canonical project-local skill governance.
 - none
 ```
 
-这里记录的是项目采用的约定 mirror 路径；默认 Claude hook 按这些约定路径工作，不在运行时再发明其他目标位置。
+这里记录的是项目采用的约定 mirror 路径；默认 Claude/Codex hook 按这些约定路径工作，不在运行时再发明其他目标位置。
 
 ## Boundaries
 
