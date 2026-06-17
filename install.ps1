@@ -15,10 +15,15 @@ $VSCodePromptsDir = if ($env:VSCODE_USER_PROMPTS_FOLDER) { $env:VSCODE_USER_PROM
 $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.ScriptName }
 $PluginJson = Join-Path $ScriptDir ".claude-plugin\plugin.json"
 $CodexDir = if ($env:CODEX_DIR) { $env:CODEX_DIR } else { Join-Path $env:USERPROFILE ".codex" }
+$AgentsDir = if ($env:AGENTS_DIR) { $env:AGENTS_DIR } else { Join-Path $env:USERPROFILE ".agents" }
+$CodexSkillsDir = if ($env:CODEX_SKILLS_DIR) { $env:CODEX_SKILLS_DIR } elseif ($env:AGENTS_SKILLS_DIR) { $env:AGENTS_SKILLS_DIR } else { Join-Path $AgentsDir "skills" }
+$CodexPromptsDir = if ($env:CODEX_PROMPTS_DIR) { $env:CODEX_PROMPTS_DIR } else { Join-Path $CodexDir "prompts" }
 $CodexScriptsDir = Join-Path $CodexDir "scripts"
 $CodexSyncScriptName = "sync-dev-tools-skills-to-codex.js"
 $CodexSyncSource = Join-Path $ScriptDir "scripts\$CodexSyncScriptName"
 $CodexSyncTarget = Join-Path $CodexScriptsDir $CodexSyncScriptName
+$CodexWrapperMarker = ".codex-dev-tools-skills-wrapper"
+$CodexPromptMarker = "<!-- codex-dev-tools-skills-generated -->"
 
 $ClaudeDir = if ($env:CLAUDE_DIR) { $env:CLAUDE_DIR } else { Join-Path $env:USERPROFILE ".claude" }
 $PluginsDir = Join-Path $ClaudeDir "plugins"
@@ -178,6 +183,24 @@ function Assert-PathInClaudeDir($path) {
 function Remove-PathIfExists($path) {
     if (Test-Path $path) {
         Assert-PathInClaudeDir $path
+        Remove-Item $path -Recurse -Force
+        Write-Info "Removed: $path"
+    }
+}
+
+function Assert-PathInDirectory($path, $baseDir) {
+    $resolvedBase = [System.IO.Path]::GetFullPath($baseDir)
+    $resolvedPath = [System.IO.Path]::GetFullPath($path)
+    $comparison = [System.StringComparison]::OrdinalIgnoreCase
+    if ($resolvedPath -ne $resolvedBase -and -not $resolvedPath.StartsWith($resolvedBase + [System.IO.Path]::DirectorySeparatorChar, $comparison)) {
+        Write-Err "Refusing to operate outside expected directory: $path"
+        exit 1
+    }
+}
+
+function Remove-PathInDirectoryIfExists($path, $baseDir) {
+    if (Test-Path $path) {
+        Assert-PathInDirectory $path $baseDir
         Remove-Item $path -Recurse -Force
         Write-Info "Removed: $path"
     }
@@ -462,12 +485,43 @@ function Install-CodexSync {
     if (-not $env:DEV_TOOLS_SYNC_CODEX_PROMPTS) {
         $env:DEV_TOOLS_SYNC_CODEX_PROMPTS = '0'
     }
-    & node $CodexSyncTarget $ScriptDir
+    & node $CodexSyncTarget $ScriptDir $CodexSkillsDir $CodexPromptsDir
     if ($LASTEXITCODE -ne 0) {
         Write-Err 'Codex skill wrapper sync failed.'
         exit $LASTEXITCODE
     }
     Write-Ok 'Codex skill wrappers synced.'
+}
+
+function Remove-CodexSkillWrappers {
+    if (-not (Test-Path $CodexSkillsDir -PathType Container)) { return }
+
+    $skillDirs = Get-ChildItem -Path $CodexSkillsDir -Directory -ErrorAction SilentlyContinue
+    foreach ($skillDir in $skillDirs) {
+        $markerPath = Join-Path $skillDir.FullName $CodexWrapperMarker
+        if (Test-Path $markerPath -PathType Leaf) {
+            Remove-PathInDirectoryIfExists $skillDir.FullName $CodexSkillsDir
+        }
+    }
+}
+
+function Remove-CodexPromptAliases {
+    if (-not (Test-Path $CodexPromptsDir -PathType Container)) { return }
+
+    $promptFiles = Get-ChildItem -Path $CodexPromptsDir -Filter '*.md' -File -ErrorAction SilentlyContinue
+    foreach ($promptFile in $promptFiles) {
+        $content = Get-Content $promptFile.FullName -Raw
+        if ($content.Contains($CodexPromptMarker)) {
+            Remove-PathInDirectoryIfExists $promptFile.FullName $CodexPromptsDir
+        }
+    }
+}
+
+function Remove-CodexSync {
+    Write-Info 'Removing Codex generated skill wrappers...'
+    Remove-CodexSkillWrappers
+    Remove-CodexPromptAliases
+    Remove-PathInDirectoryIfExists $CodexSyncTarget $CodexDir
 }
 
 function Install-Marketplace {
@@ -542,6 +596,7 @@ function Uninstall-All {
     Write-Info "Uninstalling $MarketplaceName..."
     Reset-ExistingInstallation
     Remove-VSCodePrompt
+    Remove-CodexSync
     Write-Ok 'Uninstall complete!'
 }
 
@@ -596,7 +651,7 @@ function Main {
         Write-Host ''
         Write-Host 'Options:'
         Write-Host '  -All              Install all skill categories (auto-detects Claude/Copilot/Codex)'
-        Write-Host '  -Uninstall        Remove installed plugin'
+        Write-Host '  -Uninstall        Remove installed plugin, prompts, and Codex wrappers'
         Write-Host '  -Help             Show this help'
         Write-Host ''
         Write-Host 'Categories:'
@@ -607,10 +662,6 @@ function Main {
     }
 
     if ($Uninstall) {
-        if (-not (Test-Command 'git')) {
-            Write-Err 'git is required but not installed.'
-            exit 1
-        }
         Load-PluginMetadata
         Ensure-ClaudeLayout
         Uninstall-All

@@ -34,6 +34,8 @@ cd dev-tools-skills
 .\uninstall.ps1
 ```
 
+卸载脚本会同时清理 Claude Code 插件状态、VS Code Copilot prompt，以及本工具为 Codex 生成的 skill wrapper、prompt alias 和同步脚本。
+
 安装完成后，还会额外为 VS Code Copilot 注册全局 prompt，并为 Codex 同步兼容 skill wrapper（例如 `$dt-init`、`$dt-push`）。Codex 的 `/prompts:dt-*` alias 默认不生成；如需兼容旧入口，可设置 `DEV_TOOLS_SYNC_CODEX_PROMPTS=1`。
 
 ## 包含的 Skills

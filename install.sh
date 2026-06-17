@@ -7,10 +7,15 @@ VSCODE_PROMPTS_DIR="${VSCODE_USER_PROMPTS_FOLDER:-$HOME/Library/Application Supp
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_JSON="$SCRIPT_DIR/.claude-plugin/plugin.json"
 CODEX_DIR="${CODEX_DIR:-$HOME/.codex}"
+AGENTS_DIR="${AGENTS_DIR:-$HOME/.agents}"
+CODEX_SKILLS_DIR="${CODEX_SKILLS_DIR:-$AGENTS_DIR/skills}"
+CODEX_PROMPTS_DIR="${CODEX_PROMPTS_DIR:-$CODEX_DIR/prompts}"
 CODEX_SCRIPTS_DIR="$CODEX_DIR/scripts"
 CODEX_SYNC_SCRIPT_NAME="sync-dev-tools-skills-to-codex.js"
 CODEX_SYNC_SOURCE="$SCRIPT_DIR/scripts/$CODEX_SYNC_SCRIPT_NAME"
 CODEX_SYNC_TARGET="$CODEX_SCRIPTS_DIR/$CODEX_SYNC_SCRIPT_NAME"
+CODEX_WRAPPER_MARKER=".codex-dev-tools-skills-wrapper"
+CODEX_PROMPT_MARKER="<!-- codex-dev-tools-skills-generated -->"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -178,6 +183,28 @@ remove_path_if_exists() {
   local path="$1"
   if [ -e "$path" ] || [ -L "$path" ]; then
     assert_path_in_claude_dir "$path"
+    rm -rf "$path"
+    info "Removed: $path"
+  fi
+}
+
+assert_path_in_dir() {
+  local path="$1"
+  local base="${2%/}"
+  case "$path" in
+    "$base"|"$base"/*) ;;
+    *)
+      error "Refusing to operate outside expected directory: $path"
+      exit 1
+      ;;
+  esac
+}
+
+remove_path_in_dir_if_exists() {
+  local path="$1"
+  local base="$2"
+  if [ -e "$path" ] || [ -L "$path" ]; then
+    assert_path_in_dir "$path" "$base"
     rm -rf "$path"
     info "Removed: $path"
   fi
@@ -468,8 +495,41 @@ install_codex_sync() {
 
   info "Syncing Codex skill wrappers..."
   export DEV_TOOLS_SYNC_CODEX_PROMPTS="${DEV_TOOLS_SYNC_CODEX_PROMPTS:-0}"
-  node "$CODEX_SYNC_TARGET" "$SCRIPT_DIR"
+  node "$CODEX_SYNC_TARGET" "$SCRIPT_DIR" "$CODEX_SKILLS_DIR" "$CODEX_PROMPTS_DIR"
   ok "Codex skill wrappers synced."
+}
+
+remove_codex_skill_wrappers() {
+  [ -d "$CODEX_SKILLS_DIR" ] || return
+
+  local skill_dir marker_path
+  for skill_dir in "$CODEX_SKILLS_DIR"/*/; do
+    [ -d "$skill_dir" ] || continue
+    skill_dir="${skill_dir%/}"
+    marker_path="$skill_dir/$CODEX_WRAPPER_MARKER"
+    if [ -f "$marker_path" ]; then
+      remove_path_in_dir_if_exists "$skill_dir" "$CODEX_SKILLS_DIR"
+    fi
+  done
+}
+
+remove_codex_prompt_aliases() {
+  [ -d "$CODEX_PROMPTS_DIR" ] || return
+
+  local prompt_file
+  for prompt_file in "$CODEX_PROMPTS_DIR"/*.md; do
+    [ -f "$prompt_file" ] || continue
+    if grep -Fq "$CODEX_PROMPT_MARKER" "$prompt_file"; then
+      remove_path_in_dir_if_exists "$prompt_file" "$CODEX_PROMPTS_DIR"
+    fi
+  done
+}
+
+remove_codex_sync() {
+  info "Removing Codex generated skill wrappers..."
+  remove_codex_skill_wrappers
+  remove_codex_prompt_aliases
+  remove_path_in_dir_if_exists "$CODEX_SYNC_TARGET" "$CODEX_DIR"
 }
 
 install_marketplace() {
@@ -539,8 +599,17 @@ install_tunnel_scripts() {
 
 uninstall_all() {
   info "Uninstalling $MARKETPLACE_NAME..."
-  reset_existing_installation
+
+  if has_cmd jq; then
+    load_plugin_metadata
+    ensure_claude_layout
+    reset_existing_installation
+  else
+    warn "jq not found; skipped Claude Code plugin state cleanup."
+  fi
+
   remove_vscode_prompt
+  remove_codex_sync
   ok "Uninstall complete!"
 }
 
@@ -618,7 +687,7 @@ main() {
         echo ""
         echo "Options:"
         echo "  --all, -a          Install all skill categories (auto-detects Claude/Copilot/Codex)"
-        echo "  --uninstall, -u    Remove installed plugin"
+        echo "  --uninstall, -u    Remove installed plugin, prompts, and Codex wrappers"
         echo "  --help, -h         Show this help"
         echo ""
         echo "Categories:"
@@ -645,13 +714,6 @@ main() {
   fi
 
   if [ "$uninstall" = true ]; then
-    if ! has_cmd git; then
-      error "git is required but not installed."
-      exit 1
-    fi
-    require_jq
-    load_plugin_metadata
-    ensure_claude_layout
     uninstall_all
     exit 0
   fi
