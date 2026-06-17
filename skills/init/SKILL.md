@@ -63,8 +63,8 @@ origin: dev-tools-skills
 3. 项目根目录 `AGENT.md`
 4. Copilot 可读取的项目级配置（`AGENTS.md` 或 `.github/copilot-instructions.md` 二选一）
 5. 项目级 Claude/Codex final rule audit hook（由 `dt:install-project-hooks` 生成）：
-   - Claude：`.claude/settings.json`、`.claude/hooks/final-rule-audit.sh`
-   - Codex：`.codex/hooks.json`、`.codex/hooks/final-rule-audit.sh`
+   - Claude：`.claude/settings.json`、当前 OS 对应的 `.claude/hooks/final-rule-audit.{ps1|sh}`
+   - Codex：`.codex/hooks.json`、当前 OS 对应的 `.codex/hooks/final-rule-audit.{ps1|sh}`
 6. `/docs` 文档根目录及必要分类目录骨架
 7. （仅当项目有真实关注点或明确隔离价值时）按主题拆分的 `.ai/rules/<topic>.md` 与 `src/` / `tests/` 等目录级隔离规则
 8. 可选 checklist（仅用户明确要求时）
@@ -177,8 +177,9 @@ origin: dev-tools-skills
 - 读取并执行 `skills/install-project-hooks/SKILL.md`
 - 默认安装 Claude 与 Codex 项目级 hooks；如用户明确只启用某一工具，则透传对应参数
 - 当前默认只生成 final rule audit hook：
-  - Claude：`.claude/settings.json`、`.claude/hooks/final-rule-audit.sh`
-  - Codex：`.codex/hooks.json`、`.codex/hooks/final-rule-audit.sh`
+  - Claude：`.claude/settings.json`、当前 OS 对应的 `.claude/hooks/final-rule-audit.{ps1|sh}`
+  - Codex：`.codex/hooks.json`、当前 OS 对应的 `.codex/hooks/final-rule-audit.{ps1|sh}`
+- Windows 必须生成并注册 `final-rule-audit.ps1`（`pwsh -NoProfile -ExecutionPolicy Bypass -File ...`），且脚本提示输出到 stdout；macOS / Linux / WSL 才生成并注册 `final-rule-audit.sh`
 - 带 `--dry-run` 时只输出 hook 文件和配置预览，不写盘
 - 不生成 `sync-project-skills.sh`，不注册 `PostToolUse`
 
@@ -206,9 +207,9 @@ origin: dev-tools-skills
 
 在所有文件生成、验证和规则文件 review 完成后，检查本次生成或升级的项目级 hook 是否完整：
 
-- Claude 项目 hook 必须包含 `.claude/settings.json` 与 `.claude/hooks/final-rule-audit.sh`
-- Codex 项目 hook 必须包含 `.codex/hooks.json` 与 `.codex/hooks/final-rule-audit.sh`
-- `final-rule-audit.sh` 的职责是提醒/阻断 AI 在最终回复前重新读取适用规则、审计已修改文件、运行最小验证，并在发现违反规则时先修复再回复
+- Claude 项目 hook 必须包含 `.claude/settings.json` 与当前 OS 对应的 `.claude/hooks/final-rule-audit.{ps1|sh}`
+- Codex 项目 hook 必须包含 `.codex/hooks.json` 与当前 OS 对应的 `.codex/hooks/final-rule-audit.{ps1|sh}`
+- `final-rule-audit.{ps1|sh}` 的职责是提醒/阻断 AI 在最终回复前重新读取适用规则、审计已修改文件、运行最小验证，并在发现违反规则时先修复再回复
 - hook 脚本不得自动改业务代码；自动修复必须由 AI agent 在 hook 反馈后显式执行，避免无上下文脚本破坏代码
 - 不得生成或注册 `sync-project-skills.sh` / `PostToolUse` mirror refresh hook
 - 若当前工具不支持某个 hook 事件或无法验证事件语义，必须保留脚本与配置预览，并在 onboarding 摘要中写明 `not verified`

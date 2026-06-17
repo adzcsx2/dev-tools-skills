@@ -22,7 +22,7 @@ Claude Code 目标文件：
 .claude/
 ├── settings.json
 └── hooks/
-    └── final-rule-audit.sh
+    └── final-rule-audit.{ps1|sh}
 ```
 
 Codex 目标文件：
@@ -31,8 +31,10 @@ Codex 目标文件：
 .codex/
 ├── hooks.json
 └── hooks/
-    └── final-rule-audit.sh
+    └── final-rule-audit.{ps1|sh}
 ```
+
+`dt:install-project-hooks` 必须按当前操作系统选择 hook 脚本和 command：Windows 使用 `final-rule-audit.ps1` + `pwsh -NoProfile -ExecutionPolicy Bypass -File ...`，并将提示输出到 stdout；macOS / Linux / WSL 使用 `final-rule-audit.sh`。
 
 若本次带 `--dry-run`，这些文件只输出预览，不写盘。
 
@@ -50,9 +52,9 @@ Codex 目标文件：
 
 `dt:init` 完成后必须确认：
 
-- Claude selected 时，`.claude/settings.json` 注册 `Stop -> .claude/hooks/final-rule-audit.sh`
-- Codex selected 时，`.codex/hooks.json` 注册 `Stop -> .codex/hooks/final-rule-audit.sh`
-- 生成的 `final-rule-audit.sh` 可执行
+- Claude selected 时，`.claude/settings.json` 注册当前 OS 对应的 `Stop -> final-rule-audit.{ps1|sh}` command
+- Codex selected 时，`.codex/hooks.json` 注册当前 OS 对应的 `Stop -> final-rule-audit.{ps1|sh}` command
+- Windows selected 时不得注册 `.sh` command；Unix-like selected 时生成的 `final-rule-audit.sh` 可执行
 - 未生成 `sync-project-skills.sh`
 - 未注册 `PostToolUse` mirror refresh hook
 

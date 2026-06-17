@@ -10,8 +10,9 @@
 - 检测真实构建文件、入口点、目录结构和已有编码规范
 - 生成或优化 CLAUDE.md、AGENT.md 及 Copilot 可读的项目配置
 - 不再创建 `.ai/skills` 多端同步、configured mirrors 或工具镜像导出层
-- 通过 `dt:install-project-hooks` 生成 Claude 项目 hook：`.claude/settings.json`、`.claude/hooks/final-rule-audit.sh`
-- 通过 `dt:install-project-hooks` 生成 Codex 项目 hook：`.codex/hooks.json`、`.codex/hooks/final-rule-audit.sh`
+- 通过 `dt:install-project-hooks` 生成 Claude 项目 hook：`.claude/settings.json`、当前 OS 对应的 `.claude/hooks/final-rule-audit.{ps1|sh}`
+- 通过 `dt:install-project-hooks` 生成 Codex 项目 hook：`.codex/hooks.json`、当前 OS 对应的 `.codex/hooks/final-rule-audit.{ps1|sh}`
+- Windows 使用 `final-rule-audit.ps1` + `pwsh` 且提示输出到 stdout，macOS / Linux / WSL 使用 `final-rule-audit.sh`
 - 不生成 `sync-project-skills.sh`，不注册 `PostToolUse` mirror refresh hook
 - 建立 final rule audit 收尾 gate：任务完成前重新审计适用规则、已修改文件和最小验证结果，发现违反规则时先修复
 - 建立 `/docs` 根目录及标准分类体系，**强制创建缺失的标准分类目录**（plan、product、design、guide、modules、references、checklist、reports）
