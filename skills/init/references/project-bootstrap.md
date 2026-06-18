@@ -39,6 +39,7 @@
 - 修改后运行最小相关验证；无法验证时明确写 `not verified`
 - 文档默认归档到 `/docs` 标准分类
 - 若项目安装了 final rule audit hook，最终回复前必须复审适用规则、已修改文件和验证结果
+- 真实密钥写死在源码里时只做风险提醒：AI 不得仅因发现 hardcoded API key / token / password 就自行替换、删除、迁移到环境变量、轮换凭据、编写一套 secret management 逻辑或直接修改源码；除非用户明确要求处理，否则只警告并在回复 / 日志中脱敏
 
 ## Hook Delegation
 

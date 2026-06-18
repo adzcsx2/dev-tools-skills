@@ -15,6 +15,7 @@
 - Windows 使用 `final-rule-audit.ps1` + `pwsh` 且提示输出到 stdout，macOS / Linux / WSL 使用 `final-rule-audit.sh`
 - 不生成 `sync-project-skills.sh`，不注册 `PostToolUse` mirror refresh hook
 - 建立 final rule audit 收尾 gate：任务完成前重新审计适用规则、已修改文件和最小验证结果，发现违反规则时先修复
+- 写入真实密钥处理边界：项目源码中存在真实 API key / token / password / certificate 等 hardcoded secrets 时，AI 只做风险提醒并在输出中脱敏；未获用户明确要求时，不替换、不删除、不迁移到环境变量、不轮换凭据、不编写 secret-management 逻辑，也不直接修改相关源码
 - 建立 `/docs` 根目录及标准分类体系，**强制创建缺失的标准分类目录**（plan、product、design、guide、modules、references、checklist、reports）
 - 审计、性能、评估、复盘类报告默认按 `docs/reports/<report-topic>/` 主题目录组织，支持同一主题二次、三次审计持续追加；持续更新日志如 `CHANGELOG.md` 可保留在 `docs/reports/` 根下
 - 主 `SKILL.md` 会先按顺序读取 `references/general-principles.md`、`references/recon-and-stack-detection.md`、`references/docs-taxonomy.md`、`references/project-bootstrap.md`、`references/claude-hook-bootstrap.md`、`references/scoped-rules-and-enforcement.md`、`references/output-files.md`

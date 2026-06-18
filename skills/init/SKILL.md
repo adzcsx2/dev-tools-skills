@@ -193,9 +193,9 @@ origin: dev-tools-skills
 
 在所有文件生成和验证完成后，对产出的规则文件做一次完整性审查：
 
-- 检查 `CLAUDE.md` 是否完整覆盖了 `references/output-files.md` 要求的 19 项必备内容（其中 SR 相关项按本项目栈裁剪）
-- 检查 `AGENT.md` 是否完整覆盖了 8 项必备内容
-- 检查 Copilot 项目级配置是否涵盖精简版 GP-2 至 GP-9
+- 检查 `CLAUDE.md` 是否完整覆盖了 `references/output-files.md` 要求的 20 项必备内容（其中 SR 相关项按本项目栈裁剪）
+- 检查 `AGENT.md` 是否完整覆盖了 9 项必备内容
+- 检查 Copilot 项目级配置是否涵盖精简版 GP-2 至 GP-9 与真实密钥处理边界
 - 交叉检查各文件之间的一致性（单一事实来源声明、hook 安装规则、文档分类规则是否在各文件中一致）
 - 检查是否有遗漏的规则类别：安全、测试、编码风格、Git 工作流、性能、Agent 编排、Hook 系统
 - 对照 `references/general-principles.md` 的 GP-1 至 GP-10，逐项确认关键约束已写入对应文件
@@ -234,6 +234,7 @@ origin: dev-tools-skills
 - 需求不清或跨 3+ 源码文件时先计划
 - 所有结论必须来自真实代码、配置或目录扫描
 - 规则按主题模块化，主控文件只保留红线 + 索引，细则按需加载
+- 项目源码中存在真实 API key / token / password / certificate 等 hardcoded secrets 时，AI 只做风险提醒并在输出中脱敏；未获用户明确要求时，不替换、不删除、不迁移到环境变量、不轮换凭据、不编写 secret-management 逻辑，也不直接修改相关源码
 - 生产代码目录禁止 Mock，测试目录允许 Mock，按目录边界做物理隔离
 - 哪些依赖 / import 边界由 Linter / 静态检查强制（仅记录项目已采用或用户要求的方案）
 - 后续 AI coding 遵循接口 -> 确认 -> 业务 -> 测试 的分步工作流
