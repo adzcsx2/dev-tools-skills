@@ -10,6 +10,7 @@
 - 将 `config.toml` 保存为 `config.darwin.toml` / `config.win32.toml` 等平台专属清洗版本
 - push 只更新当前系统对应的配置文件，并保留快照里已有的其他平台配置文件
 - 保存完成后要求继续执行 `dt:update-remote-plugins`
+- 可从任意目录触发，但执行目录必须切到 `dev-tools-skills` 仓库根目录
 
 ## 用法
 

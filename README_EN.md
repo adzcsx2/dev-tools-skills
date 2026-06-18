@@ -38,6 +38,16 @@ The uninstall scripts also clean Claude Code plugin state, VS Code Copilot promp
 
 Installation also registers global prompts for VS Code Copilot and syncs Codex-compatible skill wrappers (for example `$dt-init`, `$dt-push`). Codex `/prompts:dt-*` aliases are disabled by default; set `DEV_TOOLS_SYNC_CODEX_PROMPTS=1` if you need the legacy prompt aliases.
 
+## Execution Target Types
+
+A skill can be invoked from any directory, but the invocation directory is not always the workflow target. Claude reads this repository's `SKILL.md` files directly; Codex reads generated wrappers. Both surfaces follow these target types:
+
+| Type | Skills | Workflow target |
+| ---- | ------ | --------------- |
+| Current project | `dt:init`, `dt:init-root`, `dt:push`, `dt:update-docs`, Android tools, and similar project workflows | Invocation directory / current project |
+| dev-tools repository | `dt:codex-sync-push`, `dt:codex-sync-pull`, `dt:update-remote-plugins` | Always set the command working directory to the `dev-tools-skills` repository root, regardless of where the skill was invoked |
+| User memory | `dt:study` | Treat the invocation directory as context only; capture the lesson as user-level memory / a personal rule by default, without modifying the current project or plugin source files |
+
 ## Included Skills
 
 ### Common Tools — `dt:` prefix
@@ -46,7 +56,7 @@ Installation also registers global prompts for VS Code Copilot and syncs Codex-c
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `dt:init`                  | Universal project init: detect the real stack, generate or optimize CLAUDE.md, AGENT.md, Copilot instructions, establish docs taxonomy and scoped rules, and use `dt:install-project-hooks` to generate Claude/Codex final rule audit project hooks                                                                                                                                        |
 | `dt:init-root`             | Multi-repository product-root init: run `dt:init` and `dt:update-docs` in order, inherit final rule audit project hook initialization, then configure root local git, child-repository `.gitignore` entries, a root commit-only/no-push policy, and the root-level `dt:push` child-repository orchestration boundary              |
-| `dt:study`                 | Study verified skill mistakes: capture them back into the workspace source skill and avoid cached copies                                                                                                                                                                                                                                                                                |
+| `dt:study`                 | User-level learning: capture verified lessons as memory / personal rules without modifying the current project, plugin source files, or cached copies by default                                                                                                                                                                                                                         |
 | `dt:push`                  | One-push release workflow: auto stage, pull, logical-group commit, push with --preview support                                                                                                                                                                                                                                                                                          |
 | `dt:execute-loop`          | Serial execution loop: run the same follow-up command + prompt through fresh subagents, defaults to 3 runs and supports `-N`                                                                                                                                                                                                                                                            |
 | `dt:update-remote-plugins` | Remote plugin maintenance: update docs and config, then verify install-based local refresh uses the latest version                                                                                                                                                                                                                                                                      |

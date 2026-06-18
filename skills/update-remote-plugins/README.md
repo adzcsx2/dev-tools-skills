@@ -10,6 +10,7 @@
 - 同步 README.md、README_EN.md、plugin.json、marketplace.json
 - 校验 install.sh 与 install.ps1 是否先清理旧缓存和旧注册，再安装最新版本
 - 提交并推送远程，然后通过 install 脚本**强制刷新本地缓存**（脚本自动检测 Claude/Copilot 安装状态）
+- 可从任意目录触发，但执行目录必须切到 `dev-tools-skills` 仓库根目录
 
 ## 用法
 

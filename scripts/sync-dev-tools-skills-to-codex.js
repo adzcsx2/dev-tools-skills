@@ -124,6 +124,7 @@ function normalizeModelRoute(rawRoute) {
     tier,
     reason,
     escalation,
+    executionTarget: sanitizeRouteText(rawRoute.execution_target || rawRoute.executionTarget),
   };
 }
 
@@ -183,10 +184,57 @@ function buildModelRouteSection(modelRoute) {
   return `${lines.join("\n")}\n`;
 }
 
+function buildExecutionTargetSection(executionTarget) {
+  if (executionTarget === "dev_tools_repository") {
+    return `## Execution Target
+
+This skill may be invoked from any directory, but the workflow target is always
+the \`dev-tools-skills\` repository root that contains the source skill above.
+Before running commands or editing files, set the tool working directory to
+that repository root. Do not apply this workflow to the invocation directory
+unless it is the \`dev-tools-skills\` repository itself.
+
+Resolve all relative paths, references, scripts, and assets from the source
+directory above unless the source skill explicitly names a different path.
+`;
+  }
+
+  if (executionTarget === "user_memory") {
+    return `## Execution Target
+
+This skill may be invoked from any directory. The invocation directory is
+context only; do not treat either the invocation directory or the source skill
+directory as the default edit target. Capture the verified lesson as user-level
+memory or a personal rule. If the current runtime has no memory-writing tool,
+return a concise memory entry for the user to save instead of modifying project
+or plugin files.
+
+Resolve all relative paths, references, scripts, and assets from the source
+directory above unless the source skill explicitly names a different path.
+`;
+  }
+
+  return `## Execution Target
+
+The source skill and source directory above are instruction sources only. Do
+not modify files in the source directory unless the user explicitly asks to
+edit the skill implementation itself. Apply the workflow to the user's current
+working directory / invocation repository, preserving that directory as the
+project target for all reconnaissance, file generation, hooks, verification,
+and git status checks.
+
+Resolve all relative paths, references, scripts, and assets from the source
+directory above. If the source skill mentions Claude-only tools or slash-command
+behavior, map the intent to available Codex capabilities and explain any
+material difference to the user.
+`;
+}
+
 function buildWrapper({ sourceDir, sourceSkillPath, originalName, codexName, description, modelRoute }) {
   const invocation = originalName.includes(":") ? `/${originalName}` : originalName;
   const safeDescription = sanitizeDescription(description);
   const modelRouteSection = buildModelRouteSection(modelRoute);
+  const executionTargetSection = buildExecutionTargetSection(modelRoute && modelRoute.executionTarget);
 
   return `---
 name: ${codexName}
@@ -206,23 +254,11 @@ When this skill is invoked, read the source skill completely before acting:
 - Original command: \`${invocation}\`
 - Codex skill name: \`$${codexName}\`
 
-## Execution Target
-
-The source skill and source directory above are instruction sources only. Do
-not modify files in the source directory unless the user explicitly asks to
-edit the skill implementation itself. Apply the workflow to the user's current
-working directory / invocation repository, preserving that directory as the
-project target for all reconnaissance, file generation, hooks, verification,
-and git status checks.
+${executionTargetSection}
 
 Apply the source skill's body instructions. Treat unsupported Claude/Copilot
 frontmatter fields such as \`argument-hint\`, \`applyTo\`, \`dependencies\`,
 and \`origin\` as metadata rather than Codex skill frontmatter.
-
-Resolve all relative paths, references, scripts, and assets from the source
-directory above. If the source skill mentions Claude-only tools or slash-command
-behavior, map the intent to available Codex capabilities and explain any
-material difference to the user.
 
 ${modelRouteSection}User invocation mapping:
 

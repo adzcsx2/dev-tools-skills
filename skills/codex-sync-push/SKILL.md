@@ -19,6 +19,15 @@ argument-hint: "e.g. /dt:codex-sync-push"
 - 需要把 macOS / Windows 的 Codex 配置同步到另一台机器
 - 需要把当前配置保存到 dev-tools-skills 远程事实源
 
+## Execution Target
+
+本 skill 可从任意目录触发，但执行目标始终是 `dev-tools-skills` 仓库。
+
+- Claude：开始执行前先切换到已安装或已 clone 的 `dev-tools-skills` 仓库根目录
+- Codex：wrapper 必须把工具 `workdir` 设置为 `dev-tools-skills` 仓库根目录
+- 不得把调用目录当成同步脚本所在目录
+- 所有相对路径（如 `scripts/codex-sync.js`、`codex-sync/snapshot/`）都相对于 `dev-tools-skills` 仓库根目录解析
+
 ## Safety Boundaries
 
 脚本只做白名单采集，且会排除本机私有状态：
@@ -33,7 +42,7 @@ argument-hint: "e.g. /dt:codex-sync-push"
 
 ## Execution
 
-必须在 dev-tools-skills 仓库根目录执行：
+在 `dev-tools-skills` 仓库根目录执行：
 
 ```bash
 node scripts/codex-sync.js push

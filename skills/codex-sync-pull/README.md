@@ -9,6 +9,7 @@
 - 同步 hooks、prompts、`AGENTS.md` 和用户级 skills
 - 覆盖前自动备份旧文件到 `~/.codex-sync-backups/<timestamp>/`
 - 不覆盖登录态、sessions、logs、sqlite、cache、plugin cache 和安装 ID
+- 可从任意目录触发，但执行目录必须切到 `dev-tools-skills` 仓库根目录
 
 ## 用法
 

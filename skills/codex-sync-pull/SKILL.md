@@ -19,6 +19,15 @@ argument-hint: "e.g. /dt:codex-sync-pull"
 - 当前机器需要同步 Codex hooks、prompts、用户级 skills 和平台匹配的配置
 - Windows / macOS 之间需要共享同一套 Codex 工作流
 
+## Execution Target
+
+本 skill 可从任意目录触发，但执行目标始终是 `dev-tools-skills` 仓库。
+
+- Claude：开始执行前先切换到已安装或已 clone 的 `dev-tools-skills` 仓库根目录
+- Codex：wrapper 必须把工具 `workdir` 设置为 `dev-tools-skills` 仓库根目录
+- 不得把调用目录当成同步脚本所在目录
+- 所有相对路径（如 `scripts/codex-sync.js`、`codex-sync/snapshot/`）都相对于 `dev-tools-skills` 仓库根目录解析
+
 ## Safety Boundaries
 
 pull 会先备份被覆盖的文件到：
@@ -43,7 +52,7 @@ pull 不会写入或覆盖：
 
 ## Execution
 
-必须在 dev-tools-skills 仓库根目录执行：
+在 `dev-tools-skills` 仓库根目录执行：
 
 ```bash
 git pull --rebase

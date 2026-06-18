@@ -26,6 +26,15 @@ origin: dev-tools-skills
 - 更新 .claude-plugin/plugin.json 或 marketplace.json
 - 需要确保 install.sh 和 install.ps1 仍然能把最新远程版本正确同步到本地 Claude
 
+## Execution Target
+
+本 skill 可从任意目录触发，但执行目标始终是 `dev-tools-skills` 仓库。
+
+- Claude：开始执行前先切换到已安装或已 clone 的 `dev-tools-skills` 仓库根目录
+- Codex：wrapper 必须把工具 `workdir` 设置为 `dev-tools-skills` 仓库根目录
+- 不得把调用目录当成本插件仓库，也不得在调用目录里更新 skill、README 或 marketplace metadata
+- 所有相对路径（如 `skills/`、`.claude-plugin/`、`install.sh`）都相对于 `dev-tools-skills` 仓库根目录解析
+
 ## Core Principle
 
 远程仓库是唯一事实源。

@@ -38,6 +38,16 @@ cd dev-tools-skills
 
 安装完成后，还会额外为 VS Code Copilot 注册全局 prompt，并为 Codex 同步兼容 skill wrapper（例如 `$dt-init`、`$dt-push`）。Codex 的 `/prompts:dt-*` alias 默认不生成；如需兼容旧入口，可设置 `DEV_TOOLS_SYNC_CODEX_PROMPTS=1`。
 
+## 执行目标类型
+
+同一个 skill 可以从任意目录触发，但“调用目录”不一定等于“执行目标”。Claude 直接读取本仓库的 `SKILL.md`；Codex 读取安装脚本生成的 wrapper，两者都遵循下面的目标类型：
+
+| 类型 | 适用技能 | 执行目标 |
+| ---- | -------- | -------- |
+| 当前项目型 | `dt:init`、`dt:init-root`、`dt:push`、`dt:update-docs`、Android 工具等 | 调用目录 / 当前项目 |
+| dev-tools 仓库型 | `dt:codex-sync-push`、`dt:codex-sync-pull`、`dt:update-remote-plugins` | 无论从哪里触发，命令工作目录都必须切到 `dev-tools-skills` 仓库根目录 |
+| 用户记忆型 | `dt:study` | 调用目录只作为上下文，默认沉淀到用户级 memory / personal rule，不修改当前项目或插件源文件 |
+
 ## 包含的 Skills
 
 ### 通用工具 — `dt:` 前缀
@@ -46,7 +56,7 @@ cd dev-tools-skills
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 CLAUDE.md、AGENT.md、Copilot 配置，建立 docs 分类与 scoped rules，并通过 `dt:install-project-hooks` 生成 Claude/Codex final rule audit 项目级 hook                                                                                                                  |
 | `dt:init-root`             | 多仓库产品根目录初始化：按顺序执行 `dt:init` 和 `dt:update-docs`，继承 final rule audit 项目级 hook 初始化，再配置根目录本地 git、子项目 `.gitignore` 忽略、root 只 commit 不 push 策略，以及根目录 `dt:push` 子仓库编排边界                              |
-| `dt:study`                 | 修错回源：把已验证的 skill 失误直接沉淀回工作区里的源 SKILL，避免改在缓存副本上                                                                                                                                                                                                                                |
+| `dt:study`                 | 用户级学习：把已验证的问题沉淀为 memory / 个人规则，默认不修改当前项目、插件源文件或缓存副本                                                                                                                                                                                                                   |
 | `dt:push`                  | 一键发布工作流：自动暂存、拉取、按逻辑分组提交、推送，支持 --preview 预览                                                                                                                                                                                                                                      |
 | `dt:execute-loop`          | 串行执行循环：用多个全新子代理重复执行同一个后续 command + prompt，默认 3 轮，支持 `-N` 指定次数                                                                                                                                                                                                                |
 | `dt:update-remote-plugins` | 远程插件维护：更新配置与文档、验证 install 回流本地是否始终命中最新版本                                                                                                                                                                                                                                        |

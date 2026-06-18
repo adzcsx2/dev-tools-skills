@@ -29,6 +29,20 @@
       "tier": "spark",
       "reason": "Adding Chinese comments is a localized, low-risk source annotation task."
     },
+    "dt-codex-sync-pull": {
+      "preferred_model": "GPT-5.3-codex-spark",
+      "tier": "spark-with-escalation",
+      "reason": "Codex configuration pull is a procedural snapshot application workflow.",
+      "escalation": "snapshot schema changes or platform path conflicts require judgment",
+      "execution_target": "dev_tools_repository"
+    },
+    "dt-codex-sync-push": {
+      "preferred_model": "GPT-5.3-codex-spark",
+      "tier": "spark-with-escalation",
+      "reason": "Codex configuration push is a procedural snapshot and publication workflow.",
+      "escalation": "snapshot filtering risks secrets or publishing verification fails",
+      "execution_target": "dev_tools_repository"
+    },
     "dt-execute-loop": {
       "preferred_model": "high-reasoning",
       "tier": "reasoning",
@@ -65,7 +79,8 @@
     "dt-study": {
       "preferred_model": "high-reasoning",
       "tier": "reasoning",
-      "reason": "Capturing a reusable root cause into a source skill requires abstraction judgment."
+      "reason": "Capturing a verified lesson as user-level memory requires abstraction judgment.",
+      "execution_target": "user_memory"
     },
     "dt-to-public-cloudflare": {
       "preferred_model": "GPT-5.3-codex-spark",
@@ -82,7 +97,8 @@
       "preferred_model": "GPT-5.3-codex-spark",
       "tier": "spark-with-escalation",
       "reason": "Refreshing generated docs, metadata, install verification, commit, and push are procedural.",
-      "escalation": "skill audit finds semantic conflicts or install verification fails repeatedly"
+      "escalation": "skill audit finds semantic conflicts or install verification fails repeatedly",
+      "execution_target": "dev_tools_repository"
     },
     "dt-work-report": {
       "preferred_model": "GPT-5.3-codex-spark",
