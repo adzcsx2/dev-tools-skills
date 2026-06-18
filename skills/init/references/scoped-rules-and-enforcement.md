@@ -24,19 +24,18 @@
 不要把所有规则写进一个文件。生成的规则体系必须分层：
 
 - 主控路由（`CLAUDE.md` / Copilot 配置）：只写**最致命的红线** + **指向细则文件的索引**，保持高密度、低 token
-- 细则文件：拆到 `.ai/` 下专门给 AI 看的规则目录，按主题分文件
+- 细则文件：拆到 `docs/references/ai-rules/` 下专门给 AI 看的规则目录，按主题分文件
 
 推荐的 AI 规则目录结构（仅在项目有真实需求时建立，不要凭空塞满）：
 
 ```text
-.ai/
-├── README.md
-├── rules/
-│   ├── 01-architecture.md   # 整体架构与边界
-│   ├── 02-testing.md        # 测试规范（重点：生产代码禁止 Mock）
-│   ├── 03-api-rules.md      # 接口对接规范
-│   └── ...                  # 其他按主题拆分的规则
-└── skills/                  # canonical skills（见 project-bootstrap.md）
+docs/
+└── references/
+    └── ai-rules/
+        ├── 01-architecture.md   # 整体架构与边界
+        ├── 02-testing.md        # 测试规范（重点：生产代码禁止 Mock）
+        ├── 03-api-rules.md      # 接口对接规范
+        └── ...                  # 其他按主题拆分的规则
 ```
 
 主控路由里的索引写法示例（生成到 `CLAUDE.md` 时使用英文）：
@@ -44,14 +43,14 @@
 ```markdown
 Before writing code, read the relevant rule file on demand:
 
-- Writing tests? Read `.ai/rules/02-testing.md`
-- Touching APIs? Read `.ai/rules/03-api-rules.md`
-- Production code in `src/` must never contain mocks; see `.ai/rules/01-architecture.md`
+- Writing tests? Read `docs/references/ai-rules/02-testing.md`
+- Touching APIs? Read `docs/references/ai-rules/03-api-rules.md`
+- Production code in `src/` must never contain mocks; see `docs/references/ai-rules/01-architecture.md`
 ```
 
 生成要求：
 
-- 只在项目真实存在对应关注点时才创建 `.ai/rules/<topic>.md`；不要为没有的关注点造空文件
+- 只在项目真实存在对应关注点时才创建 `docs/references/ai-rules/<topic>.md`；不要为没有的关注点造空文件
 - 每个 rule 文件聚焦单一主题，低 token、高密度、可锚定
 - `CLAUDE.md` 与 Copilot 配置只保留红线 + `@`/路径索引，不复述细则全文
 - 若项目已有等价的 AI 规则目录（如 `docs/ai/`、`.cursor/rules/`），优先复用，不重复造目录

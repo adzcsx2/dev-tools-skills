@@ -45,7 +45,7 @@
 11. 若本次已升级旧版 AI 规则文件，注明已升级到当前 init 标准
 12. 当前标准只约束后续 AI coding，不主动重构未被需求触碰的既有源码
 13. 禁止在 git commit message 中包含任何形式的 AI 署名行（如 `Co-Authored-By: Claude ... <noreply@anthropic.com>` 等），不限于特定模型版本
-14. 规则模块化与按需加载：主控 `CLAUDE.md` 只保留红线 + 指向细则文件的索引；细则按主题拆到 `.ai/rules/<topic>.md`（仅项目有真实关注点时建立）
+14. 规则模块化与按需加载：主控 `CLAUDE.md` 只保留红线 + 指向细则文件的索引；细则按主题拆到 `docs/references/ai-rules/<topic>.md`（仅项目有真实关注点时建立）
 15. 目录级隔离：生产代码目录（如 `src/`）禁止引入 Mock 数据、伪造返回值或测试专用库；测试目录（如 `tests/`）允许 Mock / Stub / Spy
 16. Linter 强制边界：记录哪些依赖 / import 边界由项目已有的 Linter / 静态检查强制（如 ESLint `no-restricted-imports`、Ruff、ArchUnit）；不擅自引入项目未采用的新工具
 17. 分步开发工作流：后续 AI coding 遵循接口约定 -> 人类确认 -> 编写业务 -> 编写测试 四步，避免在单次任务里为了测试好写而改业务逻辑
@@ -91,7 +91,7 @@
 - 长度优先控制在 30 到 80 行；不能复制一整份 `CLAUDE.md`
 - 只保留对所有任务都有帮助的规则
 - 必须包含精简版 GP-2 至 GP-9：单一事实来源、复用优先、触碰文件与计划触发、最小验证、AI vibe coding、配置文件互斥、文档归档规则
-- 必须包含精简版 SR 维度：生产目录禁止 Mock、测试目录允许 Mock；记录由 Linter 强制的依赖边界；遵循接口 -> 确认 -> 业务 -> 测试 分步工作流；外部依赖经注入隔离、补集成测试与环境防呆（按本项目栈裁剪）；细则按需读取 `.ai/rules/<topic>.md`
+- 必须包含精简版 SR 维度：生产目录禁止 Mock、测试目录允许 Mock；记录由 Linter 强制的依赖边界；遵循接口 -> 确认 -> 业务 -> 测试 分步工作流；外部依赖经注入隔离、补集成测试与环境防呆（按本项目栈裁剪）；细则按需读取 `docs/references/ai-rules/<topic>.md`
 - 如果项目已安装 final rule audit hook，必须补一句：任务收尾前必须复审规则、已修改文件和最小验证结果；发现违反规则时先修复
 
 若启用 experimental 模式，Copilot 项目级配置必须基于变更后重新扫描结果更新。

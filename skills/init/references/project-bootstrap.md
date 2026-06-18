@@ -10,7 +10,7 @@
 - 生成或增量升级 `AGENT.md`
 - 生成或增量升级 Copilot 项目级配置（`AGENTS.md` 或 `.github/copilot-instructions.md` 二选一）
 - 建立 `/docs` 文档根目录和必要分类目录
-- 仅在项目存在真实关注点或明确隔离价值时，建立 `.ai/rules/<topic>.md` scoped rules
+- 仅在项目存在真实关注点或明确隔离价值时，建立 `docs/references/ai-rules/<topic>.md` scoped rules
 - 委托 `dt:install-project-hooks` 安装项目级 Claude/Codex hooks
 
 ## Removed Defaults
@@ -53,6 +53,6 @@ skills/install-project-hooks/SKILL.md
 ## Boundaries
 
 - 不把项目级 rules 和项目级 hooks 混成同一套协议
-- 不把 `.ai/rules/` scoped rules 等同于 `.ai/skills/` 多端同步
-- 不创建空的 `.ai/rules/<topic>.md`；只有项目有真实关注点或明确隔离价值时才创建
+- 不把 `docs/references/ai-rules/` scoped rules 等同于 `.ai/skills/` 多端同步
+- 不创建空的 `docs/references/ai-rules/<topic>.md`；只有项目有真实关注点或明确隔离价值时才创建
 - 不主动删除旧 `.ai/skills` 产物；删除必须由用户明确要求并先确认计划

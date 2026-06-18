@@ -206,6 +206,15 @@ When this skill is invoked, read the source skill completely before acting:
 - Original command: \`${invocation}\`
 - Codex skill name: \`$${codexName}\`
 
+## Execution Target
+
+The source skill and source directory above are instruction sources only. Do
+not modify files in the source directory unless the user explicitly asks to
+edit the skill implementation itself. Apply the workflow to the user's current
+working directory / invocation repository, preserving that directory as the
+project target for all reconnaissance, file generation, hooks, verification,
+and git status checks.
+
 Apply the source skill's body instructions. Treat unsupported Claude/Copilot
 frontmatter fields such as \`argument-hint\`, \`applyTo\`, \`dependencies\`,
 and \`origin\` as metadata rather than Codex skill frontmatter.

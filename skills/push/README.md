@@ -12,7 +12,7 @@
 - 工作区有未暂存的变更，需要一键提交推送
 - 已提交但尚未 push 的本地 commit 也会直接推送到远程
 - 本地堆积多个未推送的零散 commit（全部自己提交、中途无他人提交）时，压成 1 个干净 commit 后再推送
-- 如果当前目录是 `dt:init-root` 初始化出的多仓库根目录（存在 `.ai/init-root.yml` 且标记 `root_git_policy: commit_only_no_push`），会先发现直接子级 git 仓库并在各子仓库目录执行普通 `dt:push`；root 仓库只创建本地 commit，绝不 push
+- 如果当前目录是 `dt:init-root` 初始化出的多仓库根目录（存在 `docs/references/init-root.yml` 且标记 `root_git_policy: commit_only_no_push`），会先发现直接子级 git 仓库并在各子仓库目录执行普通 `dt:push`；root 仓库只创建本地 commit，绝不 push
 
 ## 用法
 

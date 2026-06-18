@@ -11,7 +11,7 @@
 - 扫描根目录直接子级 git 项目，并写入根 `.gitignore`
 - 在根目录初始化本地 git 仓库，但不配置 remote
 - 在 `AGENT.md` 写入多仓库根目录 git 策略：root 只 commit 不 push，根目录 `dt:push` 可编排子项目各自 push
-- 创建 `.ai/init-root.yml` 作为 root commit-only/no-push policy 标记，供 `dt:push` 识别 root 与子仓库编排边界
+- 创建 `docs/references/init-root.yml` 作为 root commit-only/no-push policy 标记，供 `dt:push` 识别 root 与子仓库编排边界
 
 ## 用法
 
