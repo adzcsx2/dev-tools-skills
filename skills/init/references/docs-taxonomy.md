@@ -52,11 +52,11 @@
 
 触发条件：一个工作项会产出 >=3 份关联文档时，使用任务聚合子目录；1-2 份独立文档按传统分类归档。
 
-位置约定：`docs/plan/<task-slug>/`，`<task-slug>` 使用英文 kebab-case。
+位置约定：`docs/plan/<中文任务名>/`，任务目录默认使用中文语义命名，例如 `docs/plan/支付链路改造/`。只有项目已有稳定英文 slug 规范或用户明确要求时，才使用英文 kebab-case。
 
 最低结构要求：
 
-- `README.md`：任务背景、文档清单、建议阅读顺序、关联源码、任务状态
+- `README.md`：固定入口文件名，内容写任务背景、文档清单、建议阅读顺序、关联源码、任务状态
 - `00-执行文档.md`：进度指针、断点续做协议、Phase checklist、执行日志
 
 其他约定：
@@ -79,11 +79,12 @@
 推荐结构：
 
 ```text
-docs/reports/<report-topic>/<report-file>.md
+docs/reports/<中文主题>/<中文报告文件>.md
 ```
 
 规则：
 
+- 报告主题目录和报告文件名默认使用中文语义命名，例如 `docs/reports/性能优化/二次评估报告.md`
 - 不要把这类单个报告 `.md` 直接平铺到 `docs/reports/`
 - 同一主题的二次、三次或更多轮报告，继续复用同一主题目录
 - 持续更新日志如 `CHANGELOG.md` 不受此规则约束，可直接放在 `docs/reports/` 根下
@@ -95,6 +96,6 @@ docs/reports/<report-topic>/<report-file>.md
 - 新文档默认放在 `/docs` 下
 - 新建文档前，先检查 `/docs` 及其现有分类是否已有语义等价目录，有则复用
 - 默认不要在仓库根目录新增零散 `.md` 文档
-- 多文档工作项统一聚合到 `docs/plan/<task-slug>/`
-- 审计 / 性能 / 评估 / 复盘类报告默认使用 `docs/reports/<report-topic>/`
+- 多文档工作项统一聚合到 `docs/plan/<中文任务名>/`
+- 审计 / 性能 / 评估 / 复盘类报告默认使用 `docs/reports/<中文主题>/`
 - `CHANGELOG.md` 这类持续更新日志可保留在 `docs/reports/` 根下

@@ -38,19 +38,19 @@ docs/
         └── ...                  # 其他按主题拆分的规则
 ```
 
-主控路由里的索引写法示例（生成到 `CLAUDE.md` 时使用英文）：
+主控路由里的索引写法示例（生成到 `CLAUDE.md` 时遵循项目或用户语言，中文项目默认中文）：
 
 ```markdown
-Before writing code, read the relevant rule file on demand:
+写代码前，按需读取相关规则文件：
 
-- Writing tests? Read `docs/references/ai-rules/02-testing.md`
-- Touching APIs? Read `docs/references/ai-rules/03-api-rules.md`
-- Production code in `src/` must never contain mocks; see `docs/references/ai-rules/01-architecture.md`
+- 写测试？读取 `docs/references/ai-rules/02-测试规范.md`
+- 修改接口？读取 `docs/references/ai-rules/03-接口规则.md`
+- `src/` 生产代码不得包含 Mock；见 `docs/references/ai-rules/01-架构边界.md`
 ```
 
 生成要求：
 
-- 只在项目真实存在对应关注点时才创建 `docs/references/ai-rules/<topic>.md`；不要为没有的关注点造空文件
+- 只在项目真实存在对应关注点时才创建 `docs/references/ai-rules/<中文主题>.md`；不要为没有的关注点造空文件
 - 每个 rule 文件聚焦单一主题，低 token、高密度、可锚定
 - `CLAUDE.md` 与 Copilot 配置只保留红线 + `@`/路径索引，不复述细则全文
 - 若项目已有等价的 AI 规则目录（如 `docs/ai/`、`.cursor/rules/`），优先复用，不重复造目录
@@ -71,12 +71,12 @@ Before writing code, read the relevant rule file on demand:
 
 ### 典型隔离：src vs tests
 
-生产代码目录规则（如 `src/` 下的规则文件，内容用英文生成）：
+生产代码目录规则（如 `src/` 下的规则文件，内容默认中文生成）：
 
 ```text
-You are a production-code expert. All code in this directory must be real business logic.
-Strictly forbidden: introducing any mock data, fake return values, or test-only libraries.
-All data must come from injected dependencies or real interfaces.
+你正在维护生产代码。本目录下的代码必须是真实业务逻辑。
+严禁引入 Mock 数据、伪造返回值或测试专用库。
+所有数据必须来自注入的依赖或真实接口。
 ```
 
 测试代码目录规则（如 `tests/` 下的规则文件）：
@@ -151,7 +151,7 @@ module.exports = {
 
 生成要求：
 
-- 把这四步写进 `CLAUDE.md` / Copilot 配置的“开发工作流”段落（精简版，英文）
+- 把这四步写进 `CLAUDE.md` / Copilot 配置的“开发工作流”段落（精简版，默认中文）
 - 与 SR-3 目录隔离、SR-4 Linter 强制配合：第 3 步在 `src/` 触发生产规则，第 4 步在 `tests/` 触发测试规则
 - 与 GP-5 Plan-First 一致：接口约定阶段相当于先给计划再实现
 

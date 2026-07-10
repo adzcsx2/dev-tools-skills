@@ -1,7 +1,7 @@
 ---
 name: dt:push
 description: "One-push release workflow: auto git add all changes, pull latest, logical-group commit, push to remote with optional tag."
-argument-hint: "[version|--preview] e.g. /dt:push 1.2.2 or /dt:push --preview"
+argument-hint: "[version] e.g. /dt:push 1.2.2"
 ---
 
 > **中文环境要求**
@@ -67,17 +67,15 @@ Step 4.5 会把多个本地 commit 整理（squash）成 1 个干净 commit。�
 
 - `/dt:push` - 自动暂存所有变更，按逻辑分组提交，推送到远程
 - `/dt:push 1.2.2` - 更新文档版本号到 1.2.2，提交并打 tag
-- `/dt:push --preview` - 预览分组方案与 commit messages，不执行任何写入性 git 操作
 
 ---
 
 ## Command Parameters
 
-| Parameter   | Description                                                     |
-| ----------- | --------------------------------------------------------------- |
-| No args     | 自动 git add 所有变更，按逻辑分组提交，推送到远程               |
-| `X.Y.Z`     | 额外将文档中的版本号更新为指定版本，并创建 tag                  |
-| `--preview` | 仅预览逻辑分组方案与 commit messages，不执行任何写入性 git 操作 |
+| Parameter | Description                                       |
+| --------- | ------------------------------------------------- |
+| No args   | 自动 git add 所有变更，按逻辑分组提交，推送到远程 |
+| `X.Y.Z`   | 额外将文档中的版本号更新为指定版本，并创建 tag    |
 
 ---
 
@@ -88,7 +86,7 @@ Step 4.5 会把多个本地 commit 整理（squash）成 1 个干净 commit。�
 | 触发步骤                 | 必读 reference                      | 内容                                                                                                          |
 | ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Step 1 / Step 5 出现冲突 | `references/conflict-resolution.md` | 冲突分级分流（轻冲突自动 merge / 重冲突逐文件三选一）完整流程 Step A–E                                        |
-| Step 4 工作区分组提交    | `references/commit-grouping.md`     | P0–P4 分组算法、TDD 功能包、主题纯度校验、commit message 规则、preview 格式                                   |
+| Step 4 工作区分组提交    | `references/commit-grouping.md`     | P0–P4 分组算法、TDD 功能包、主题纯度校验、commit message 规则                                                 |
 | Step 4.5 本地提交整理    | `references/local-squash.md`        | 破坏性安全说明、第 0–6 步（前置守卫 / 校验 / 聚合提交 / soft reset 重建单个 commit / 一致性 gate / 失败回退） |
 
 ---
@@ -157,16 +155,15 @@ git config user.email
    - 如果配置缺失或不完整，补充扫描直接子级目录中的 `.git`
    - 跳过不存在、不是目录、没有 `.git`、或不是直接子级的条目，并在结果中说明
 4. 先处理每个子仓库：
-   - 在子仓库目录中执行普通 `dt:push` Step 0 至 Step 5，使用同一组参数（包括可选版本号或 `--preview`）
+   - 在子仓库目录中执行普通 `dt:push` Step 0 至 Step 5，使用同一组参数（包括可选版本号）
    - 子仓库有工作区变更或未推送提交时，按普通规则提交并推送
    - 子仓库无待处理工作时，记录为 skipped，不视为失败
    - 如果任一子仓库冲突、hook 失败、push 失败或无法安全继续，停止整个 root 编排，输出该子仓库路径和 `git status`，不得继续提交 root
 5. 子仓库全部处理完成后，检查 root `git status --porcelain`；如果出现直接子级 git 项目内容，停止并提示先修正 `.gitignore`
-6. 如果 `--preview`，展示子仓库处理计划、root 将提交的文件和 root commit message，不执行写入
-7. 如果 root 工作区无变更，报告 root 没有需要本地提交的内容；如果子仓库已经处理完成，也要在结果中列出子仓库状态
-8. 如果 root 工作区有变更，执行 `git add .`，但不得 stage 被 `.gitignore` 忽略的子项目目录
-9. 创建 1 个 root 本地 commit，commit message 使用中文，例如 `docs: 更新多仓库根目录初始化状态`
-10. 完成后输出：子仓库处理结果、root 已本地 commit（如有）、root 未 push
+6. 如果 root 工作区无变更，报告 root 没有需要本地提交的内容；如果子仓库已经处理完成，也要在结果中列出子仓库状态
+7. 如果 root 工作区有变更，执行 `git add .`，但不得 stage 被 `.gitignore` 忽略的子项目目录
+8. 创建 1 个 root 本地 commit，commit message 使用中文，例如 `docs: 更新多仓库根目录初始化状态`
+9. 完成后输出：子仓库处理结果、root 已本地 commit（如有）、root 未 push
 
 命中本流程后，**不得对 root 仓库继续执行 Step 1 至 Step 5**；Step 1 至 Step 5 只允许在各子仓库目录内按普通仓库规则执行。
 
@@ -275,7 +272,7 @@ git diff HEAD --name-only
 
 #### 4.1 执行分组提交
 
-工作区变更的分组算法、TDD 功能包约束、主题纯度校验、commit message 规则与 dry-run 格式，**全部在 `references/commit-grouping.md` 中**。进入本步骤后必须完整执行该 reference 的全部强制步骤。
+工作区变更的分组算法、TDD 功能包约束、主题纯度校验与 commit message 规则，**全部在 `references/commit-grouping.md` 中**。进入本步骤后必须完整执行该 reference 的全部强制步骤。
 
 骨架要点（细节以 reference 为准）：
 
@@ -284,8 +281,6 @@ git diff HEAD --name-only
 3. **TDD 功能包（P1.5）**：同一功能的实现 + 测试 + 需求总结文档必须合并为 1 个 commit，不得拆成"功能 commit"+"测试 commit"
 4. **主题纯度校验**：P0 / P1 / P2 分组内每个文件纯度 < 30% 时强制移出到 P4 独立 commit，避免无关改动被主题 commit 吞掉
 5. **逐组提交**：`git reset HEAD` → `git add <该组文件>` → `git commit -m "<message>"`；commit 失败（如 hook 拒绝）→ 停止并提示用户
-6. **`--preview`**：仅展示分组方案与 commit messages，不执行任何写入性 git 操作
-
 > **必读**：执行分组前完整阅读 `references/commit-grouping.md`，不要只凭上述骨架提交。
 
 ### Step 4.5: Squash Local Unpushed Commits（本地未推送提交整理）
@@ -306,8 +301,6 @@ git diff HEAD --name-only
 4. **第 3 步 soft reset 重建单个 commit**：`git reset --soft "$BASE"` 后使用 `git add -A` 一次性暂存全部最终改动，并提交为 1 个聚合 commit；提交完成后确认暂存区/工作区已清空
 5. **第 4 步 强制一致性校验（gate）**：整理后 `git diff "$BASE" HEAD` 必须与整理前指纹完全一致，且新 commit 数必须为 1；不一致 → 回退
 6. **第 5 步 失败回退**：任一步失败立即 `git reset --hard "$SQUASH_ORIG"` 恢复原历史和干净工作区；若恢复后工作区仍不干净则停止整个 push 流程并报告；**禁止** force-push、**禁止**推送被破坏的历史
-7. **`--preview`**：仅展示整理方案，不执行任何写入性 git 操作（禁止 reset / commit / push）
-
 > **必读且强制顺序**：执行整理前完整阅读 `references/local-squash.md`。记录回退锚点（第 0 步）**必须在 reset 之前完成**，否则丢失回退点。绝不能只凭上述骨架就执行 reset。
 
 ### Step 5: Push to Remote
@@ -381,8 +374,7 @@ Tag 命名格式：直接使用用户提供的版本号，例如 `1.2.2`
 8. Tag 直接使用用户提供的版本号，不添加 `v` 前缀，例如 `1.2.2`
 9. Step 3 在 Step 4 之前执行，Step 3 提交的文件不会在 Step 4 中重复提交
 10. Step 1 提前拉取代码，大幅降低 Step 5 推送时的冲突概率
-11. `/dt:push --preview` 仅预览分组方案与 commit messages，不执行任何写入性 git 操作
-12. 已 `git commit` 但未 `git push` 的场景属于正常路径；工作区干净时不能据此直接退出
-13. **主题纯度校验是强制步骤**（细则见 `references/commit-grouping.md`）：P0 / P1 / P2 分组不能只凭"文件里命中主题模式"就纳入整个文件，必须计算纯度：纯度 ≥ 30% 保留在原分组；纯度 < 30% 强制移出到 P4 独立 commit，不询问用户。P1.5 则必须通过显式关联校验。这一规则用于避免 bug 修复、重构等不相关修改被主题 commit（如"统一国际化..."）吞掉，导致远程日志无法追溯真实变更
-14. **本地 commit 整理（Step 4.5）只动未推送提交**（细则见 `references/local-squash.md`）：仅当本地有 ≥ 2 个未推送 commit、全部由当前用户提交、中途无他人提交、且不含 merge commit 时，才把这些未推送 commit 用 `git reset --soft` 压成 1 个干净 commit。已推送到远程的提交绝不 reset / rebase / amend / force-push。整理只改历史结构，不改最终代码；任一校验不通过或整理失败，保留原始本地历史并原样推送
-15. **细则已拆分到 `references/`**：Step 1/5 冲突处理、Step 4 分组提交、Step 4.5 本地整理的完整强制规则分别在 `conflict-resolution.md`、`commit-grouping.md`、`local-squash.md`。执行到对应步骤时必须先完整阅读对应 reference，不要只凭主文件骨架执行
+11. 已 `git commit` 但未 `git push` 的场景属于正常路径；工作区干净时不能据此直接退出
+12. **主题纯度校验是强制步骤**（细则见 `references/commit-grouping.md`）：P0 / P1 / P2 分组不能只凭"文件里命中主题模式"就纳入整个文件，必须计算纯度：纯度 ≥ 30% 保留在原分组；纯度 < 30% 强制移出到 P4 独立 commit，不询问用户。P1.5 则必须通过显式关联校验。这一规则用于避免 bug 修复、重构等不相关修改被主题 commit（如"统一国际化..."）吞掉，导致远程日志无法追溯真实变更
+13. **本地 commit 整理（Step 4.5）只动未推送提交**（细则见 `references/local-squash.md`）：仅当本地有 ≥ 2 个未推送 commit、全部由当前用户提交、中途无他人提交、且不含 merge commit 时，才把这些未推送 commit 用 `git reset --soft` 压成 1 个干净 commit。已推送到远程的提交绝不 reset / rebase / amend / force-push。整理只改历史结构，不改最终代码；任一校验不通过或整理失败，保留原始本地历史并原样推送
+14. **细则已拆分到 `references/`**：Step 1/5 冲突处理、Step 4 分组提交、Step 4.5 本地整理的完整强制规则分别在 `conflict-resolution.md`、`commit-grouping.md`、`local-squash.md`。执行到对应步骤时必须先完整阅读对应 reference，不要只凭主文件骨架执行

@@ -39,7 +39,9 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - 默认遵循先搜索、先复用、最小改动、局部一致
 - 如果项目曾经执行过 init，必须把旧版 CLAUDE.md、AGENT.md、AGENTS.md 或 Copilot 指令增量升级到当前 init 标准，而不是只报告已存在
 - 当前 init 标准只约束后续 AI coding 行为，不要求主动重构既有源码；只有后续需求触碰到相关文件时才按新规则执行
-- 生成的 CLAUDE.md、AGENT.md 和 checklist 文档必须使用英文
+- 生成的文档内容默认遵循用户或项目语言；用户未指定时使用中文
+- 人类阅读的文档标题、文件名、任务目录、报告主题、checklist 名称和 AI 规则主题文件默认使用中文语义命名
+- 工具约定入口文件名保持固定，例如 CLAUDE.md、AGENT.md、AGENTS.md、.github/copilot-instructions.md、README.md 和 CHANGELOG.md
 - 生成的 AI 规则必须面向 AI vibe coding：低 token、高密度、小文件、单职责、可检索
 - 生成的 AI 规则必须包含触碰文件原则、计划触发条件和最小验证规则
 
@@ -74,7 +76,8 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - `api` 不是默认强制分类；只有项目或用户需求明确需要 API 文档分类时才创建
 - 如果项目已有语义等价目录，例如 `/docs/plans`，则复用它，不要再创建 `/docs/plan`
 - 如果缺少某个需要的分类且不存在语义等价目录，则创建对应分类目录
-- 报告类文档（审计、性能、评估、复盘）默认先创建 `docs/reports/<report-topic>/` 主题目录，再在目录内创建报告文件；不要把单个报告 `.md` 直接放在 `docs/reports/` 根下；持续更新日志如 `CHANGELOG.md` 可保留在 `docs/reports/` 根下
+- 多文档工作项默认聚合到 `docs/plan/<中文任务名>/`；只有项目已有英文 slug 规范或用户明确要求时才使用英文 kebab-case
+- 报告类文档（审计、性能、评估、复盘）默认先创建 `docs/reports/<中文主题>/` 主题目录，再在目录内创建中文命名的报告文件；不要把单个报告 `.md` 直接放在 `docs/reports/` 根下；持续更新日志如 `CHANGELOG.md` 可保留在 `docs/reports/` 根下
 - 生成的 CLAUDE.md 和 Copilot 项目级配置必须写入文档归档规则，确保后续 AI 不在根目录或 `/docs` 下乱建同义文档目录
 - 生成的 CLAUDE.md 和 AGENT.md 必须显式写入：如果项目存在 final rule audit hook，最终回复前必须复审适用规则、已修改文件和最小验证结果；发现违反规则时先修复
 
