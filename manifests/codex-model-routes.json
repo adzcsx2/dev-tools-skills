@@ -71,10 +71,9 @@
       "escalation": "hook registry semantics change or tool runtime behavior is ambiguous"
     },
     "dt-push": {
-      "preferred_model": "GPT-5.3-codex-spark",
-      "tier": "spark-with-escalation",
-      "reason": "Commit, pull, and push workflow is mostly deterministic git automation.",
-      "escalation": "conflicts, divergent history, ambiguous staging, or release-risk decisions appear"
+      "preferred_model": "high-reasoning",
+      "tier": "reasoning",
+      "reason": "Push orchestration requires safe staging, upstream interpretation, conflict semantics, optional history rewriting, rollback gates, and multi-repository release judgment."
     },
     "dt-study": {
       "preferred_model": "high-reasoning",
