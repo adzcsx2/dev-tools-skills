@@ -4,7 +4,19 @@
 > 主 SKILL.md 只保留分组优先级表和执行骨架，分组算法、TDD 功能包约束、纯度校验等强制规则全部在此。
 > 进入 Step 4 后必须完整执行本文件的全部强制步骤，不得只看主文件的摘要就提交。
 
-## 前置：小批量快速路径
+## 前置：读取完整变更
+
+先读取 staged、unstaged、deleted 和 untracked 文件，不能只看 `git diff HEAD`：
+
+```bash
+git status --porcelain=v1 --untracked-files=all
+git diff
+git diff --cached
+```
+
+对 untracked 文本文件读取实际内容后再判断主题；二进制、大文件或无法安全读取的文件按路径和文件类型单独处理，不猜测内容。
+
+### 小批量快速路径
 
 **变更文件总数 ≤ 3 个**：跳过下方所有分组分析，直接将全部文件合并为 **1 个 commit**，避免过度切分。文件 > 3 个时才执行完整分组流程。
 
@@ -113,15 +125,17 @@ purity = 能被该分组主题解释的 diff 行数 / 该文件的总有效 diff
 
 ## 5. 分组提交执行
 
-对每个分组（含单文件 P4）依次执行：
+对每个分组（含单文件 P4）依次执行。命令中的文件路径必须作为独立、带引号的 literal argument 传递，不得拼成字符串后二次求值：
 
 ```bash
-git reset HEAD                  # 清空暂存区
-git add <该分组所有文件>
+git reset                       # 清空暂存区，不修改工作区文件
+git add -A -- <该分组所有文件>
 git commit -m "<分组 commit message>"
 ```
 
 **如果 commit 失败**（如 pre-commit hook 拒绝）→ 停止，保留当前状态，提示用户处理后手动重新执行。
+
+每次 commit 后重新读取 `git status --porcelain=v1 --untracked-files=all`，确认已提交文件不再残留、其他分组文件仍存在。最后一个分组提交完成后工作区和 index 必须为空；否则停止，不进入 squash 或 push。
 
 ## 6. Commit message 生成规则
 
@@ -154,3 +168,25 @@ git commit -m "<分组 commit message>"
 - 保持简洁，一行描述清楚即可
 - **禁止**在 commit message 中追加 `Co-Authored-By` 行
 - **禁止用分组主导主题掩盖残留 diff**：分组内每个文件都必须通过第 4 节的纯度校验
+
+## 7. Dry-run 模式（预览）
+
+执行 `/dt:push --preview` 时，仅展示分组结果与生成的 commit messages，**不执行 `git add`、`git reset`、`git commit` 或任何其他写入性操作**：
+
+```
+[preview] 检测到 N 个逻辑分组：
+
+分组 1（P0 字符串替换，3 个文件）
+  文件：app/api/meeting.py, docs/api.md, scripts/sync_swagger.sh
+  将提交：chore: 统一测试环境域名地址为 new.example.com
+
+分组 2（P3 同主题新增，2 个文件）
+  文件：skills/push/SKILL.md, skills/push/README.md
+  将提交：feat: 新增 push skill 文档
+
+分组 3（P4 独立，1 个文件）
+  文件：README.md
+  将提交：docs: 更新项目简介
+
+本次为只读预览。若要执行，请重新调用不带 `--preview` 的 `/dt:push`。
+```

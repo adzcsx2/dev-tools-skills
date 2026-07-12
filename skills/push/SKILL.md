@@ -1,380 +1,155 @@
 ---
 name: dt:push
-description: "One-push release workflow: auto git add all changes, pull latest, logical-group commit, push to remote with optional tag."
-argument-hint: "[version] e.g. /dt:push 1.2.2"
+description: "One-push release workflow: preview, sync upstream, logical-group commit, optionally squash, push, and optionally tag."
+argument-hint: "[version] [--preview] [--squash] e.g. /dt:push 1.2.2 --preview"
 ---
 
 > **中文环境要求**
 >
-> 本技能运行在中文环境下，请遵循以下约定：
->
-> - 面向用户的回复、注释、提示信息必须使用中文
-> - AI 内部处理过程可以使用英文
-> - 所有生成的文件必须使用 UTF-8 编码
->
-> ---
+> - 面向用户的回复、注释和提示必须使用中文
+> - 所有生成文件必须使用 UTF-8 编码且不带 BOM
 
 # push Skill
 
-一键发布工作流：自动暂存所有变更、拉取最新代码、按逻辑分组提交、推送到远程仓库。
+在用户当前工作目录和当前分支中完成 Git 发布流程：先解析参数和执行只读检查，再同步 upstream，按逻辑分组提交，按需整理未推送提交，最后推送并可选创建 tag。
 
-**重要：所有 git 命令均在用户当前工作目录执行。**
+## 硬约束
 
-## 硬约束：不创建新分支
+1. **不创建或切换分支**：禁止 `git branch <new>`、`git checkout -b`、`git switch -c`、切换已有分支和创建 worktree。
+2. **不改写已推送历史**：禁止对任何已推送 commit 执行 reset、rebase、amend 或 force-push。
+3. **preview 严格只读**：`--preview` 禁止 fetch、pull、stash、add、reset、commit、tag、push 和任何文件写入。
+4. **默认保留逻辑分组**：普通 `/dt:push` 不 squash；只有用户显式传入 `--squash` 才允许整理 `@{u}..HEAD` 内未推送 commit。
+5. **冲突不猜测覆盖**：Git 未自动解决的冲突必须按 reference 取证；不得根据 `ours/theirs` 字面含义直接推断本地或远程。
+6. **跨平台执行**：根据当前 shell 使用兼容语法；不得在 PowerShell 中直接执行 Bash 的 `$(...)`、`head`、`2>/dev/null`、`/tmp` 或 shell 变量赋值。
+7. **失败即停**：冲突、hook、同步、提交、tag 或 push 无法安全继续时，停止并报告当前仓库路径、分支和 `git status --short --branch`。
 
-本 skill 全程在**用户当前分支**上操作，任何情况下都 **禁止**：
+## Parameters
 
-- 创建新分支（`git branch <new>` / `git checkout -b` / `git switch -c`）
-- 切换到其他已有分支
-- 创建 worktree
-- 以"备份"、"规避冲突"、"rebase 失败救援"等任何名义生成新分支
+| 参数 | 行为 |
+| --- | --- |
+| 无参数 | 同步、按逻辑分组提交并推送 |
+| `X.Y.Z` | 额外更新文档版本记录，并在代码推送成功后创建同名 tag |
+| `--preview` | 只读展示版本更新、提交分组、squash 和推送计划 |
+| `--squash` | 在推送前把符合安全条件的本地未推送 commit 整理为 1 个 |
 
-唯一例外：远程尚未存在当前分支时，`git push -u` 会在远程创建同名分支 —— 这是当前分支的首次推送，不属于"新建分支"。
+参数可以组合，例如 `/dt:push 1.2.2 --preview --squash`。未知参数、重复版本号或不符合 `X.Y.Z` 的版本号必须报错退出。
 
-如果冲突 / rebase / push 无法继续推进，**必须停下**并向用户报告当前状态（`git status` 输出 + 建议的下一步），让用户人工决策，**不得**自动创建新分支来绕过。
+## References（执行到对应步骤前必须完整读取）
 
-## 硬约束：本地 commit 整理只动未推送提交
+| 触发步骤 | 必读文件 | 内容 |
+| --- | --- | --- |
+| Step 2、4、8 | `references/git-transport.md` | 跨平台 pre-flight、upstream/remote、同步、push、tag 和 init-root 编排 |
+| Step 3、6 | `references/commit-grouping.md` | preview 与工作区逻辑分组、TDD 功能包、纯度校验、commit message |
+| Step 4 出现冲突 | `references/conflict-resolution.md` | rebase/stash 冲突取证、版本语义和人工决策 |
+| Step 7 且传入 `--squash` | `references/local-squash.md` | 未推送历史整理、安全 gate 和失败回退 |
 
-Step 4.5 会把多个本地 commit 整理（squash）成 1 个干净 commit。该能力受以下硬约束限制：
-
-- **只允许操作 `@{u}..HEAD` 范围内、尚未推送到远程的本地 commit**
-- **绝对禁止**对已推送到远程的 commit 执行 reset / rebase / amend / force-push 等任何改写历史的操作
-- 整理时**禁止**触碰位于 upstream 之内（已推送）的任何提交
-- 整理前后都不创建新分支、不切换分支、不创建 worktree
-- 整理失败或无法安全判定边界时，**保留原始 commit 历史不动**，进入 Step 5 原样推送；若 reset 后回退仍无法恢复干净状态，则停止整个 push 流程并报告
-
-## 硬约束：init-root 根目录 root 不 push，子仓库正常提交推送
-
-如果当前目录存在 `docs/references/init-root.yml`，且其中包含 `root_git_policy: commit_only_no_push`，当前仓库视为 `dt:init-root` 初始化出的多仓库产品根目录：
-
-- root 仓库只保存 AI 规则、文档、`.gitignore` 等协调状态
-- root 仓库允许执行 Step 4 的本地提交，但**禁止对 root 仓库执行 Step 1 pull、Step 4.5 squash、Step 5 push 和 tag push**
-- root 仓库没有 remote 是正常状态，不应因缺少 `origin` 退出
-- 从 root 运行本 skill 时，必须发现直接子级 git 仓库，并在每个子仓库目录中执行普通 `dt:push` 流程；子仓库按自己的 remote / upstream 正常 pull、commit、squash、push
-- 子仓库出现冲突、hook 失败、push 失败或其他无法继续的状态时，停止整个 root 编排并报告该子仓库的 `git status`；不得创建新分支绕过
-- root 提交前必须确认 `.gitignore` 已忽略所有直接子级 git 项目，且 `git status --short` 中没有子项目内容被 staged/committed
-
-## When to Use
-
-- 开发完成，准备将代码推送到远程仓库
-- 发版时需要更新文档版本号并创建 tag
-- 需要自动生成提交信息并按逻辑分组提交
-- 工作区有未暂存的变更，需要一键提交推送
-- 已经执行 `git add` / `git commit`，但本地提交尚未 push 到远程
-- 本地堆积了多个未推送的零散 commit（且都是自己提交、中途无他人提交），希望压成 1 个干净 commit 后再推送
-
-## Example Prompts
-
-- `/dt:push` - 自动暂存所有变更，按逻辑分组提交，推送到远程
-- `/dt:push 1.2.2` - 更新文档版本号到 1.2.2，提交并打 tag
-
----
-
-## Command Parameters
-
-| Parameter | Description                                       |
-| --------- | ------------------------------------------------- |
-| No args   | 自动 git add 所有变更，按逻辑分组提交，推送到远程 |
-| `X.Y.Z`   | 额外将文档中的版本号更新为指定版本，并创建 tag    |
-
----
-
-## References（按需读取，不要凭主文件骨架执行细则）
-
-主 SKILL.md 只保留可线性执行的步骤骨架。以下三个步骤的**完整强制规则**已拆到 `references/`，执行到对应步骤时**必须先打开并完整执行**对应文件，避免"执行到一半忘记前面的约束"：
-
-| 触发步骤                 | 必读 reference                      | 内容                                                                                                          |
-| ------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Step 1 / Step 5 出现冲突 | `references/conflict-resolution.md` | 冲突分级分流（轻冲突自动 merge / 重冲突逐文件三选一）完整流程 Step A–E                                        |
-| Step 4 工作区分组提交    | `references/commit-grouping.md`     | P0–P4 分组算法、TDD 功能包、主题纯度校验、commit message 规则                                                 |
-| Step 4.5 本地提交整理    | `references/local-squash.md`        | 破坏性安全说明、第 0–6 步（前置守卫 / 校验 / 聚合提交 / soft reset 重建单个 commit / 一致性 gate / 失败回退） |
-
----
+不要凭本文件摘要自行补全 reference 中的命令或安全判断。
 
 ## Execution Flow
 
-### Step 0: Pre-flight Checks
-
-在执行任何操作之前，验证环境是否满足要求：
-
-```bash
-# 1. 确认在 git 仓库中
-git rev-parse --is-inside-work-tree
+### Step 0: Parse Arguments（任何写操作之前）
 
-# 2. 确认 remote origin 存在
-git remote get-url origin
+1. 提取可选 semver、`--preview` 和 `--squash`。
+2. 校验参数，不合法立即退出。
+3. 记录运行模式：preview 或 execute。
 
-# 3. 确认当前分支
-git branch --show-current
+这一步必须早于 pull、stash 和任何其他写操作。
 
-# 4. 获取上游分支（如果存在）
-git rev-parse --abbrev-ref --symbolic-full-name @{u}
+### Step 1: Detect Repository Mode
 
-# 5. 确认工作区状态（已暂存或未暂存）
-git status --porcelain
+检查当前目录是否存在 `.ai/init-root.yml`，且配置包含 `root_git_policy: commit_only_no_push`：
 
-# 6. 检查本地是否有未推送提交（仅在存在上游分支时执行）
-git rev-list --count @{u}..HEAD
+- 命中：进入 init-root 模式，按 `references/git-transport.md` 的多仓库编排规则执行。
+- 未命中：进入普通单仓库模式。
 
-# 7. 列出本地未推送提交及其作者（用于 Step 4.5 判断是否可整理）
-git log @{u}..HEAD --pretty=format:'%h|%an|%ae|%s'
+### Step 2: Read-only Pre-flight
 
-# 8. 获取当前用户的提交身份
-git config user.name
-git config user.email
-```
+完整读取 `references/git-transport.md`，执行其中的只读检查并确定：
 
-**检查结果处理**：
+- 当前仓库、分支和工作区状态
+- upstream 是否存在及其真实 remote/merge ref
+- 是否有工作区变更、未追踪文件或未推送 commit
+- 本次是否存在待推送工作
 
-| 检查项                       | 处理方式                                                            |
-| ---------------------------- | ------------------------------------------------------------------- |
-| 非 git 仓库                  | 提示用户，退出                                                      |
-| 无 remote origin             | 提示用户，退出                                                      |
-| 无当前分支                   | 提示用户，退出                                                      |
-| 无 upstream                  | 允许继续；Step 1 跳过 pull，Step 5 首次 push 时使用 `git push -u`   |
-| 工作区有变更                 | 允许继续；后续会走 Step 4 自动分组提交                              |
-| 工作区无变更但存在未推送提交 | 允许继续；跳过 Step 4，直接在同步远程后执行 Step 5 推送已有本地提交 |
-| 工作区无变更且无未推送提交   | 若未提供版本号则退出；若提供版本号则继续执行 Step 3 生成版本提交    |
-| 分离 HEAD / 非预期分支状态   | **停止**并提示用户，不自动创建或切换分支                            |
+普通模式不得用“工作区干净”推断“没有待推送内容”。已存在但未 push 的本地 commit 也属于待推送工作。
 
-**关键原则**：
+### Step 3: Preview Gate
 
-- `dt:push` 判断的是“是否存在待推送工作”，而不是仅判断“工作区是否脏”
-- “待推送工作”包含三类：工作区变更、版本号参数触发的文档更新、已提交但尚未 push 的本地 commit
-- 如果命中 `docs/references/init-root.yml` 的 root policy，跳过 root 仓库 remote/upstream 依赖检查，进入 Step 0.5 的多仓库编排流程
+如果传入 `--preview`：
 
-### Step 0.5: init-root Multi-Repo Root Orchestration
+1. 不执行远程同步，也不刷新 remote refs。
+2. 若提供版本号，列出预计修改的文档，不写文件。
+3. 若工作区有变更，完整读取 `references/commit-grouping.md` 并展示逻辑分组。
+4. 若传入 `--squash`，完整读取 `references/local-squash.md` 并基于当前本地 refs 展示资格判断。
+5. 展示预计 push remote/branch、可选 tag 和 init-root 子仓库计划。
+6. 明确说明 preview 基于当前本地 refs，随后退出。
 
-如果当前目录存在 `docs/references/init-root.yml` 且包含 `root_git_policy: commit_only_no_push`：
+退出前再次确认 HEAD、index、工作区、stash、local refs 和 remote-tracking refs 均未被本流程改变。
 
-1. 确认当前目录是 git 仓库；如果不是，提示先执行 `dt:init-root`
-2. 读取 `.gitignore`，确认存在 `# dt:init-root child repositories` block
-3. 发现子仓库：
-   - 优先读取 `docs/references/init-root.yml` 的 `child_projects[].path`
-   - 只处理当前 root 的直接子级目录，且该目录必须存在 `.git`
-   - 如果配置缺失或不完整，补充扫描直接子级目录中的 `.git`
-   - 跳过不存在、不是目录、没有 `.git`、或不是直接子级的条目，并在结果中说明
-4. 先处理每个子仓库：
-   - 在子仓库目录中执行普通 `dt:push` Step 0 至 Step 5，使用同一组参数（包括可选版本号）
-   - 子仓库有工作区变更或未推送提交时，按普通规则提交并推送
-   - 子仓库无待处理工作时，记录为 skipped，不视为失败
-   - 如果任一子仓库冲突、hook 失败、push 失败或无法安全继续，停止整个 root 编排，输出该子仓库路径和 `git status`，不得继续提交 root
-5. 子仓库全部处理完成后，检查 root `git status --porcelain`；如果出现直接子级 git 项目内容，停止并提示先修正 `.gitignore`
-6. 如果 root 工作区无变更，报告 root 没有需要本地提交的内容；如果子仓库已经处理完成，也要在结果中列出子仓库状态
-7. 如果 root 工作区有变更，执行 `git add .`，但不得 stage 被 `.gitignore` 忽略的子项目目录
-8. 创建 1 个 root 本地 commit，commit message 使用中文，例如 `docs: 更新多仓库根目录初始化状态`
-9. 完成后输出：子仓库处理结果、root 已本地 commit（如有）、root 未 push
+### Step 4: Sync Upstream（execute only）
 
-命中本流程后，**不得对 root 仓库继续执行 Step 1 至 Step 5**；Step 1 至 Step 5 只允许在各子仓库目录内按普通仓库规则执行。
+按 `references/git-transport.md` 执行：
 
-### Step 1: 拉取最新代码并处理冲突
+- 有 upstream：安全保存全部工作区变更（包括 untracked），执行基于 configured upstream 的 `git pull --rebase`，完成后恢复工作区。
+- 无 upstream：跳过 pull；后续首次 push 使用已确定的 remote 和当前分支。
+- 出现 rebase 或 stash restore 冲突：完整执行 `references/conflict-resolution.md`。
 
-在提交之前，先拉取远程最新代码，避免推送时冲突。
+同步完成后重新读取分支、upstream、工作区和未推送 commit 状态，不复用过期结果。
 
-**执行流程**：
+### Step 5: Update Version Documents（仅提供版本号时）
 
-1. **检测当前分支名、远程名和上游分支**：
-   ```bash
-   BRANCH=$(git branch --show-current)
-   REMOTE=$(git remote | head -1)
-   UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true)
-   ```
-2. **如果不存在 upstream** — 跳过本步骤中的 pull/rebase，直接进入 Step 2
-3. **检查是否有未提交的变更** — 如果有，先 `git stash` 保存，拉取完成后 `git stash pop` 恢复
-4. **执行拉取**：
-   ```bash
-   git pull --rebase $REMOTE $BRANCH
-   ```
-5. **如果 stash 了变更** → 执行 `git stash pop` 恢复工作区
+只更新项目版本记录类文档，不修改依赖版本或构建配置：
 
-**冲突处理策略**：
+1. 优先检查 `README.md`、`README_EN.md`、`docs/PROJECT_OVERVIEW.md`、`docs/CHANGELOG.md`、`docs/.doc-metadata.json`。
+2. 搜索范围限制在 Markdown 和明确的文档 metadata；匹配必须带 `版本`、`version`、`vX.Y.Z` 等项目版本上下文。
+3. 禁止误改 `minSdkVersion`、`compileSdk`、依赖版本、`build.gradle*`、`pubspec.yaml` 等构建信息。
+4. 用 `git diff` 审查全部替换；发现无法判断的匹配时停止并请求用户确认。
+5. 版本提交标题必须包含目标版本号，例如 `docs: 更新版本号到 1.2.2`。
 
-- 先判断 `git pull --rebase` 是否真的产生冲突（检查退出码 + `git diff --name-only --diff-filter=U` 是否有输出）
-- **无冲突** → 静默继续下一步，**不要**向用户显示任何冲突相关提示或确认
-- **有冲突** → 按 `references/conflict-resolution.md` 的"先分级、再分流"流程处理：轻冲突（双方改不同行）自动 merge 不提醒；重冲突（双方改同一行）才逐文件展示差异，让用户三选一（`remote` / `local` / `merge`）
+### Step 6: Logical-group Commit
 
-> **必读**：出现冲突时，完整执行 `references/conflict-resolution.md`（Step A–E）。Step 5 推送重试遇到的冲突也复用同一文件，不要在此处展开重复流程。
+如果工作区存在变更，完整读取并执行 `references/commit-grouping.md`：
 
-**分支硬约束**：冲突无法通过分级分流解决时，**停止并报告**当前 `git status`，让用户人工决策，**不得**创建任何新分支绕过。
+- 基于完整 diff 分组，不按文件名猜测。
+- 同一功能的实现、测试和需求总结文档保持在同一 TDD 功能包中。
+- commit message 使用中文 Conventional Commit，禁止追加 AI attribution 或 `Co-Authored-By`。
+- hook 失败时停止，不跳过 hook，不继续 push。
 
-### Step 2: Parse Arguments
+如果工作区干净但存在未推送 commit，跳过本步骤并继续。
 
-从 `args` 中提取版本号（可选）。
+### Step 7: Optional Local Squash
 
-**如果提供了版本号**，校验格式是否为 semver (`X.Y.Z`)：
+- 未传入 `--squash`：跳过，保留 Step 6 的逻辑 commit 边界。
+- 传入 `--squash`：完整读取 `references/local-squash.md`，只在所有安全 gate 通过时整理未推送 commit。
 
-- 格式不合法 → 提示用户并退出
-- 格式合法 → 进入 Step 3
+无 upstream 时默认不能安全判定已推送基线，因此 `--squash` 必须跳过并说明原因，不得擅自整理首次推送历史。
 
-**如果未提供版本号** → 跳过 Step 3，直接进入 Step 4
+### Step 8: Push and Optional Tag
 
-### Step 3: Update Version in Documents (Only when version is provided)
+完整执行 `references/git-transport.md`：
 
-扫描项目中的文档文件，将版本号更新为指定版本。
+1. 推送当前分支到 Step 2/4 确定的同一 remote/branch。
+2. push 因 non-fast-forward 失败时，只允许再同步并重试一次。
+3. 重试出现冲突时执行 `references/conflict-resolution.md`；不得 force-push。
+4. 代码 push 成功后才处理 tag。
+5. tag 已存在时停止并询问用户，不自动删除或覆盖。
 
-**重要：此步骤在 Step 4 之前执行，此步骤提交的文件不会出现在 Step 4 的文件扫描中。**
+## init-root Policy
 
-**需要检查并更新的文件（按优先级）**：
+命中 `root_git_policy: commit_only_no_push` 时：
 
-| 文件                       | 更新内容                      |
-| -------------------------- | ----------------------------- |
-| `README.md`                | 版本号相关描述                |
-| `README_EN.md`             | 英文 README 中的版本号        |
-| `docs/PROJECT_OVERVIEW.md` | 项目概览中的版本信息          |
-| `docs/CHANGELOG.md`        | 在顶部插入新版本记录          |
-| `docs/.doc-metadata.json`  | metadata 中的版本信息（如有） |
-| 其他 `docs/*.md`           | 任何包含旧版本号的文档        |
+- 直接子级 Git 仓库按普通流程处理。
+- root 允许创建本地 commit，但禁止 pull、squash、push 和 tag push。
+- root 没有 remote 属于正常状态。
+- root 提交前必须确认 `.gitignore` 已忽略所有直接子级仓库，且子项目内容没有进入 root index。
+- 任一子仓库失败时停止整个编排，不继续提交 root。
 
-**版本号检测策略**：
-
-1. 从 `README.md` 或 `docs/PROJECT_OVERVIEW.md` 中查找当前版本号
-2. 使用 Grep 搜索文档中的旧版本号，**使用锚定模式**避免误匹配：
-   - 匹配 `版本 X.Y.Z`、`version X.Y.Z`、`vX.Y.Z`、`版本：X.Y.Z` 等带上下文的模式
-   - **不要**匹配 `minSdkVersion`、`compileSdk`、依赖库版本号等非项目版本号
-   - **不要**匹配 `build.gradle`、`build.gradle.kts`、`pubspec.yaml` 等构建配置文件中的依赖版本
-3. 搜索范围限制在 `*.md` 和 `docs/` 目录下的文件
-
-**替换后验证**：
-
-- 替换完成后，用 `git diff` 检查所有变更
-- 向用户展示变更摘要，确认无误后提交
-- 如果发现误替换，手动修正后再提交
-
-**提交版本号变更**：
-
-```bash
-git add <changed doc files>
-git commit -m "chore: bump version to X.Y.Z"
-```
-
-**标题强制要求**：只要本次提交内容涉及版本号更新，commit title / message 第一行必须明确写出目标版本号 `X.Y.Z`，不得只写“更新版本”“发版准备”等模糊标题。示例：`chore: bump version to 1.2.2`、`docs: 更新版本号到 1.2.2`。
-
-### Step 4: Logical-Group Commit for Workspace Changes
-
-自动暂存所有工作区变更，按**逻辑分组**提交，同一逻辑变更合并为 1 个 commit。
-
-**跳过条件**：
-
-- 如果 Step 0 已确认“工作区无变更但存在未推送提交”，则**跳过整个 Step 4**
-- 这类场景不应提示“没有需要处理的内容”，而应保留现有本地 commit，直接进入 Step 5 推送
-
-**添加所有变更**：
-
-```bash
-git add .
-```
-
-**获取变更文件列表**（基于 HEAD）：
-
-```bash
-git diff HEAD --name-only
-```
-
-#### 4.1 执行分组提交
-
-工作区变更的分组算法、TDD 功能包约束、主题纯度校验与 commit message 规则，**全部在 `references/commit-grouping.md` 中**。进入本步骤后必须完整执行该 reference 的全部强制步骤。
-
-骨架要点（细节以 reference 为准）：
-
-1. **小批量快速路径**：变更文件 ≤ 3 个 → 直接合并为 1 个 commit，跳过分组分析
-2. **分组优先级**：`P0 字符串替换 > P1 符号重命名 > P1.5 TDD 功能包 > P2 目录模块 > P3 同主题新增 > P4 独立`
-3. **TDD 功能包（P1.5）**：同一功能的实现 + 测试 + 需求总结文档必须合并为 1 个 commit，不得拆成"功能 commit"+"测试 commit"
-4. **主题纯度校验**：P0 / P1 / P2 分组内每个文件纯度 < 30% 时强制移出到 P4 独立 commit，避免无关改动被主题 commit 吞掉
-5. **逐组提交**：`git reset HEAD` → `git add <该组文件>` → `git commit -m "<message>"`；commit 失败（如 hook 拒绝）→ 停止并提示用户
-> **必读**：执行分组前完整阅读 `references/commit-grouping.md`，不要只凭上述骨架提交。
-
-### Step 4.5: Squash Local Unpushed Commits（本地未推送提交整理）
-
-在推送之前，把本地**未推送**的多个零散 commit 压成 **1 个干净 commit**。本步骤只保留最终代码版本，不保留旧 commit 的内部逻辑边界；会改写本地 commit 历史，**绝不触碰已推送到远程的提交**，完整流程在 `references/local-squash.md`。
-
-**触发与跳过条件**：
-
-- 仅在存在 upstream 且 `git rev-list --count @{u}..HEAD` ≥ 2 时才进入本步骤
-- 本地未推送 commit < 2 个 → **跳过**，直接进入 Step 5
-- 无 upstream（首次推送当前分支）：缺少"已推送基线"，**默认跳过整理**原样首推；除非用户显式要求
-
-骨架要点（细节与精确命令以 reference 为准，**必须严格按 reference 的步骤顺序执行**）：
-
-1. **第 0 步 前置守卫**：reset 前先确认 `git status --porcelain` 为空（工作区干净），并先记录回退锚点 `SQUASH_ORIG=$(git rev-parse HEAD)`、基线 `BASE=$(git rev-parse @{u})` 和整理前内容指纹。工作区不干净 → 放弃整理
-2. **第 1 步 安全边界校验**：基线固定 `@{u}`；作者全部为当前用户（邮箱比对）；无 merge commit；全部未推送。任一不满足 → 保留原历史进入 Step 5
-3. **第 2 步 聚合分析**：读取 `@{u}..HEAD` 的 commit message 与 diff，生成 1 个覆盖所有未推送改动的聚合 commit message；不再按多个逻辑组拆分重建
-4. **第 3 步 soft reset 重建单个 commit**：`git reset --soft "$BASE"` 后使用 `git add -A` 一次性暂存全部最终改动，并提交为 1 个聚合 commit；提交完成后确认暂存区/工作区已清空
-5. **第 4 步 强制一致性校验（gate）**：整理后 `git diff "$BASE" HEAD` 必须与整理前指纹完全一致，且新 commit 数必须为 1；不一致 → 回退
-6. **第 5 步 失败回退**：任一步失败立即 `git reset --hard "$SQUASH_ORIG"` 恢复原历史和干净工作区；若恢复后工作区仍不干净则停止整个 push 流程并报告；**禁止** force-push、**禁止**推送被破坏的历史
-> **必读且强制顺序**：执行整理前完整阅读 `references/local-squash.md`。记录回退锚点（第 0 步）**必须在 reset 之前完成**，否则丢失回退点。绝不能只凭上述骨架就执行 reset。
-
-### Step 5: Push to Remote
-
-如果前面没有产生新的工作区提交，但 Step 0 检测到本地分支领先 upstream，则此处直接推送已有本地 commit（含 Step 4.5 整理后的提交）。
-
-**推送代码**：
-
-- **已有 upstream**：
-
-  ```bash
-  git push $REMOTE $BRANCH
-  ```
-
-- **无 upstream（首次推送当前分支）**：
-
-  ```bash
-  git push -u $REMOTE $BRANCH
-  ```
-
-**如果推送失败**（远程有新提交），执行重试：
-
-```bash
-git pull --rebase $REMOTE $BRANCH
-```
-
-- **如果 rebase 无冲突** → 直接 `git push origin HEAD`
-- **如果 rebase 有冲突** → 严格执行 `references/conflict-resolution.md` 的分级分流流程（与 Step 1 完全一致）：轻冲突自动 merge 不提醒，重冲突才逐文件展示差异让用户选择 `remote` / `local` / `merge`
-- **所有冲突文件处理并 `git rebase --continue` 成功后** → 再次执行 `git push origin HEAD`
-
-**分支硬约束**：push 失败 / rebase 失败时，若无法通过分级分流解决，直接停止并向用户展示 `git status`，**不得**创建任何新分支规避冲突。
-
-**创建 Tag（仅当提供了版本号时）**：
-
-首先检查 tag 是否已存在：
-
-```bash
-git tag -l "X.Y.Z"
-```
-
-- **tag 不存在** → 创建并推送：
-  ```bash
-  git tag "X.Y.Z"
-  git push origin "X.Y.Z"
-  ```
-- **tag 已存在** → 提示用户，询问是否删除重建或跳过
-
-Tag 命名格式：直接使用用户提供的版本号，例如 `1.2.2`
-
----
+详细发现顺序、preview 和状态汇总格式以 `references/git-transport.md` 为准。
 
 ## Expected Outcome
 
-执行完成后，远程仓库应包含：
-
-- 已有但尚未推送的本地 commit 被同步到远程；若满足整理条件，这些 commit 已合并为 1 个干净 commit
-- 如工作区存在文件变更：生成 N 个新 commit（按逻辑分组，外加可选的版本号 commit）
-- 可选：1 个新 tag（`X.Y.Z`）
-
-本地 commit 整理保证：最终推送到远程的代码内容与整理前完全一致，仅 commit 历史结构变得更精简；已推送到远程的旧提交不受任何影响。
-
-## Notes
-
-1. **所有 git 命令在用户当前工作目录执行**，不是 ~/.claude 或插件目录
-2. 所有 commit message 使用中文
-3. Step 4 按逻辑分组提交；变更文件 ≤ 3 个时整体合为 1 个 commit
-4. TDD 场景下，同一功能的实现、对应测试、需求总结文档必须归入同一个逻辑 commit；只有纯测试修改才单独作为 `test` commit
-5. 版本号仅更新文档中的记录，不修改项目构建文件；**凡是涉及版本号更新的 commit，标题必须明确包含目标版本号**
-6. 如果某个文件的变更只有代码格式化，commit message 中标注为 `style`
-7. push 失败时自动重试一次；若重试拉取出现冲突，先按严重程度分级：轻冲突（双方修改不同行）自动 merge 不提醒，重冲突（双方修改同一行）才逐文件展示差异让用户选择 `remote` / `local` / `merge`；任何情况下都不得通过创建新分支规避冲突
-8. Tag 直接使用用户提供的版本号，不添加 `v` 前缀，例如 `1.2.2`
-9. Step 3 在 Step 4 之前执行，Step 3 提交的文件不会在 Step 4 中重复提交
-10. Step 1 提前拉取代码，大幅降低 Step 5 推送时的冲突概率
-11. 已 `git commit` 但未 `git push` 的场景属于正常路径；工作区干净时不能据此直接退出
-12. **主题纯度校验是强制步骤**（细则见 `references/commit-grouping.md`）：P0 / P1 / P2 分组不能只凭"文件里命中主题模式"就纳入整个文件，必须计算纯度：纯度 ≥ 30% 保留在原分组；纯度 < 30% 强制移出到 P4 独立 commit，不询问用户。P1.5 则必须通过显式关联校验。这一规则用于避免 bug 修复、重构等不相关修改被主题 commit（如"统一国际化..."）吞掉，导致远程日志无法追溯真实变更
-13. **本地 commit 整理（Step 4.5）只动未推送提交**（细则见 `references/local-squash.md`）：仅当本地有 ≥ 2 个未推送 commit、全部由当前用户提交、中途无他人提交、且不含 merge commit 时，才把这些未推送 commit 用 `git reset --soft` 压成 1 个干净 commit。已推送到远程的提交绝不 reset / rebase / amend / force-push。整理只改历史结构，不改最终代码；任一校验不通过或整理失败，保留原始本地历史并原样推送
-14. **细则已拆分到 `references/`**：Step 1/5 冲突处理、Step 4 分组提交、Step 4.5 本地整理的完整强制规则分别在 `conflict-resolution.md`、`commit-grouping.md`、`local-squash.md`。执行到对应步骤时必须先完整阅读对应 reference，不要只凭主文件骨架执行
+- preview 模式：仓库状态完全不变，只输出可信计划。
+- 默认模式：工作区变更按逻辑分组提交并推送，已有未推送 commit 保持原边界。
+- `--squash` 模式：仅在明确授权且安全 gate 通过时，把未推送 commit 整理为一个，最终代码内容不变。
+- 版本模式：代码 push 成功后创建并推送 `X.Y.Z` tag，不添加 `v` 前缀。
+- init-root 模式：子仓库正常推送，root 最多只产生本地 commit。
