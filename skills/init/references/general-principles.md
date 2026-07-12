@@ -77,8 +77,9 @@
 - 标准分类：`plan`、`product`、`design`、`guide`、`modules`、`references`、`checklist`、`reports`
 - 新建目录前必须先检查语义等价目录，有则复用
 - 初始化时必须创建缺失的标准分类目录
+- `/docs` 下文档文件名、任务目录名和报告主题目录名必须使用中文；标准分类目录名保持英文
 - 多文档工作项（>=3 份关联文档）统一聚合到 `docs/plan/<中文任务名>/`
-- 审计 / 性能 / 评估 / 复盘类报告统一写到 `docs/reports/<中文主题>/`
+- 审计 / 性能 / 评估 / 复盘类报告统一写到 `docs/reports/<中文报告主题>/`
 - `CHANGELOG.md` 这类持续更新日志可保留在 `docs/reports/` 根下
 
 ## GP-10 Incremental Upgrade On Re-run

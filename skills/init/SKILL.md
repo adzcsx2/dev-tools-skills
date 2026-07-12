@@ -5,11 +5,11 @@ argument-hint: "[optional focus] [--experiment [converge|sync]] [--dry-run]"
 origin: dev-tools-skills
 ---
 
-> Language And Naming Requirements
+> Language Requirements
 >
-> - User-facing responses and generated document content should follow the user's preferred language; Chinese is the default when the user has not specified otherwise
-> - Human-authored documentation titles, filenames, task folders, report topics, checklist names, and AI rule topic files should use Chinese semantic names by default
-> - Tool-required entry filenames keep their conventional names, such as `CLAUDE.md`, `AGENT.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `README.md`, and `CHANGELOG.md`
+> - **ALL generated documentation content (CLAUDE.md, AGENT.md, checklists) MUST be in English**
+> - Documentation file names and task/report topic directories under `/docs` MUST use Chinese names, while standard taxonomy directory names stay in English
+> - User-facing responses and comments should follow user's preferred language
 > - All generated files must use UTF-8 encoding
 > - Output should be concise, clear, and actionable
 
@@ -67,7 +67,7 @@ origin: dev-tools-skills
    - Claude：`.claude/settings.json`、当前 OS 对应的 `.claude/hooks/final-rule-audit.{ps1|sh}`
    - Codex：`.codex/hooks.json`、当前 OS 对应的 `.codex/hooks/final-rule-audit.{ps1|sh}`
 6. `/docs` 文档根目录及必要分类目录骨架
-7. （仅当项目有真实关注点或明确隔离价值时）按主题拆分的 `docs/references/ai-rules/<中文主题>.md` 与 `src/` / `tests/` 等目录级隔离规则
+7. （仅当项目有真实关注点或明确隔离价值时）按主题拆分的 `.ai/rules/<topic>.md` 与 `src/` / `tests/` 等目录级隔离规则
 8. 可选 checklist（仅用户明确要求时）
 
 ## Mandatory Read Order
@@ -148,7 +148,7 @@ origin: dev-tools-skills
 ### Step 7. Scoped Rules And Enforcement
 
 - 按 `references/scoped-rules-and-enforcement.md` 规划规则模块化与强制层
-- 评估是否需要把规则按主题拆到 `docs/references/ai-rules/<中文主题>.md`，主控文件只保留红线 + 索引（SR-2）
+- 评估是否需要把规则按主题拆到 `.ai/rules/<topic>.md`，主控文件只保留红线 + 索引（SR-2）
 - 评估是否需要在 `src/` 与 `tests/` 等真实目录边界生成目录级隔离规则，防止 Mock 渗透生产代码（SR-3）
 - 检测项目已有的 Linter / 静态检查工具，优先增量补充依赖边界规则；不擅自引入新工具（SR-4）
 - 准备把“接口 -> 确认 -> 业务 -> 测试”分步工作流写入后续规则文件（SR-5）
@@ -194,9 +194,9 @@ origin: dev-tools-skills
 
 在所有文件生成和验证完成后，对产出的规则文件做一次完整性审查：
 
-- 检查 `CLAUDE.md` 是否完整覆盖了 `references/output-files.md` 要求的 20 项必备内容（其中 SR 相关项按本项目栈裁剪）
-- 检查 `AGENT.md` 是否完整覆盖了 9 项必备内容
-- 检查 Copilot 项目级配置是否涵盖精简版 GP-2 至 GP-9 与真实密钥处理边界
+- 检查 `CLAUDE.md` 是否完整覆盖了 `references/output-files.md` 要求的 19 项必备内容（其中 SR 相关项按本项目栈裁剪）
+- 检查 `AGENT.md` 是否完整覆盖了 8 项必备内容
+- 检查 Copilot 项目级配置是否涵盖精简版 GP-2 至 GP-9
 - 交叉检查各文件之间的一致性（单一事实来源声明、hook 安装规则、文档分类规则是否在各文件中一致）
 - 检查是否有遗漏的规则类别：安全、测试、编码风格、Git 工作流、性能、Agent 编排、Hook 系统
 - 对照 `references/general-principles.md` 的 GP-1 至 GP-10，逐项确认关键约束已写入对应文件
@@ -230,13 +230,12 @@ origin: dev-tools-skills
 
 - 如果项目存在 Claude/Codex final rule audit hook，则任务收尾前必须重新读取项目规则、审计已修改文件、发现违反规则时先修改再回复
 - 任务聚合文档使用 `docs/plan/<中文任务名>/`
-- 任务目录默认使用中文语义命名；只有项目已有英文 slug 规范或用户明确要求时才使用英文 kebab-case
-- 审计 / 性能 / 评估 / 复盘类报告使用 `docs/reports/<中文主题>/`
+- 审计 / 性能 / 评估 / 复盘类报告使用 `docs/reports/<中文报告主题>/`
+- `/docs` 下文档文件名、任务目录名和报告主题目录名必须使用中文；标准分类目录名保持英文
 - `CHANGELOG.md` 这类持续更新日志可保留在 `docs/reports/` 根下
 - 需求不清或跨 3+ 源码文件时先计划
 - 所有结论必须来自真实代码、配置或目录扫描
 - 规则按主题模块化，主控文件只保留红线 + 索引，细则按需加载
-- 项目源码中存在真实 API key / token / password / certificate 等 hardcoded secrets 时，AI 只做风险提醒并在输出中脱敏；未获用户明确要求时，不替换、不删除、不迁移到环境变量、不轮换凭据、不编写 secret-management 逻辑，也不直接修改相关源码
 - 生产代码目录禁止 Mock，测试目录允许 Mock，按目录边界做物理隔离
 - 哪些依赖 / import 边界由 Linter / 静态检查强制（仅记录项目已采用或用户要求的方案）
 - 后续 AI coding 遵循接口 -> 确认 -> 业务 -> 测试 的分步工作流
@@ -262,6 +261,6 @@ origin: dev-tools-skills
 - 未完成最小验证就宣称已通过
 - 把所有规则塞进单个超长 `CLAUDE.md`，不做模块化与索引
 - 擅自引入项目尚未采用的新 Linter / IDE 规则机制，而非增量补充已有工具
-- 在每个子目录无脑塞规则文件，或为不存在的关注点创建空 `docs/references/ai-rules/<中文主题>.md`
+- 在每个子目录无脑塞规则文件，或为不存在的关注点创建空 `.ai/rules/<topic>.md`
 - 跨栈套用强制写法（如给 Flutter 项目写 `process.env`、给 React 写 `kReleaseMode`、给纯 UI 库强加 DI）
 - 给侦察不到外部依赖的项目强加依赖注入规则，或给无测试栈的项目强制集成测试

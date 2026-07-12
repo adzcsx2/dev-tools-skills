@@ -15,14 +15,13 @@
 - Windows 使用 `final-rule-audit.ps1` + `pwsh` 且提示输出到 stdout，macOS / Linux / WSL 使用 `final-rule-audit.sh`
 - 不生成 `sync-project-skills.sh`，不注册 `PostToolUse` mirror refresh hook
 - 建立 final rule audit 收尾 gate：任务完成前重新审计适用规则、已修改文件和最小验证结果，发现违反规则时先修复
-- 写入真实密钥处理边界：项目源码中存在真实 API key / token / password / certificate 等 hardcoded secrets 时，AI 只做风险提醒并在输出中脱敏；未获用户明确要求时，不替换、不删除、不迁移到环境变量、不轮换凭据、不编写 secret-management 逻辑，也不直接修改相关源码
 - 建立 `/docs` 根目录及标准分类体系，**强制创建缺失的标准分类目录**（plan、product、design、guide、modules、references、checklist、reports）
-- 人类阅读的文档标题、文件名、任务目录、报告主题、checklist 名称和 AI 规则主题文件默认使用中文语义命名；工具约定入口如 `CLAUDE.md`、`AGENT.md`、`README.md`、`CHANGELOG.md` 保持固定名称
-- 审计、性能、评估、复盘类报告默认按 `docs/reports/<中文主题>/` 主题目录组织，报告文件默认中文命名，支持同一主题二次、三次审计持续追加；持续更新日志如 `CHANGELOG.md` 可保留在 `docs/reports/` 根下
+- 审计、性能、评估、复盘类报告默认按 `docs/reports/<中文报告主题>/` 主题目录组织，支持同一主题二次、三次审计持续追加；持续更新日志如 `CHANGELOG.md` 可保留在 `docs/reports/` 根下
+- `/docs` 下文档文件名、任务目录名和报告主题目录名必须使用中文；标准分类目录名保持英文
 - 主 `SKILL.md` 会先按顺序读取 `references/general-principles.md`、`references/recon-and-stack-detection.md`、`references/docs-taxonomy.md`、`references/project-bootstrap.md`、`references/claude-hook-bootstrap.md`、`references/scoped-rules-and-enforcement.md`、`references/output-files.md`
 - 写入 9 条 scoped-rules 与强制原则（SR-1 至 SR-9），把“只靠超长规则文件约束 AI”升级为“规则模块化 + 目录级就近规则 + Linter 强制 + 任务步骤拆分 + 依赖注入隔离 + 测试反 Mock 与环境防呆”：
   - SR-1: Why Not One Heavy File - 避免单文件臃肿与注意力涣散
-  - SR-2: Modular Doc Architecture - 规则按主题拆到 `docs/references/ai-rules/<中文主题>.md`，主控文件只写红线 + 索引、按需加载
+  - SR-2: Modular Doc Architecture - 规则按主题拆到 `.ai/rules/<topic>.md`，主控文件只写红线 + 索引、按需加载
   - SR-3: Directory-Scoped Rules - 利用就近原则在 `src/` / `tests/` 等目录边界做物理隔离，防止 Mock 渗透生产代码
   - SR-4: Linter-Enforced Boundaries - 用 ESLint `no-restricted-imports`、Ruff、ArchUnit 等强制依赖边界，优先增量补充已有工具，不擅自引入新工具
   - SR-5: Split AI Task Workflow - 接口约定 -> 人类确认 -> 编写业务 -> 编写测试 的分步 TDD/BDD 工作流
@@ -51,11 +50,9 @@
 - 所有文件生成后自动对产出的规则文件（CLAUDE.md、AGENT.md、Copilot 配置）做完整性审查，检查必备内容是否覆盖、各文件是否一致、是否有遗漏的规则类别，发现 gap 自动补充修复
 - 在所有文件生成和 review 完成后，自动确保 `.codegraph/` 已加入项目的 `.gitignore`，防止 codegraph 索引目录被提交到版本控制
 
-## 语言与命名要求
+## 语言要求
 
-- 生成的文档内容默认遵循用户或项目语言；用户未指定时使用中文。
-- 人类阅读的文档标题、文件名、任务目录、报告主题、checklist 名称和 AI 规则主题文件默认使用中文语义命名。
-- 工具约定入口文件名保持固定，例如 `CLAUDE.md`、`AGENT.md`、`AGENTS.md`、`.github/copilot-instructions.md`、`README.md` 和 `CHANGELOG.md`。
+**所有生成的文档内容（CLAUDE.md、AGENT.md、清单文件）默认使用英文；`/docs` 下文档文件名、任务目录名和报告主题目录名必须使用中文。**
 
 ## 使用方法
 
