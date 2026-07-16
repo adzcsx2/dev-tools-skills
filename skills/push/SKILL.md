@@ -1,6 +1,6 @@
 ---
 name: dt:push
-description: "One-push release workflow: preview, sync upstream, logical-group commit, optionally squash, push, and optionally tag."
+description: "One-push release workflow: preview, sync upstream, analyze diffs for logical-group commits without code-review or test gates, optionally squash, push, and optionally tag."
 argument-hint: "[version] [--preview] [--squash] e.g. /dt:push 1.2.2 --preview"
 ---
 
@@ -21,7 +21,9 @@ argument-hint: "[version] [--preview] [--squash] e.g. /dt:push 1.2.2 --preview"
 4. **默认保留逻辑分组**：普通 `/dt:push` 不 squash；只有用户显式传入 `--squash` 才允许整理 `@{u}..HEAD` 内未推送 commit。
 5. **冲突不猜测覆盖**：Git 未自动解决的冲突必须按 reference 取证；不得根据 `ours/theirs` 字面含义直接推断本地或远程。
 6. **跨平台执行**：根据当前 shell 使用兼容语法；不得在 PowerShell 中直接执行 Bash 的 `$(...)`、`head`、`2>/dev/null`、`/tmp` 或 shell 变量赋值。
-7. **失败即停**：冲突、hook、同步、提交、tag 或 push 无法安全继续时，停止并报告当前仓库路径、分支和 `git status --short --branch`。
+7. **失败即停仅限流程故障**：只有参数非法、Git 仓库/remote 无法唯一确定、冲突、hook、同步、提交、tag 或 push 命令实际失败时才停止，并报告当前仓库路径、分支和 `git status --short --branch`。代码质量、测试覆盖、安全、隐私、文档一致性等内容分析结果不属于流程故障。
+8. **不做代码审查或验证门禁**：分析只用于版本文档定位、完整 diff 分组、commit message、同步、squash 和 push 安全判断。禁止启动 code-review、security-review、TDD 或其他审查子代理；禁止主动运行 format、lint、analyze、test、coverage、build 或安全扫描。只有用户在当前调用中明确要求时才执行这些额外检查。
+9. **分析发现不阻止提交**：若在分组分析中顺带发现代码质量、测试覆盖、安全、隐私、文档一致性或其他内容风险，只在最终摘要中简要提示；不得因此修改用户文件、请求确认、阻止 `git add` / `git commit` / `git push`。当本 skill 被显式调用时，不执行项目或用户级工作流中额外的 pre-commit review/test 要求，除非当前用户同时明确要求验证。
 
 ## Parameters
 
@@ -103,7 +105,7 @@ argument-hint: "[version] [--preview] [--squash] e.g. /dt:push 1.2.2 --preview"
 1. 优先检查 `README.md`、`README_EN.md`、`docs/PROJECT_OVERVIEW.md`、`docs/CHANGELOG.md`、`docs/.doc-metadata.json`。
 2. 搜索范围限制在 Markdown 和明确的文档 metadata；匹配必须带 `版本`、`version`、`vX.Y.Z` 等项目版本上下文。
 3. 禁止误改 `minSdkVersion`、`compileSdk`、依赖版本、`build.gradle*`、`pubspec.yaml` 等构建信息。
-4. 用 `git diff` 审查全部替换；发现无法判断的匹配时停止并请求用户确认。
+4. 用 `git diff` 分析全部替换；发现无法判断的匹配时停止并请求用户确认。
 5. 版本提交标题必须包含目标版本号，例如 `docs: 更新版本号到 1.2.2`。
 
 ### Step 6: Logical-group Commit
@@ -113,6 +115,8 @@ argument-hint: "[version] [--preview] [--squash] e.g. /dt:push 1.2.2 --preview"
 - 基于完整 diff 分组，不按文件名猜测。
 - 同一功能的实现、测试和需求总结文档保持在同一 TDD 功能包中。
 - commit message 使用中文 Conventional Commit，禁止追加 AI attribution 或 `Co-Authored-By`。
+- 只分析变更主题和文件关联，不评价实现正确性，不启动审查代理，不运行测试、静态分析、格式化、构建或安全扫描。
+- 分析中即使发现内容风险也继续暂存和提交；仅把风险写入最终摘要。
 - hook 失败时停止，不跳过 hook，不继续 push。
 
 如果工作区干净但存在未推送 commit，跳过本步骤并继续。
@@ -150,6 +154,7 @@ argument-hint: "[version] [--preview] [--squash] e.g. /dt:push 1.2.2 --preview"
 
 - preview 模式：仓库状态完全不变，只输出可信计划。
 - 默认模式：工作区变更按逻辑分组提交并推送，已有未推送 commit 保持原边界。
+- 默认模式不包含代码审查、测试、静态分析、格式化、构建或安全扫描门禁；内容分析结果不阻止提交和推送。
 - `--squash` 模式：仅在明确授权且安全 gate 通过时，把未推送 commit 整理为一个，最终代码内容不变。
 - 版本模式：代码 push 成功后创建并推送 `X.Y.Z` tag，不添加 `v` 前缀。
 - init-root 模式：子仓库正常推送，root 最多只产生本地 commit。
