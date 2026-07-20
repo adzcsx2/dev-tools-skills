@@ -2,6 +2,11 @@
   "version": "2026-06-16",
   "default_escalation": "ambiguous requirements, security-sensitive changes, external publishing, repeated failures, or user-requested deep review",
   "routes": {
+    "do-all": {
+      "preferred_model": "high-reasoning",
+      "tier": "reasoning",
+      "reason": "Executing a complete phased plan requires dependency tracking, test-gate enforcement, recovery judgment, and final acceptance auditing."
+    },
     "adt-android-e2e": {
       "preferred_model": "high-reasoning",
       "tier": "reasoning",

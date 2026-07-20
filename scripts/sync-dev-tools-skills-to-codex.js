@@ -231,7 +231,7 @@ material difference to the user.
 }
 
 function buildWrapper({ sourceDir, sourceSkillPath, originalName, codexName, description, modelRoute }) {
-  const invocation = originalName.includes(":") ? `/${originalName}` : originalName;
+  const invocation = `/${originalName}`;
   const safeDescription = sanitizeDescription(description);
   const modelRouteSection = buildModelRouteSection(modelRoute);
   const executionTargetSection = buildExecutionTargetSection(modelRoute && modelRoute.executionTarget);
@@ -269,7 +269,7 @@ ${modelRouteSection}User invocation mapping:
 }
 
 function buildPrompt({ originalName, codexName, description }) {
-  const invocation = originalName.includes(":") ? `/${originalName}` : originalName;
+  const invocation = `/${originalName}`;
   const safeDescription = sanitizeDescription(description);
 
   return `---
