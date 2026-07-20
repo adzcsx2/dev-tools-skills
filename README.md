@@ -1,6 +1,6 @@
 # dev-tools-skills
 
-Claude Code 与 VS Code Copilot 通用开发工具技能集合，包含统一项目初始化、通用工具、Android 开发工具和 Flutter 开发工具。
+Claude Code、Codex 与 VS Code Copilot 通用开发工具技能集合，包含完整计划执行、统一项目初始化、通用工具、Android 开发工具和 Flutter 开发工具。
 
 ## 安装
 
@@ -20,7 +20,7 @@ cd dev-tools-skills
 .\install.ps1 -All
 ```
 
-选择性安装请查看 `./install.sh --help`。
+`--all` 会自动检测并安装到本机已有工具。只安装 Claude Code 或 Codex 时，直接运行 `./install.sh` 或 `.\install.ps1`，然后选择目标工具；选择性安装分类请查看 `./install.sh --help`。
 
 `install.sh` 和 `install.ps1` 会自动检测 Claude Code、VS Code Copilot 和 Codex。Claude Code 安装会先清理旧缓存、旧注册信息和旧 marketplace 目录，再按当前仓库 `.claude-plugin/plugin.json` 中的最新版本重新安装，避免 Claude 继续命中历史 skill 缓存。
 
@@ -36,14 +36,15 @@ cd dev-tools-skills
 
 卸载脚本会同时清理 Claude Code 插件状态、VS Code Copilot prompt，以及本工具为 Codex 生成的 skill wrapper、prompt alias 和同步脚本。
 
-安装完成后，还会额外为 VS Code Copilot 注册全局 prompt，并为 Codex 同步兼容 skill wrapper（例如 `$dt-init`、`$dt-push`）。Codex 的 `/prompts:dt-*` alias 默认不生成；如需兼容旧入口，可设置 `DEV_TOOLS_SYNC_CODEX_PROMPTS=1`。
+安装完成后，还会额外为 VS Code Copilot 注册全局 prompt，并为 Codex 同步兼容 skill wrapper（例如 `$do-all`、`$dt-init`、`$dt-push`）。Codex 的 `/prompts:*` alias 默认不生成；如需兼容旧入口，可设置 `DEV_TOOLS_SYNC_CODEX_PROMPTS=1`。
 
 ## 包含的 Skills
 
-### 通用工具 — `dt:` 前缀
+### 通用工具 — `do-all` 与 `dt:` 前缀
 
 | Skill                      | 描述                                                                                                                                                                                                                                                                                                           |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `do-all`                   | 完整计划执行：自动解析或等待唯一目标计划，严格按顺序完成全部阶段，每阶段通过测试门禁后才继续；Claude 使用 `/do-all`，Codex 使用 `$do-all`                                                                                                                                                                      |
 | `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 CLAUDE.md、AGENT.md、Copilot 配置，建立 docs 分类与 scoped rules，并通过 `dt:install-project-hooks` 生成 Claude/Codex final rule audit 项目级 hook                                                                                                                  |
 | `dt:init-root`             | 多仓库产品根目录初始化：按顺序执行 `dt:init` 和 `dt:update-docs`，继承 final rule audit 项目级 hook 初始化，再配置根目录本地 git、子项目 `.gitignore` 忽略、root 只 commit 不 push 策略，以及根目录 `dt:push` 子仓库编排边界                              |
 | `dt:study`                 | 修错回源：把已验证的 skill 失误直接沉淀回工作区里的源 SKILL，避免改在缓存副本上                                                                                                                                                                                                                                |
@@ -87,6 +88,7 @@ dev-tools-skills/
 ├── scripts/
 │   └── sync-dev-tools-skills-to-codex.js
 ├── skills/
+│   ├── do-all/                  # /do-all (Claude) / $do-all (Codex)
 │   ├── init/                     # dt:init
 │   ├── init-root/                # dt:init-root
 │   ├── study/                    # dt:study
@@ -113,7 +115,7 @@ dev-tools-skills/
 
 ## 版本
 
-v1.3.9
+v1.3.12
 
 ## License
 
