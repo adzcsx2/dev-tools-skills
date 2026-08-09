@@ -10,6 +10,7 @@
 - 生成或增量升级 `AGENT.md`
 - 生成或增量升级 Copilot 项目级配置（`AGENTS.md` 或 `.github/copilot-instructions.md` 二选一）
 - 建立 `/docs` 文档根目录和必要分类目录
+- 创建或复用项目根目录本地 `.worktree/`，并确保根 `.gitignore` 包含 `/.worktree/`
 - 仅在项目存在真实关注点或明确隔离价值时，建立 `docs/references/ai-rules/<中文主题>.md` scoped rules
 - 委托 `dt:install-project-hooks` 安装项目级 Claude/Codex hooks
 
@@ -39,7 +40,16 @@
 - 修改后运行最小相关验证；无法验证时明确写 `not verified`
 - 文档默认归档到 `/docs` 标准分类
 - 若项目安装了 final rule audit hook，最终回复前必须复审适用规则、已修改文件和验证结果
+- 所有新 Git worktree 统一创建到 `<project-root>/.worktree/<worktree-name>`；不得在项目根目录创建平级 worktree，也不得默认使用其他外部目录
 - 真实密钥写死在源码里时只做风险提醒：AI 不得仅因发现 hardcoded API key / token / password 就自行替换、删除、迁移到环境变量、轮换凭据、编写一套 secret management 逻辑或直接修改源码；除非用户明确要求处理，否则只警告并在回复 / 日志中脱敏
+
+## Worktree Bootstrap
+
+- 标准模式和 experimental execute 模式都必须在项目根目录创建或复用 `.worktree/`
+- `.worktree/` 是本地 worktree 容器，不进入项目根 Git index；根 `.gitignore` 必须包含精确条目 `/.worktree/`
+- 生成或升级 `CLAUDE.md`、`AGENT.md` 和 Copilot 项目级配置时，三者必须包含一致的 worktree 路径约束
+- `--dry-run` 只预览目录创建、忽略项和规则变更，不落盘
+- 只约束未来新 worktree；已有外部 worktree 不自动迁移或删除
 
 ## Hook Delegation
 
@@ -57,3 +67,4 @@ skills/install-project-hooks/SKILL.md
 - 不把 `docs/references/ai-rules/` scoped rules 等同于 `.ai/skills/` 多端同步
 - 不创建空的 `docs/references/ai-rules/<中文主题>.md`；只有项目有真实关注点或明确隔离价值时才创建
 - 不主动删除旧 `.ai/skills` 产物；删除必须由用户明确要求并先确认计划
+- 不把初始化前已存在于其他路径的 worktree 自动移动到 `.worktree/`，也不自动删除；只为后续创建提供统一根目录

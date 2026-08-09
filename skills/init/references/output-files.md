@@ -15,6 +15,7 @@
 - GP-8 Copilot Config Exclusivity
 - GP-9 Documentation Taxonomy（精简版）
 - SR 维度（精简版，按栈裁剪）：规则模块化 + 索引、目录级 Mock 隔离、Linter 强制边界、接口 -> 确认 -> 业务 -> 测试 分步工作流、依赖注入隔离、集成测试反 Mock 与环境防呆（见 `scoped-rules-and-enforcement.md`）
+- Worktree Location Policy：所有新 Git worktree 统一放在 `<project-root>/.worktree/<worktree-name>`，项目根 `.gitignore` 忽略 `/.worktree/`
 
 ## CLAUDE.md
 
@@ -51,6 +52,7 @@
 17. 分步开发工作流：后续 AI coding 遵循接口约定 -> 人类确认 -> 编写业务 -> 编写测试 四步，避免在单次任务里为了测试好写而改业务逻辑
 18. 依赖注入隔离（栈感知）：外部 API/DB/网络依赖必须经接口或注入传入，业务函数内禁止直接实例化或发真实请求；具体写法按本项目侦察到的栈生成（后端 / Flutter / Web 等各异），侦察不到外部依赖则不写
 19. 测试策略与环境防呆（栈感知）：单元测试外补集成测试（连测试库/服务、禁用 Mock）与负面边界测试；Mock 必须用环境判断包裹，按栈选写法（Node `process.env`、Flutter `kReleaseMode`/`--dart-define`、Web `import.meta.env`），禁止跨栈套用；无测试栈时只建议不强制
+20. Worktree 统一路径：项目根目录创建并保留本地 `.worktree/`，所有后续 Git worktree 必须使用 `<project-root>/.worktree/<worktree-name>`；不得在项目根目录创建平级 worktree 或默认使用外部目录，根 `.gitignore` 必须包含 `/.worktree/`
 
 注意：第 14 至 19 项必须按本项目实际侦察到的技术栈裁剪，只写适用规则，不适用的栈不写、不套用其他栈写法。
 
@@ -76,6 +78,7 @@
 6. 关键路径索引：主入口、公共组件/工具类位置、文档目录结构、中文命名的任务聚合子目录约定，以及审计 / 性能 / 评估 / 复盘报告的 `docs/reports/<中文报告主题>/` 目录约定
 7. 常用命令：构建、测试、运行命令
 8. 规则与强制：规则按主题模块化、主文件只写索引；生产目录禁止 Mock、测试目录允许 Mock；记录由 Linter 强制的边界；遵循接口 -> 确认 -> 业务 -> 测试 的分步工作流；外部依赖经注入隔离、补集成测试与环境防呆（均按本项目栈裁剪，不适用的栈不写）
+9. Worktree 位置规则：项目根目录使用本地 `.worktree/` 作为唯一默认容器，所有新 worktree 放在其子目录中，且根 `.gitignore` 忽略 `/.worktree/`
 
 若启用 experimental 模式，`AGENT.md` 必须基于变更后重新扫描的结果生成。
 
@@ -92,6 +95,7 @@
 - 只保留对所有任务都有帮助的规则
 - 必须包含精简版 GP-2 至 GP-9：单一事实来源、复用优先、触碰文件与计划触发、最小验证、AI vibe coding、配置文件互斥、文档归档与中文命名规则
 - 必须包含精简版 SR 维度：生产目录禁止 Mock、测试目录允许 Mock；记录由 Linter 强制的依赖边界；遵循接口 -> 确认 -> 业务 -> 测试 分步工作流；外部依赖经注入隔离、补集成测试与环境防呆（按本项目栈裁剪）；细则按需读取 `.ai/rules/<topic>.md`
+- 必须包含 Worktree Location Policy：所有新 worktree 只创建在 `<project-root>/.worktree/<worktree-name>`，根 `.gitignore` 忽略 `/.worktree/`
 - 如果项目已安装 final rule audit hook，必须补一句：任务收尾前必须复审规则、已修改文件和最小验证结果；发现违反规则时先修复
 
 若启用 experimental 模式，Copilot 项目级配置必须基于变更后重新扫描结果更新。
@@ -109,6 +113,7 @@
 - 审计 / 性能 / 评估 / 复盘类报告应放在 `docs/reports/<中文报告主题>/`；`CHANGELOG.md` 可保留在 `docs/reports/` 根下
 - 任务收尾规则：若项目生成了 final rule audit hook，最终回复前必须复审适用规则、已修改文件和最小验证结果；发现违反规则时先修复
 - 规则如何组织：主控文件红线 + 索引、细则在哪、生产目录禁止 Mock、哪些边界由 Linter 强制、后续写代码遵循接口 -> 确认 -> 业务 -> 测试
+- worktree 统一位置：项目根 `.worktree/`，以及该目录已由根 `.gitignore` 忽略
 
 若启用 experimental 模式，摘要还必须额外包含：
 

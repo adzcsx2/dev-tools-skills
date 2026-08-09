@@ -52,6 +52,7 @@ origin: dev-tools-skills
 3. 通过 `dt:install-project-hooks` 在 Claude Code 与 Codex 项目里 bootstrap 项目级 final rule audit hook
 4. 增量升级已有 `CLAUDE.md`、`AGENT.md`、Copilot 配置，不无脑覆盖
 5. 生成 onboarding 摘要与最小验证结果
+6. 在项目根目录初始化本地 `.worktree/`，并把后续 Git worktree 的统一存放规则写入项目级 AI 规则
 
 项目级 `.ai/skills` 多端同步、configured mirrors 和 `sync-project-skills.sh` 默认能力已经移除；`init` 不再生成或维护这些文件。
 
@@ -68,7 +69,8 @@ origin: dev-tools-skills
    - Codex：`.codex/hooks.json`、当前 OS 对应的 `.codex/hooks/final-rule-audit.{ps1|sh}`
 6. `/docs` 文档根目录及必要分类目录骨架
 7. （仅当项目有真实关注点或明确隔离价值时）按主题拆分的 `.ai/rules/<topic>.md` 与 `src/` / `tests/` 等目录级隔离规则
-8. 可选 checklist（仅用户明确要求时）
+8. 项目根目录本地 `.worktree/` 及 `.gitignore` 中的 `/.worktree/` 忽略项（`--dry-run` 时只预览）
+9. 可选 checklist（仅用户明确要求时）
 
 ## Mandatory Read Order
 
@@ -145,6 +147,14 @@ origin: dev-tools-skills
 - 不写入 configured mirrors，不安装 `sync-project-skills.sh`
 - 按 `references/claude-hook-bootstrap.md` 了解项目 hook 安装委托规则；具体 hook 生成由 `dt:install-project-hooks` 负责
 
+### Step 6.5. Worktree Root Bootstrap
+
+- 非 `--dry-run` 模式下，在项目根目录创建或复用 `.worktree/`，不得在仓库根目录直接创建平级 worktree
+- 确保项目根 `.gitignore` 包含精确的根目录忽略项 `/.worktree/`；若 `.gitignore` 不存在则创建，保留所有既有内容
+- 后续生成或升级的 `CLAUDE.md`、`AGENT.md` 和 Copilot 项目级配置必须明确：所有新 Git worktree 统一放在 `<project-root>/.worktree/<worktree-name>`，不得默认放到项目根目录平级位置或其他外部目录
+- 只约束后续新建 worktree；不得自动移动或删除初始化前已存在于其他位置的 worktree
+- `--dry-run` 模式只展示目录、忽略项和规则文件预期变更，不创建目录、不修改 `.gitignore`
+
 ### Step 7. Scoped Rules And Enforcement
 
 - 按 `references/scoped-rules-and-enforcement.md` 规划规则模块化与强制层
@@ -189,16 +199,18 @@ origin: dev-tools-skills
 - 优先运行与改动范围最小相关的 test / lint / typecheck / build / smoke
 - 如果没有可执行验证命令，必须明确写 `not verified`
 - 文档-only 变更至少检查路径、目录规则和规则文件一致性
+- 非 `--dry-run` 模式还必须确认项目根 `.worktree/` 已存在、`/.worktree/` 已被根 `.gitignore` 忽略，且三类项目级 AI 规则中的 worktree 路径约束一致
 
 ### Step 11. Code Review Generated Rules
 
 在所有文件生成和验证完成后，对产出的规则文件做一次完整性审查：
 
-- 检查 `CLAUDE.md` 是否完整覆盖了 `references/output-files.md` 要求的 19 项必备内容（其中 SR 相关项按本项目栈裁剪）
-- 检查 `AGENT.md` 是否完整覆盖了 8 项必备内容
+- 检查 `CLAUDE.md` 是否完整覆盖了 `references/output-files.md` 要求的 20 项必备内容（其中 SR 相关项按本项目栈裁剪）
+- 检查 `AGENT.md` 是否完整覆盖了 9 项必备内容
 - 检查 Copilot 项目级配置是否涵盖精简版 GP-2 至 GP-9
 - 交叉检查各文件之间的一致性（单一事实来源声明、hook 安装规则、文档分类规则是否在各文件中一致）
 - 检查是否有遗漏的规则类别：安全、测试、编码风格、Git 工作流、性能、Agent 编排、Hook 系统
+- 检查 `.worktree/` 初始化、`.gitignore` 忽略项和三类项目级 AI 规则中的 worktree 统一路径约束是否一致
 - 对照 `references/general-principles.md` 的 GP-1 至 GP-10，逐项确认关键约束已写入对应文件
 - 对照 `references/scoped-rules-and-enforcement.md` 的 SR-1 至 SR-9，确认模块化规则索引、目录级隔离、Linter 强制说明、分步工作流、依赖注入隔离、集成测试与环境防呆已按本项目栈裁剪写入对应文件；确认没有跨栈套用错误写法
 - 发现缺失或冲突时，补充或修正对应文件
@@ -233,6 +245,7 @@ origin: dev-tools-skills
 - 审计 / 性能 / 评估 / 复盘类报告使用 `docs/reports/<中文报告主题>/`
 - `/docs` 下文档文件名、任务目录名和报告主题目录名必须使用中文；标准分类目录名保持英文
 - `CHANGELOG.md` 这类持续更新日志可保留在 `docs/reports/` 根下
+- 项目根目录必须创建并保留本地 `.worktree/`；所有后续 Git worktree 必须放在 `<project-root>/.worktree/<worktree-name>`，且 `/.worktree/` 必须加入项目根 `.gitignore`
 - 需求不清或跨 3+ 源码文件时先计划
 - 所有结论必须来自真实代码、配置或目录扫描
 - 规则按主题模块化，主控文件只保留红线 + 索引，细则按需加载
