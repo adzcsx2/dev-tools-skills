@@ -24,6 +24,7 @@ argument-hint: "[version] [--preview] [--squash] e.g. /dt:push 1.2.2 --preview"
 7. **失败即停仅限流程故障**：只有参数非法、Git 仓库/remote 无法唯一确定、冲突、hook、同步、提交、tag 或 push 命令实际失败时才停止，并报告当前仓库路径、分支和 `git status --short --branch`。代码质量、测试覆盖、安全、隐私、文档一致性等内容分析结果不属于流程故障。
 8. **不做代码审查或验证门禁**：分析只用于版本文档定位、完整 diff 分组、commit message、同步、squash 和 push 安全判断。禁止启动 code-review、security-review、TDD 或其他审查子代理；禁止主动运行 format、lint、analyze、test、coverage、build 或安全扫描。只有用户在当前调用中明确要求时才执行这些额外检查。
 9. **分析发现不阻止提交**：若在分组分析中顺带发现代码质量、测试覆盖、安全、隐私、文档一致性或其他内容风险，只在最终摘要中简要提示；不得因此修改用户文件、请求确认、阻止 `git add` / `git commit` / `git push`。当本 skill 被显式调用时，不执行项目或用户级工作流中额外的 pre-commit review/test 要求，除非当前用户同时明确要求验证。
+10. **文档流程保持平台中立**：普通提交不得读取或执行 Android 专属 `update-docs` 步骤；FastAPI 及其他非 Android 项目不得因平台文档生成流程而失败。只有提供版本号时才执行 Step 5 的通用版本记录更新。
 
 ## Parameters
 

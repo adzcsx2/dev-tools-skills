@@ -34,6 +34,7 @@
 - **无审查与验证门禁**：默认不启动 code-review、security-review、TDD 或其他审查子代理，也不主动运行 format、lint、analyze、test、coverage、build 或安全扫描；只有用户在当前调用中明确要求时才执行
 - **分析不阻止提交**：代码质量、测试覆盖、安全、隐私或文档一致性等内容风险只进入最终摘要，不修改用户文件、不请求确认、不阻止 `git add`、`git commit` 或 `git push`
 - **仅流程故障停止**：只有参数、仓库/remote 选择、Git 冲突、hook、同步、提交、tag 或 push 命令实际失败时才停止
+- **平台中立文档流程**：普通提交不读取或执行 Android 专属 `update-docs`；FastAPI 及其他非 Android 项目仅在提供版本号时更新通用版本记录
 - 凡是提交内容涉及版本号更新，commit 标题必须明确包含目标版本号，例如 `chore: bump version to 1.2.2` 或 `docs: 更新版本号到 1.2.2`
 - **preview 严格只读**：参数在任何 pull/stash 之前解析；preview 不 fetch、pull、stash、add、reset、commit、tag、push，也不修改文件或 refs
 - **本地 commit 整理（显式授权）**：默认保留逻辑分组；只有传入 `--squash`，且本地有 ≥ 2 个未推送 commit、作者一致、无 merge commit、工作区干净、内容一致性 gate 通过时，才用 `git reset --soft` 压成 1 个 commit；已推送历史绝不改写或 force-push
