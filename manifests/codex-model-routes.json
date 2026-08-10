@@ -7,28 +7,6 @@
       "tier": "reasoning",
       "reason": "Executing a complete phased plan requires dependency tracking, test-gate enforcement, recovery judgment, and final acceptance auditing."
     },
-    "adt-android-e2e": {
-      "preferred_model": "high-reasoning",
-      "tier": "reasoning",
-      "reason": "Android E2E visual diagnosis requires interpretation of UI state, device behavior, and test failures."
-    },
-    "adt-android-fold-adapter": {
-      "preferred_model": "high-reasoning",
-      "tier": "reasoning",
-      "reason": "Foldable adaptation work requires layout, lifecycle, and device-state reasoning."
-    },
-    "adt-android-i18n": {
-      "preferred_model": "GPT-5.3-codex-spark",
-      "tier": "spark-with-escalation",
-      "reason": "Hardcoded-string audits and resource generation are mostly mechanical.",
-      "escalation": "translation semantics, plural rules, or locale-sensitive behavior need product judgment"
-    },
-    "adt-gradle-build-performance": {
-      "preferred_model": "GPT-5.3-codex-spark",
-      "tier": "spark-with-escalation",
-      "reason": "Gradle performance audits are mostly structured diagnostics.",
-      "escalation": "multi-module build architecture or dependency strategy changes are required"
-    },
     "dt-code-note": {
       "preferred_model": "GPT-5.3-codex-spark",
       "tier": "spark",

@@ -15,6 +15,7 @@ const promptRoot = process.argv[4] || path.join(homeDir, ".codex", "prompts");
 const marker = ".codex-dev-tools-skills-wrapper";
 const promptMarker = "<!-- codex-dev-tools-skills-generated -->";
 const modelRouteManifestFile = path.join("manifests", "codex-model-routes.json");
+const excludedSourceSkillPrefixes = ["adt:"];
 
 function parseBooleanFlag(value, defaultValue) {
   if (value === undefined || value === null || value === "") {
@@ -306,6 +307,10 @@ function main() {
 
   for (const source of sourceSkills) {
     const frontmatter = parseFrontmatter(source.skillPath);
+    if (excludedSourceSkillPrefixes.some((prefix) => frontmatter.name.startsWith(prefix))) {
+      continue;
+    }
+
     const codexName = toCodexSkillName(frontmatter.name);
     if (!codexName) {
       fail(`Could not derive Codex skill name from ${frontmatter.name}`);
