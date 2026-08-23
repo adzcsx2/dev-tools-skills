@@ -25,7 +25,7 @@ git status --porcelain=v1 --untracked-files=all
 git status --short --branch
 git rev-parse --abbrev-ref --symbolic-full-name "@{u}"
 git config --get branch.<当前分支>.remote
-git config --get branch.<当前分支>.merge
+git config --get-all branch.<当前分支>.merge
 ```
 
 其中 `<当前分支>` 必须替换为 `git branch --show-current` 返回的精确值，并作为单独参数传递。
@@ -36,7 +36,7 @@ git config --get branch.<当前分支>.merge
 | --- | --- |
 | 非 Git 仓库 | 报告并退出 |
 | detached HEAD / 当前分支为空 | 报告并退出，不创建或切换分支 |
-| upstream 存在 | 记录其 configured remote 和 merge ref，不再猜测 remote |
+| upstream 存在 | 记录其 configured remote 和唯一 merge ref，作为后续 pull/push 的显式目标；值缺失或 merge ref 不唯一时停止，不猜测目标 |
 | upstream 不存在 | 优先使用 `origin`；若无 `origin` 且只有一个 remote，使用该 remote；零个或多个无法唯一选择时停止并询问 |
 | 工作区有 tracked/untracked 变更 | 允许继续；execute 模式同步前必须完整保存 |
 | 工作区干净且有未推送 commit | 允许继续并直接走 push 路径 |
@@ -96,13 +96,13 @@ git for-each-ref --format="%(refname)|%(objectname)" refs/remotes
 git stash push --include-untracked --message "dt-push pre-sync"
 ```
 
-确认 stash 命令成功且工作区已干净；否则停止。随后直接使用 configured upstream：
+确认 stash 命令成功且工作区已干净；否则停止。随后使用 pre-flight 记录的 configured remote 和唯一 merge ref：
 
 ```bash
-git pull --rebase
+git pull --rebase <configured remote> <configured merge ref>
 ```
 
-不额外拼接本地分支名，因为本地分支可能跟踪不同名的远程分支。
+不得把本地分支名替代 configured merge ref，因为本地分支可能跟踪不同名的远程分支。
 
 - rebase 成功：如创建了专用 stash，执行 `git stash pop` 恢复。
 - rebase 冲突：先按 `conflict-resolution.md` 完成或停止；rebase 未完成前不得 pop stash。
@@ -120,13 +120,13 @@ git pull --rebase
 
 ### 5.1 有 upstream
 
-正常情况直接执行：
+使用 pre-flight 记录的 configured remote 和唯一 merge ref，显式执行：
 
 ```bash
-git push
+git push <configured remote> HEAD:<configured merge ref>
 ```
 
-这会使用与 pull 相同的 tracking configuration，避免 remote/branch 漂移。
+显式 remote 和 refspec 可避免 `branch.<name>.pushRemote`、`remote.pushDefault`、`remote.<name>.push` 或 `push.default` 把 push 改到其他目标，并确保 push 与 pull 使用同一 remote/branch。
 
 ### 5.2 无 upstream
 
@@ -142,7 +142,7 @@ git push -u <remote> <当前分支>
 
 只有明确识别为远程领先/non-fast-forward 时才重试一次：
 
-1. 执行 `git pull --rebase`（已有 upstream）或明确 remote/branch 的等价 rebase（首次 push 竞争场景）。
+1. 已有 upstream 时，使用首次同步相同的显式 configured remote/merge ref 执行 `git pull --rebase`；首次 push 竞争场景使用已确定 remote/branch 的等价 rebase。
 2. 有冲突时执行 `conflict-resolution.md`。
 3. rebase 成功后重新执行与首次相同的 push 命令。
 4. 第二次失败立即停止。
@@ -165,19 +165,48 @@ git tag -l "X.Y.Z"
 
 ## 7. init-root 多仓库编排
 
-命中 `.ai/init-root.yml` 的 `root_git_policy: commit_only_no_push` 后：
+`.ai/init-root.yml` 包含 `commit_only_no_push` 或 `commit_and_push_after_children` 时进入 init-root 模式。配置值是上次侦察结果，实时 Git 状态优先。
 
-1. 验证 root 是 Git 仓库；root 无 remote 可接受。
+### 7.1 只读拓扑与 root remote pre-flight
+
+在任何子仓库写操作前：
+
+1. 验证 root 是独立 Git 仓库，`git rev-parse --show-toplevel` 的规范化路径必须等于当前目录。
 2. 读取 `child_projects[].path`，只接受 root 的直接子级路径。
-3. 补充扫描直接子级目录中的 `.git`；去重后按稳定路径顺序处理。
+3. 补充扫描直接子级目录中的 `.git` 目录或 `.git` 文件；去重后按稳定路径顺序处理。
 4. 跳过不存在、非目录、非直接子级或不含 `.git` 的配置项，并在结果中说明。
-5. preview：对子仓库和 root 仅执行第 3 节允许的只读命令，不 fetch/pull/stash/commit/push。
-6. execute：逐个子仓库执行普通仓库流程，传递同一参数组合。
-7. 任一子仓库失败：立即停止，不处理剩余子仓库，也不提交 root。
-8. 子仓库全部成功后，检查 root `.gitignore` 中的 `# dt:init-root child repositories` block，并确认 index/工作区不包含子仓库内容。
-9. root 有自身变更时按逻辑生成一个中文本地 commit；提交信息同样必须包含单行标题和非空改动说明正文；root 禁止 pull、squash、push 和 tag。
+5. 检查 root `.gitignore` 的 `# dt:init-root child repositories` block 已覆盖扫描出的全部直接子 Git 仓库，并确认 root index 不包含子仓库内容；不满足时在任何子仓库写操作前停止，要求先运行 `dt:init`/`dt:init-root` 刷新。
+6. 对 root 执行第 2 节只读 pre-flight，并按 configured upstream -> `origin` -> 唯一 remote 的顺序确定 remote。
+7. root 无 remote：有效 policy 为 `commit_only_no_push`。
+8. root remote 可唯一确定：有效 policy 为 `commit_and_push_after_children`。
+9. root 有多个 remote 且无法唯一选择：立即停止，不得先推子仓库再询问。
+10. 比较有效 policy 与 `.ai/init-root.yml`。preview 记录预计变化；execute 延迟到 root 阶段更新配置。
 
-版本参数会作用于每个子仓库。若某个产品根目录不应统一给所有子仓库更新版本/tag，必须在 execute 前停止并让用户缩小调用范围。
+### 7.2 Preview
+
+对子仓库和 root 只执行第 3 节允许的只读命令，不 fetch、pull、stash、commit、push 或改配置。输出：
+
+- 稳定顺序的子仓库列表及各自 push 目标。
+- root 实时有效 policy、配置是否需要刷新。
+- root 无 remote 时的本地 commit 计划，或 root remote-enabled 时的 sync/commit/push/tag 计划。
+
+### 7.3 Execute Children First
+
+1. 逐个子仓库执行完整普通仓库流程，传递同一参数组合。
+2. 任一子仓库失败：立即停止，不处理剩余子仓库，也不修改、提交或推送 root。
+3. 所有子仓库成功后，重新读取 root remote/upstream，防止长流程期间状态漂移；若目标变得歧义，停止 root 阶段并报告。
+4. 检查 root `.gitignore` 的 `# dt:init-root child repositories` block 已覆盖全部直接子 Git 仓库，并确认 root index 不包含子仓库内容。
+5. 若发现遗漏的直接子仓库 ignore，停止 root commit/push 并要求先运行 `dt:init`/`dt:init-root` 刷新；不得把子项目内容暂存到 root。
+
+### 7.4 Finalize Root
+
+- 先把实时有效 policy 刷新到 `.ai/init-root.yml`，该变化属于 root commit。remote-enabled 时写入已选择的 `root_remote`；无 remote 时删除陈旧的 `root_remote` / `root_remote_status`。
+- 有效 policy 为 `commit_only_no_push`：不 pull、不 squash、不 push、不创建或推送 tag；按 `commit-grouping.md` 提交全部未忽略 root 变更，并保留本地 commit。
+- 有效 policy 为 `commit_and_push_after_children`：把 root 当作普通仓库继续执行主 `SKILL.md` Step 4 至 Step 8。顺序必须是本文件第 4 节同步、主流程 Step 5 可选版本文档、Step 6 逻辑提交、Step 7 可选 squash、本文件第 5 节 push，最后在提供版本号时按第 6 节处理 root tag。
+- root 没有工作区变更但已有未推送 commit 时，remote-enabled policy 仍必须 push；不得以“工作区干净”跳过。
+- root push 失败时保留本地 commit，报告 root 失败；不得回滚已经成功推送的子仓库，也不得 force-push。
+
+版本参数会作用于每个子仓库，并在 remote-enabled policy 下作用于 root。若产品根目录不应统一更新版本/tag，必须在 execute 前停止并让用户缩小调用范围。
 
 ## 8. 完成状态汇总
 
@@ -188,6 +217,6 @@ git tag -l "X.Y.Z"
 - 新建 commit 数及标题
 - 是否执行 squash
 - push 与 tag 结果
-- root 是否仅本地 commit
+- root 的实时 policy、配置刷新结果、本地 commit 与远程 push/tag 结果
 
 不要在用户可见输出中粘贴可能含凭据的 remote URL；只显示 remote 名和已脱敏的 host/repository 摘要。

@@ -37,6 +37,13 @@
 7. 测试结构
    tests/, test/, __tests__/, integration_test/, e2e/, src/test/, src/androidTest/
    *.spec.*, *.test.*, *_test.py, *_test.go
+
+8. Git 拓扑
+   当前目录自己的 .git（不能把父目录仓库误判为当前根仓库）
+   直接子目录中的 .git 目录或 .git 文件
+   根与子仓库的当前分支、configured upstream、origin/其他 remotes
+   根 .gitignore 是否已 anchored 忽略直接子 Git 仓库
+   .ai/init-root.yml 是否存在，以及 policy 是否与实时 remote 状态一致
 ```
 
 ## Stack Detection
@@ -146,6 +153,7 @@
 - 最近提交信息风格
 - 分支命名模式
 - PR 合并方式
+- 检测到直接子 Git 仓库时，按 `git-topology.md` 区分 root 与 child 的 index、commit 和 push 边界
 - 如果 git 历史不存在或过浅，明确写 unavailable
 
 ## Stack-Specific Local Consistency Rules

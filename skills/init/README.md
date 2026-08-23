@@ -1,6 +1,6 @@
 # dt:init
 
-统一跨技术栈项目初始化入口。现在采用“主 skill 编排 + references 细则 + capability 插件”结构：主 `SKILL.md` 负责按步骤执行，详细规则拆分在 `references/` 下，栈相关能力由注册表按真实证据选择。基于真实代码和配置，生成或优化 CLAUDE.md、AGENT.md、Copilot 项目级指令，建立 `/docs` 分类规则和必要 scoped rules，并通过 `dt:install-project-hooks` 生成 Claude/Codex final rule audit 项目级 hook，输出简洁的代码库入门摘要。
+统一跨技术栈项目初始化入口。现在采用“主 skill 编排 + references 细则 + capability 插件”结构：主 `SKILL.md` 负责按步骤执行，详细规则拆分在 `references/` 下，栈相关能力由注册表按真实证据选择。基于真实代码和配置，生成或优化 CLAUDE.md、AGENT.md、Copilot 项目级指令，建立 `/docs` 分类规则和必要 scoped rules，并通过 `dt:install-project-hooks` 生成 Claude/Codex final rule audit 项目级 hook；检测到直接子 Git 仓库时，还会隔离子仓库、初始化根 Git，并按根 remote 实际状态创建本地提交或推送根仓库。输出简洁的代码库入门摘要。
 
 ---
 
@@ -22,7 +22,7 @@
 - 建立 `/docs` 根目录及标准分类体系，**强制创建缺失的标准分类目录**（plan、product、design、guide、modules、references、checklist、reports）
 - 审计、性能、评估、复盘类报告默认按 `docs/reports/<中文报告主题>/` 主题目录组织，支持同一主题二次、三次审计持续追加；持续更新日志如 `CHANGELOG.md` 可保留在 `docs/reports/` 根下
 - `/docs` 下文档文件名、任务目录名和报告主题目录名必须使用中文；标准分类目录名保持英文
-- 主 `SKILL.md` 会先按顺序读取 `references/general-principles.md`、`references/recon-and-stack-detection.md`、`references/docs-taxonomy.md`、`references/project-bootstrap.md`、`references/claude-hook-bootstrap.md`、`references/scoped-rules-and-enforcement.md`、`references/output-files.md` 与 `capabilities/registry.json`，再只读取命中的 capability
+- 主 `SKILL.md` 会先按顺序读取 `references/general-principles.md`、`references/recon-and-stack-detection.md`、`references/git-topology.md`、`references/docs-taxonomy.md`、`references/project-bootstrap.md`、`references/claude-hook-bootstrap.md`、`references/scoped-rules-and-enforcement.md`、`references/output-files.md` 与 `capabilities/registry.json`，再只读取命中的 capability
 - 写入 9 条 scoped-rules 与强制原则（SR-1 至 SR-9），把“只靠超长规则文件约束 AI”升级为“规则模块化 + 目录级就近规则 + Linter 强制 + 任务步骤拆分 + 依赖注入隔离 + 测试反 Mock 与环境防呆”：
   - SR-1: Why Not One Heavy File - 避免单文件臃肿与注意力涣散
   - SR-2: Modular Doc Architecture - 规则按主题拆到 `.ai/rules/<topic>.md`，主控文件只写红线 + 索引、按需加载
@@ -54,6 +54,7 @@
 - 所有文件生成后自动对产出的规则文件（CLAUDE.md、AGENT.md、Copilot 配置）做完整性审查，检查必备内容是否覆盖、各文件是否一致、是否有遗漏的规则类别，发现 gap 自动补充修复
 - 在所有文件生成和 review 完成后，自动确保 `.codegraph/` 已加入项目的 `.gitignore`，防止 codegraph 索引目录被提交到版本控制
 - 非 `--dry-run` 模式会验证项目根 `.worktree/`、`/.worktree/` 忽略项和三类项目级 AI 规则中的 worktree 路径约束保持一致
+- 检测到直接子 Git 仓库时，自动维护根 `.gitignore` 的 anchored child block 与 `.ai/init-root.yml`；根无 remote 时初始化并本地提交，根 remote 可唯一确定时安全同步、提交并推送根当前分支，初始化阶段不推子仓库
 
 ## 语言要求
 
@@ -73,7 +74,7 @@
 
 | 参数                    | 说明                                                                                                              |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| 无参数                  | 标准 init，只做侦察、总结和规则文件生成或优化，不允许主动改架构；如果项目已有旧版 init 产物，会增量升级到当前标准 |
+| 无参数                  | 标准 init，侦察并生成或优化规则文件，不主动改业务架构；多仓库产品根目录还会隔离子仓库并完成根 Git 初始化、commit/可选 push |
 | `[optional focus]`      | 可选关注模块、技术栈或目录范围，例如 `web app`、`android`，所有结论仍必须由真实代码验证                           |
 | `--experiment converge` | 启用架构收敛模式，用于新项目第一版或迁移早期对已落地结构做统一                                                    |
 | `--experiment sync`     | 启用同步更新模式，用于已有架构在新增目录、模块或调用链后同步更新 AI 规则与路径映射                                |

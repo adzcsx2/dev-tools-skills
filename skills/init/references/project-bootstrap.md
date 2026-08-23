@@ -13,6 +13,7 @@
 - 创建或复用项目根目录本地 `.worktree/`，并确保根 `.gitignore` 包含 `/.worktree/`
 - 仅在项目存在真实关注点或明确隔离价值时，建立 `docs/references/ai-rules/<中文主题>.md` scoped rules
 - 委托 `dt:install-project-hooks` 安装项目级 Claude/Codex hooks
+- 检测到直接子 Git 仓库时，按 `git-topology.md` 创建或更新 `.ai/init-root.yml`、根 `.gitignore` 受控 block 和根 Git policy
 
 ## Removed Defaults
 
@@ -41,6 +42,7 @@
 - 文档默认归档到 `/docs` 标准分类
 - 若项目安装了 final rule audit hook，最终回复前必须复审适用规则、已修改文件和验证结果
 - 所有新 Git worktree 统一创建到 `<project-root>/.worktree/<worktree-name>`；不得在项目根目录创建平级 worktree，也不得默认使用其他外部目录
+- 多仓库根目录必须隔离直接子 Git 仓库；根无 remote 时本地提交，根 remote 可唯一确定时在子仓库全部成功后同步、提交并推送根仓库
 - 真实密钥写死在源码里时只做风险提醒：AI 不得仅因发现 hardcoded API key / token / password 就自行替换、删除、迁移到环境变量、轮换凭据、编写一套 secret management 逻辑或直接修改源码；除非用户明确要求处理，否则只警告并在回复 / 日志中脱敏
 
 ## Worktree Bootstrap

@@ -45,10 +45,10 @@ cd dev-tools-skills
 | Skill                      | 描述                                                                                                                                                                                                                                                                                                           |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `do-all`                   | 完整计划执行：自动解析或等待唯一目标计划，严格按顺序完成全部阶段，每阶段通过测试门禁后才继续；Claude 使用 `/do-all`，Codex 使用 `$do-all`                                                                                                                                                                      |
-| `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 AI 规则、docs 分类与项目 hooks；按证据加载 capability 插件，为后端项目加入 API-first 检索，为 Flutter App 加入语义驱动自动化测试协议                                                                                                                        |
-| `dt:init-root`             | 多仓库产品根目录初始化：按顺序执行 `dt:init` 和 `dt:update-docs`，继承 final rule audit 项目级 hook 初始化，再配置根目录本地 git、子项目 `.gitignore` 忽略、root 只 commit 不 push 策略，以及根目录 `dt:push` 子仓库编排边界                              |
+| `dt:init`                  | 通用项目初始化：识别真实技术栈并生成/优化 AI 规则、docs 分类与项目 hooks；按证据加载 capability 插件（后端 API-first 检索、Flutter 语义驱动自动化测试），检测到直接子 Git 仓库时隔离子仓库并初始化根 Git，按根 remote 实际状态本地提交或推送根仓库                                                                                                                         |
+| `dt:init-root`             | 多仓库产品根目录初始化：按顺序执行 `dt:init` 和 `dt:update-docs`，维护子仓库 `.gitignore` 与 `.ai/init-root.yml`；根无 remote 时本地提交，根有可用 remote 时同步、提交并推送                                                                                                                         |
 | `dt:study`                 | 修错回源：把已验证的 skill 失误直接沉淀回工作区里的源 SKILL，避免改在缓存副本上                                                                                                                                                                                                                                |
-| `dt:push`                  | 一键发布工作流：严格只读 preview、同步 upstream、只分析 diff 分组并提交，不执行代码审查或测试门禁，显式 `--squash` 整理、推送与可选 tag                                                                                                                                                                         |
+| `dt:push`                  | 一键发布工作流：严格只读 preview、同步 upstream、按逻辑分组提交并推送；多仓库根先处理全部子仓库，再按根实时 remote 状态本地提交或推送 root；支持显式 `--squash` 与可选 tag                                                                                                                                      |
 | `dt:execute-loop`          | 串行执行循环：用多个全新子代理重复执行同一个后续 command + prompt，默认 3 轮，支持 `-N` 指定次数                                                                                                                                                                                                                |
 | `dt:update-remote-plugins` | 远程插件维护：更新配置与文档、验证 install 回流本地是否始终命中最新版本                                                                                                                                                                                                                                        |
 | `dt:code-note`             | 多语言代码注释：自动检测语言类型并应用对应注释风格                                                                                                                                                                                                                                                             |
@@ -113,7 +113,7 @@ dev-tools-skills/
 
 ## 版本
 
-v1.4.0
+v1.5.0
 
 ## License
 

@@ -1,6 +1,6 @@
 ---
 name: dt:init
-description: "Initialize AI project context for any codebase. Detect the real stack, generate or update CLAUDE.md, AGENT.md, Copilot instructions, docs taxonomy, scoped rules, and project-level Claude/Codex final-rule-audit hooks."
+description: "Initialize AI project context for any codebase. Detect the real stack, generate or update CLAUDE.md, AGENT.md, Copilot instructions, docs taxonomy, scoped rules, project hooks, and multi-repository root Git topology with child isolation plus local-or-remote root commit policy."
 argument-hint: "[optional focus] [--experiment [converge|sync]] [--dry-run]"
 origin: dev-tools-skills
 ---
@@ -32,11 +32,12 @@ origin: dev-tools-skills
 - 项目曾经执行过 init，但需要把旧版规则文件升级到当前标准
 - 项目进入 Claude Code 或 Codex 工作流，需要生成项目级 hook 来执行任务收尾规则审计
 - 项目需要补齐 `/docs` 分类规则、报告归档规则和 scoped rules 约束
+- 产品根目录包含多个自带 `.git` 的直接子项目，需要隔离子仓库并初始化或刷新根 Git 提交/推送策略
 - 用户显式要求 `--experiment converge` 或 `--experiment sync`
 
 ## Command Parameters
 
-- 无参数：标准 init。只做侦察、总结和规则文件生成或优化，不允许主动改架构
+- 无参数：标准 init。做侦察、总结和规则文件生成或优化，不主动改业务架构；检测到多仓库产品根目录时，额外执行 `git-topology.md` 的根 Git 初始化、commit/可选 push
 - `[optional focus]`：可选关注模块、技术栈或目录范围，但所有结论仍必须由真实代码验证
 - `--experiment converge`：启用 experimental 架构收敛模式
 - `--experiment sync`：启用 experimental 同步更新模式
@@ -54,6 +55,7 @@ origin: dev-tools-skills
 5. 生成 onboarding 摘要与最小验证结果
 6. 在项目根目录初始化本地 `.worktree/`，并把后续 Git worktree 的统一存放规则写入项目级 AI 规则
 7. 根据真实栈信号加载 `capabilities/registry.json` 中的初始化能力插件
+8. 检测多仓库产品根目录，隔离直接子 Git 仓库，并按根 remote 实际状态完成本地 commit 或根 remote push
 
 项目级 `.ai/skills` 多端同步、configured mirrors 和 `sync-project-skills.sh` 默认能力已经移除；`init` 不再生成或维护这些文件。
 
@@ -73,6 +75,7 @@ origin: dev-tools-skills
 8. 项目根目录本地 `.worktree/` 及 `.gitignore` 中的 `/.worktree/` 忽略项（`--dry-run` 时只预览）
 9. 可选 checklist（仅用户明确要求时）
 10. 条件能力产物（仅匹配 capability 时生成；具体产物由 capability 自身定义）
+11. （仅检测到直接子 Git 仓库时）根 `.ai/init-root.yml`、受控 `.gitignore` block，以及根本地/远程 Git finalization
 
 ## Mandatory Read Order
 
@@ -80,12 +83,13 @@ origin: dev-tools-skills
 
 1. `references/general-principles.md`
 2. `references/recon-and-stack-detection.md`
-3. `references/docs-taxonomy.md`
-4. `references/project-bootstrap.md`
-5. `references/claude-hook-bootstrap.md`
-6. `references/scoped-rules-and-enforcement.md`
-7. `references/output-files.md`
-8. `capabilities/registry.json`
+3. `references/git-topology.md`
+4. `references/docs-taxonomy.md`
+5. `references/project-bootstrap.md`
+6. `references/claude-hook-bootstrap.md`
+7. `references/scoped-rules-and-enforcement.md`
+8. `references/output-files.md`
+9. `capabilities/registry.json`
 
 按条件追加读取：
 
@@ -130,6 +134,7 @@ origin: dev-tools-skills
 
 - 按 `references/recon-and-stack-detection.md` 做并行侦察
 - 先扫构建文件、入口、目录快照、文档目录、测试结构、工具链配置
+- 同时扫描直接子目录 `.git`、根 `.git`、当前分支、upstream 和 remote，识别是否为多仓库产品根目录
 - 只基于真实文件和目录得出结论
 
 ### Step 4. Stack Detection And Conventions
@@ -196,6 +201,7 @@ origin: dev-tools-skills
   - 可选 checklist
 - 同时落实 `references/scoped-rules-and-enforcement.md` 的产出：模块化规则索引、目录级隔离规则、Linter 强制说明、分步工作流段落
 - 将已启用 capability 的短触发规则与细则路径写入项目级 AI 规则；详细协议保留在 capability 生成的 scoped rule 中
+- 检测到直接子 Git 仓库时，同时按 `references/git-topology.md` 把真实根 Git policy 写入规则文件，并生成或更新 `.ai/init-root.yml` 与根 `.gitignore` 受控 block
 
 ### Step 9.5. Install Project Hooks
 
@@ -219,8 +225,8 @@ origin: dev-tools-skills
 
 在所有文件生成和验证完成后，对产出的规则文件做一次完整性审查：
 
-- 检查 `CLAUDE.md` 是否完整覆盖了 `references/output-files.md` 要求的 20 项必备内容（其中 SR 相关项按本项目栈裁剪）
-- 检查 `AGENT.md` 是否完整覆盖了 9 项必备内容
+- 检查 `CLAUDE.md` 是否完整覆盖了 `references/output-files.md` 要求的 21 项必备内容（其中 SR、Worktree 与多仓库 Git 条件项按本项目事实裁剪）
+- 检查 `AGENT.md` 是否完整覆盖了 10 项必备内容
 - 检查 Copilot 项目级配置是否涵盖精简版 GP-2 至 GP-9
 - 交叉检查各文件之间的一致性（单一事实来源声明、hook 安装规则、文档分类规则是否在各文件中一致）
 - 检查 capability 选择有真实证据、未误装到不适用项目，且主规则只保留短触发语句与细则索引
@@ -251,6 +257,16 @@ origin: dev-tools-skills
 - 如果没有，在 `.gitignore` 末尾追加 `.codegraph/`（前面保留一个空行作为分隔）
 - 如果 Step 0 中未初始化 CodeGraph（未安装或已存在），此步骤仍要执行 — 确保仓库在任何情况下都不会将 codegraph 索引目录提交到版本控制
 
+### Step 13. Finalize Multi-Repository Root Git
+
+仅在 Step 3 检测到直接子 Git 仓库时执行 `references/git-topology.md`：
+
+- 根没有自己的 `.git` 时初始化根本地 Git
+- 根无可用 remote 时只创建根本地 commit
+- 根 remote 可唯一确定时，额外完整读取 `skills/push/references/git-transport.md`，完成根 upstream 同步、commit 和 push
+- 初始化阶段不得 commit 或 push 子仓库；子仓库只写入根 `.gitignore` 并记录到 `.ai/init-root.yml`
+- `--dry-run` 只输出拓扑、ignore、commit 和 push 预览，不执行任何 Git 写操作
+
 ## Minimum Rules Generated Files Must Carry
 
 生成的 `CLAUDE.md`、`AGENT.md`、Copilot 项目级配置，至少必须体现这些约束：
@@ -271,6 +287,7 @@ origin: dev-tools-skills
 - 单元测试外补集成测试（禁用 Mock）与负面边界测试，Mock 用环境判断包裹防呆（按本项目栈选写法，禁止跨栈套用）
 - 若检测到后端接口定义：任何业务能力、数据访问或新增接口需求先搜索并验证现有后端 API
 - 若检测到 Flutter App：Flutter 内部 UI 自动化使用 `integration_test` 与稳定 Key/Semantics，AI 探索不作为最终 PASS/FAIL
+- 多仓库根目录必须隔离直接子 Git 仓库；根无 remote 时本地提交，根有可唯一确定 remote 时在全部子仓库成功后提交并推送根仓库
 
 ## Best Practices
 
@@ -294,3 +311,4 @@ origin: dev-tools-skills
 - 在每个子目录无脑塞规则文件，或为不存在的关注点创建空 `.ai/rules/<topic>.md`
 - 跨栈套用强制写法（如给 Flutter 项目写 `process.env`、给 React 写 `kReleaseMode`、给纯 UI 库强加 DI）
 - 给侦察不到外部依赖的项目强加依赖注入规则，或给无测试栈的项目强制集成测试
+- 检测到子 Git 仓库后仍把子项目内容加入 root index，或无视真实 root remote 把 policy 永久写死为 `commit_only_no_push`

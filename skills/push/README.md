@@ -14,7 +14,7 @@
 - 只分析 diff 的主题和文件关联以生成逻辑分组与 commit message，不执行代码审查、测试、静态分析、格式化、构建或安全扫描
 - 分析中顺带发现的内容风险只在最终摘要提示，不阻止提交和推送
 - 用户显式传入 `--squash`，且全部安全 gate 通过时，将本地未推送 commit 压成 1 个干净 commit 后再推送
-- 如果当前目录是 `dt:init-root` 初始化出的多仓库根目录（存在 `.ai/init-root.yml` 且标记 `root_git_policy: commit_only_no_push`），会先发现直接子级 git 仓库并在各子仓库目录执行普通 `dt:push`；root 仓库只创建本地 commit，绝不 push
+- 如果当前目录是多仓库根目录，会先按稳定顺序在直接子 Git 仓库执行普通 `dt:push`；全部成功后，root 无 remote 时本地提交，有可用 remote 时同步、提交并推送 root
 
 ## 用法
 
@@ -40,7 +40,7 @@
 - **本地 commit 整理（显式授权）**：默认保留逻辑分组；只有传入 `--squash`，且本地有 ≥ 2 个未推送 commit、作者一致、无 merge commit、工作区干净、内容一致性 gate 通过时，才用 `git reset --soft` 压成 1 个 commit；已推送历史绝不改写或 force-push
 - **全程只在当前分支操作，绝不创建新分支**；Git 未自动解决的冲突逐文件取证，按实际 rebase/stash 语义区分 upstream 基线与本地重放内容，不使用容易写反的固定 `ours/theirs = local/remote` 映射
 - **upstream 与跨平台一致性**：pull/push 使用 configured upstream；无 upstream 时才选择明确 remote。PowerShell 不直接执行 Bash 专属变量、`head`、`/tmp` 或重定向语法
-- **init-root 根目录例外**：root 仓库是本地协调状态，允许没有 remote；执行时先编排直接子级 git 仓库按普通规则提交/推送，再跳过 root 的 pull、squash、push 和 tag push，只提交未被 `.gitignore` 忽略的 root 文件
+- **init-root 根目录编排**：识别 `commit_only_no_push` 与 `commit_and_push_after_children`；实时 remote 状态覆盖旧配置。先处理直接子 Git 仓库，任一失败则 root 不变；全部成功后，root 无 remote 时本地提交，有可唯一确定 remote 时执行普通 sync/commit/push/tag 流程
 
 ## 结构
 

@@ -60,10 +60,17 @@ argument-hint: "[version] [--preview] [--squash] e.g. /dt:push 1.2.2 --preview"
 
 ### Step 1: Detect Repository Mode
 
-检查当前目录是否存在 `.ai/init-root.yml`，且配置包含 `root_git_policy: commit_only_no_push`：
+检查当前目录是否存在 `.ai/init-root.yml`，且配置包含以下任一 policy：
 
-- 命中：进入 init-root 模式，按 `references/git-transport.md` 的多仓库编排规则执行。
+- `root_git_policy: commit_only_no_push`
+- `root_git_policy: commit_and_push_after_children`
+
+- 命中：进入 init-root 模式，按 `references/git-transport.md` 的多仓库编排规则执行；不得降级成普通单仓库模式。
 - 未命中：进入普通单仓库模式。
+
+init-root 模式下，policy 是上次侦察的派生状态，不是永久开关。任何子仓库写操作前必须按实时 root upstream/remote 重新分类；remote 状态变化时，在 execute 模式刷新配置，preview 只展示预计变化。
+
+init-root 模式的 Step 3 至 Step 8 必须整体委托给 `references/git-transport.md` 第 7 节。不得在子仓库全部成功前修改 root 版本文档、同步 root、提交 root、squash、push 或处理 root tag。
 
 ### Step 2: Read-only Pre-flight
 
@@ -98,6 +105,8 @@ argument-hint: "[version] [--preview] [--squash] e.g. /dt:push 1.2.2 --preview"
 - 出现 rebase 或 stash restore 冲突：完整执行 `references/conflict-resolution.md`。
 
 同步完成后重新读取分支、upstream、工作区和未推送 commit 状态，不复用过期结果。
+
+init-root 模式不得在此直接同步 root；由 `references/git-transport.md` 先逐个完成子仓库普通流程，所有子仓库成功后再对 root 执行对应同步/提交/推送分支。
 
 ### Step 5: Update Version Documents（仅提供版本号时）
 
@@ -141,13 +150,15 @@ argument-hint: "[version] [--preview] [--squash] e.g. /dt:push 1.2.2 --preview"
 
 ## init-root Policy
 
-命中 `root_git_policy: commit_only_no_push` 时：
+命中任一受支持的 init-root policy 时：
 
 - 直接子级 Git 仓库按普通流程处理。
-- root 允许创建本地 commit，但禁止 pull、squash、push 和 tag push。
-- root 没有 remote 属于正常状态。
+- 任一子仓库失败时停止整个编排，不处理后续子仓库，也不 commit/push root。
 - root 提交前必须确认 `.gitignore` 已忽略所有直接子级仓库，且子项目内容没有进入 root index。
-- 任一子仓库失败时停止整个编排，不继续提交 root。
+- 实时 root 无 remote：有效 policy 为 `commit_only_no_push`，root 只创建本地 commit，不 pull、push 或 tag push。
+- 实时 root upstream/remote 可唯一确定：有效 policy 为 `commit_and_push_after_children`，所有子仓库成功后对 root 执行普通仓库的同步、逻辑提交、可选 squash、push 和可选 tag。
+- root 有多个 remote 且无法唯一选择：在任何子仓库写操作前停止并请求用户选择，不得猜 remote。
+- 配置与实时状态不一致时，execute 模式更新 `.ai/init-root.yml` 并纳入 root commit；preview 只报告预计变化。
 
 详细发现顺序、preview 和状态汇总格式以 `references/git-transport.md` 为准。
 
@@ -158,4 +169,4 @@ argument-hint: "[version] [--preview] [--squash] e.g. /dt:push 1.2.2 --preview"
 - 默认模式不包含代码审查、测试、静态分析、格式化、构建或安全扫描门禁；内容分析结果不阻止提交和推送。
 - `--squash` 模式：仅在明确授权且安全 gate 通过时，把未推送 commit 整理为一个，最终代码内容不变。
 - 版本模式：代码 push 成功后创建并推送 `X.Y.Z` tag，不添加 `v` 前缀。
-- init-root 模式：子仓库正常推送，root 最多只产生本地 commit。
+- init-root 模式：子仓库按稳定顺序正常处理；root 无 remote 时本地提交，有可用 remote 时在所有子仓库成功后同步、提交并推送。
