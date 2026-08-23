@@ -1,6 +1,6 @@
 # dt:init
 
-统一跨技术栈项目初始化入口。现在采用“主 skill 编排 + references 细则”结构：主 `SKILL.md` 负责按步骤执行，详细规则拆分在 `references/` 下。基于真实代码和配置，生成或优化 CLAUDE.md、AGENT.md、Copilot 项目级指令，建立 `/docs` 分类规则和必要 scoped rules，并通过 `dt:install-project-hooks` 生成 Claude/Codex final rule audit 项目级 hook，输出简洁的代码库入门摘要。
+统一跨技术栈项目初始化入口。现在采用“主 skill 编排 + references 细则 + capability 插件”结构：主 `SKILL.md` 负责按步骤执行，详细规则拆分在 `references/` 下，栈相关能力由注册表按真实证据选择。基于真实代码和配置，生成或优化 CLAUDE.md、AGENT.md、Copilot 项目级指令，建立 `/docs` 分类规则和必要 scoped rules，并通过 `dt:install-project-hooks` 生成 Claude/Codex final rule audit 项目级 hook，输出简洁的代码库入门摘要。
 
 ---
 
@@ -8,6 +8,9 @@
 
 - 支持 Android、Flutter、React、Python、Java、Node.js 等项目
 - 检测真实构建文件、入口点、目录结构和已有编码规范
+- 读取 `capabilities/registry.json` 并按真实栈证据加载能力插件；未命中的项目不生成对应规则、脚本或空目录
+- 检测到后端接口时启用 API-first：生成可搜索接口索引与 PowerShell 查询工具，新增接口前必须先验证现有路由、处理器和鉴权边界
+- 检测到 Flutter App 时启用语义驱动自动化：统一使用 `integration_test`、稳定 Key/Semantics 和确定性 Dart 断言，AI 只负责探索与动作规划
 - 生成或优化 CLAUDE.md、AGENT.md 及 Copilot 可读的项目配置
 - 在项目根目录创建本地 `.worktree/` 并加入 `.gitignore`，同时要求后续所有新 Git worktree 统一放在 `.worktree/<worktree-name>` 下
 - 不再创建 `.ai/skills` 多端同步、configured mirrors 或工具镜像导出层
@@ -19,7 +22,7 @@
 - 建立 `/docs` 根目录及标准分类体系，**强制创建缺失的标准分类目录**（plan、product、design、guide、modules、references、checklist、reports）
 - 审计、性能、评估、复盘类报告默认按 `docs/reports/<中文报告主题>/` 主题目录组织，支持同一主题二次、三次审计持续追加；持续更新日志如 `CHANGELOG.md` 可保留在 `docs/reports/` 根下
 - `/docs` 下文档文件名、任务目录名和报告主题目录名必须使用中文；标准分类目录名保持英文
-- 主 `SKILL.md` 会先按顺序读取 `references/general-principles.md`、`references/recon-and-stack-detection.md`、`references/docs-taxonomy.md`、`references/project-bootstrap.md`、`references/claude-hook-bootstrap.md`、`references/scoped-rules-and-enforcement.md`、`references/output-files.md`
+- 主 `SKILL.md` 会先按顺序读取 `references/general-principles.md`、`references/recon-and-stack-detection.md`、`references/docs-taxonomy.md`、`references/project-bootstrap.md`、`references/claude-hook-bootstrap.md`、`references/scoped-rules-and-enforcement.md`、`references/output-files.md` 与 `capabilities/registry.json`，再只读取命中的 capability
 - 写入 9 条 scoped-rules 与强制原则（SR-1 至 SR-9），把“只靠超长规则文件约束 AI”升级为“规则模块化 + 目录级就近规则 + Linter 强制 + 任务步骤拆分 + 依赖注入隔离 + 测试反 Mock 与环境防呆”：
   - SR-1: Why Not One Heavy File - 避免单文件臃肿与注意力涣散
   - SR-2: Modular Doc Architecture - 规则按主题拆到 `.ai/rules/<topic>.md`，主控文件只写红线 + 索引、按需加载

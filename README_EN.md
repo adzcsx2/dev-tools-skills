@@ -45,7 +45,7 @@ Installation also registers global prompts for VS Code Copilot and syncs Codex-c
 | Skill                      | Description                                                                                                                                                                                                                                                                                                                                                                             |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `do-all`                   | Complete plan execution: infer or wait for the unique target plan, execute every phase in order, and advance only after strict test gates pass; use `/do-all` in Claude and `$do-all` in Codex                                                                                                                                                                                         |
-| `dt:init`                  | Universal project init: detect the real stack, generate or optimize CLAUDE.md, AGENT.md, Copilot instructions, establish docs taxonomy and scoped rules, and use `dt:install-project-hooks` to generate Claude/Codex final rule audit project hooks                                                                                                                                        |
+| `dt:init`                  | Universal project init: detect the real stack, generate AI rules/docs/hooks, then load evidence-selected capability plugins that add API-first discovery to backend projects and semantic-driven UI automation rules to Flutter apps                                                                                                                                                |
 | `dt:init-root`             | Multi-repository product-root init: run `dt:init` and `dt:update-docs` in order, inherit final rule audit project hook initialization, then configure root local git, child-repository `.gitignore` entries, a root commit-only/no-push policy, and the root-level `dt:push` child-repository orchestration boundary              |
 | `dt:study`                 | Study verified skill mistakes: capture them back into the workspace source skill and avoid cached copies                                                                                                                                                                                                                                                                                |
 | `dt:push`                  | One-push release workflow: strict read-only preview, upstream sync, diff analysis for logical-group commits without code-review or test gates, explicit `--squash`, push, and optional tag                                                                                                                                                                                                |
@@ -67,7 +67,6 @@ Installation also registers global prompts for VS Code Copilot and syncs Codex-c
 | `adt:gradle-build-performance` | Diagnose and optimize Gradle build performance |
 | `adt:android-i18n`             | i18n: audit hardcoded strings, generate multi-language resources |
 | `adt:android-fold-adapter`     | Foldable screen: diagnose and fix fold adaptation issues                |
-| `adt:android-e2e`              | E2E visual testing: Midscene AI-powered Android end-to-end testing      |
 
 ### Flutter Tools — `fdt:` prefix
 
@@ -105,8 +104,7 @@ dev-tools-skills/
 │   ├── codex-sync-pull/          # dt:codex-sync-pull
 │   ├── gradle-build-performance/ # adt:gradle-build-performance
 │   ├── android-i18n/             # adt:android-i18n
-│   ├── android-fold-adapter/     # adt:android-fold-adapter
-│   └── android-e2e/              # adt:android-e2e
+│   └── android-fold-adapter/     # adt:android-fold-adapter
 ├── install.sh
 ├── install.ps1
 ├── uninstall.sh
@@ -115,7 +113,7 @@ dev-tools-skills/
 
 ## Version
 
-v1.3.12
+v1.4.0
 
 ## License
 

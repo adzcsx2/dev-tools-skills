@@ -48,7 +48,6 @@
     "codex/config.darwin.toml"
   ],
   "skipped": [
-    "agents/skills/adt-android-e2e",
     "agents/skills/adt-android-fold-adapter",
     "agents/skills/adt-android-i18n",
     "agents/skills/adt-gradle-build-performance",

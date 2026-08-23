@@ -24,7 +24,7 @@
 
 | Plugin | 保留的 Skills |
 |--------|-------------|
-| `android-dev-tools` (adt:) | init-android, gradle-build-performance, update-docs, android-i18n, android-fold-adapter, auto-ui-test |
+| `android-dev-tools` (adt:) | init-android, gradle-build-performance, update-docs, android-i18n, android-fold-adapter |
 | `flutter-dev-tools` (fdt:) | init-flutter, update-docs |
 
 ---
@@ -58,8 +58,7 @@ dev-tools-skills/                           # 单 git 仓库
     │       ├── gradle-build-performance/
     │       ├── update-docs/
     │       ├── android-i18n/
-    │       ├── android-fold-adapter/
-    │       └── auto-ui-test/
+    │       └── android-fold-adapter/
     └── flutter-dev-tools/                  # fdt: Flutter 特定 skills
         ├── .claude-plugin/
         │   └── plugin.json

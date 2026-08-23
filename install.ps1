@@ -39,7 +39,7 @@ $Version = ""
 $PluginKey = ""
 
 $CommonSkills = @("do-all", "init", "init-root", "install-project-hooks", "study", "push", "execute-loop", "update-remote-plugins", "code-note", "to-public-cloudflare", "work-report", "local-worktree", "update-docs", "codex-sync-push", "codex-sync-pull")
-$AndroidSkills = @("gradle-build-performance", "android-i18n", "android-fold-adapter", "android-e2e")
+$AndroidSkills = @("gradle-build-performance", "android-i18n", "android-fold-adapter")
 $FlutterSkills = @()
 $AllCategories = @("common", "android", "flutter")
 
@@ -145,7 +145,7 @@ function Select-Tools {
 function Get-CategoryDesc($cat) {
     switch ($cat) {
         "common"  { "Common tools (do-all, dt:init, dt:init-root, dt:install-project-hooks, dt:study, dt:push, dt:execute-loop, dt:update-remote-plugins, dt:code-note, dt:to-public-cloudflare, dt:work-report, dt:local-worktree, dt:update-docs, dt:codex-sync-push, dt:codex-sync-pull)" }
-        "android" { "Android tools (adt:gradle-build-performance, adt:android-i18n, adt:android-fold-adapter, adt:android-e2e)" }
+        "android" { "Android tools (adt:gradle-build-performance, adt:android-i18n, adt:android-fold-adapter)" }
         "flutter" { "Flutter tools (merged into dt:update-docs)" }
         default    { "" }
     }

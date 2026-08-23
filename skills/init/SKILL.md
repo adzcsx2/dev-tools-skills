@@ -53,6 +53,7 @@ origin: dev-tools-skills
 4. 增量升级已有 `CLAUDE.md`、`AGENT.md`、Copilot 配置，不无脑覆盖
 5. 生成 onboarding 摘要与最小验证结果
 6. 在项目根目录初始化本地 `.worktree/`，并把后续 Git worktree 的统一存放规则写入项目级 AI 规则
+7. 根据真实栈信号加载 `capabilities/registry.json` 中的初始化能力插件
 
 项目级 `.ai/skills` 多端同步、configured mirrors 和 `sync-project-skills.sh` 默认能力已经移除；`init` 不再生成或维护这些文件。
 
@@ -71,6 +72,7 @@ origin: dev-tools-skills
 7. （仅当项目有真实关注点或明确隔离价值时）按主题拆分的 `.ai/rules/<topic>.md` 与 `src/` / `tests/` 等目录级隔离规则
 8. 项目根目录本地 `.worktree/` 及 `.gitignore` 中的 `/.worktree/` 忽略项（`--dry-run` 时只预览）
 9. 可选 checklist（仅用户明确要求时）
+10. 条件能力产物（仅匹配 capability 时生成；具体产物由 capability 自身定义）
 
 ## Mandatory Read Order
 
@@ -83,6 +85,7 @@ origin: dev-tools-skills
 5. `references/claude-hook-bootstrap.md`
 6. `references/scoped-rules-and-enforcement.md`
 7. `references/output-files.md`
+8. `capabilities/registry.json`
 
 按条件追加读取：
 
@@ -96,6 +99,7 @@ origin: dev-tools-skills
 
 - 未读取必需 reference 前，不得开始生成 `CLAUDE.md`、`AGENT.md`、Copilot 配置或调用 hook 安装
 - `dt:init` 负责**编排顺序**，reference 负责**细节规则**
+- capability 注册表只负责发现与路由；命中的 capability `SKILL.md` 负责自身产物和验证，主 skill 不复制其细节
 - 不要在主 skill 里再把 reference 全文复述一遍
 - 如果 reference 与旧版项目规则冲突，按 reference + 真实代码做增量升级，不要直接跳过
 
@@ -133,6 +137,15 @@ origin: dev-tools-skills
 - 识别 Android、Flutter、Web/Node、Python、Java/JVM 或混合仓库
 - 建立 single sources of truth
 - 判断命名、测试、错误处理、异步风格和 git 约定
+
+### Step 4.5. Resolve Initialization Capabilities
+
+- 运行 `scripts/resolve-capabilities.ps1 -WorkspaceRoot <project-root> -AsJson`，并用 Step 3/4 的真实证据复核结果
+- 读取 `capabilities/registry.json`，确认 resolver 返回项与注册表一致
+- 只读取并执行命中项的 `entry`；不得为未命中的栈生成规则、脚本或空目录
+- 当前内置能力：后端 API-first 检索、Flutter 语义驱动自动化测试
+- `--dry-run` 时只报告命中证据、预期产物和验证命令，不写 capability 产物
+- capability 修改 public API、依赖、业务源码或 3+ 源码文件时，仍须遵守 Plan-First；初始化能力本身不扩大用户授权
 
 ### Step 5. Docs Taxonomy
 
@@ -182,6 +195,7 @@ origin: dev-tools-skills
   - onboarding 摘要
   - 可选 checklist
 - 同时落实 `references/scoped-rules-and-enforcement.md` 的产出：模块化规则索引、目录级隔离规则、Linter 强制说明、分步工作流段落
+- 将已启用 capability 的短触发规则与细则路径写入项目级 AI 规则；详细协议保留在 capability 生成的 scoped rule 中
 
 ### Step 9.5. Install Project Hooks
 
@@ -209,6 +223,7 @@ origin: dev-tools-skills
 - 检查 `AGENT.md` 是否完整覆盖了 9 项必备内容
 - 检查 Copilot 项目级配置是否涵盖精简版 GP-2 至 GP-9
 - 交叉检查各文件之间的一致性（单一事实来源声明、hook 安装规则、文档分类规则是否在各文件中一致）
+- 检查 capability 选择有真实证据、未误装到不适用项目，且主规则只保留短触发语句与细则索引
 - 检查是否有遗漏的规则类别：安全、测试、编码风格、Git 工作流、性能、Agent 编排、Hook 系统
 - 检查 `.worktree/` 初始化、`.gitignore` 忽略项和三类项目级 AI 规则中的 worktree 统一路径约束是否一致
 - 对照 `references/general-principles.md` 的 GP-1 至 GP-10，逐项确认关键约束已写入对应文件
@@ -254,6 +269,8 @@ origin: dev-tools-skills
 - 后续 AI coding 遵循接口 -> 确认 -> 业务 -> 测试 的分步工作流
 - 外部依赖经接口 / 注入隔离，业务函数内禁止直接实例化或发真实请求（按本项目栈裁剪，侦察不到外部依赖则不写）
 - 单元测试外补集成测试（禁用 Mock）与负面边界测试，Mock 用环境判断包裹防呆（按本项目栈选写法，禁止跨栈套用）
+- 若检测到后端接口定义：任何业务能力、数据访问或新增接口需求先搜索并验证现有后端 API
+- 若检测到 Flutter App：Flutter 内部 UI 自动化使用 `integration_test` 与稳定 Key/Semantics，AI 探索不作为最终 PASS/FAIL
 
 ## Best Practices
 

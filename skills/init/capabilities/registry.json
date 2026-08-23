@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "capabilities": [
+    {
+      "id": "api-first",
+      "version": 1,
+      "detector": "backend-api",
+      "entry": "api-first/SKILL.md",
+      "activate_when": "The repository contains real backend route registration, controllers/handlers, or an OpenAPI/Swagger contract.",
+      "exclude_when": "Only client-side API calls or SDK models are present and no backend contract is owned by this repository."
+    },
+    {
+      "id": "flutter-ui-automation",
+      "version": 1,
+      "detector": "flutter-app",
+      "entry": "flutter-ui-automation/SKILL.md",
+      "activate_when": "At least one real Flutter application package has pubspec.yaml, lib/main.dart, and a supported platform directory.",
+      "exclude_when": "The repository only contains a Dart package, generated Flutter artifacts, or client code without a runnable Flutter application."
+    }
+  ]
+}
