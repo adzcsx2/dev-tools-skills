@@ -11,6 +11,7 @@
 - 生成或增量升级 Copilot 项目级配置（优先使用 `AGENTS.md`；若项目已有 `.github/copilot-instructions.md` 作为唯一配置，则只更新该文件）
 - 建立 `/docs` 文档根目录和必要分类目录
 - 创建或复用项目根目录本地 `.worktree/`，并确保根 `.gitignore` 包含 `/.worktree/`
+- 创建或复用项目根目录 `logs/`，并将所有新生成的项目日志文件统一写入该目录
 - 仅在项目存在真实关注点或明确隔离价值时，建立 `docs/references/ai-rules/<中文主题>.md` scoped rules
 - 委托 `dt:install-project-hooks` 安装项目级 Claude/Codex hooks
 - 检测到直接子 Git 仓库时，按 `git-topology.md` 创建或更新 `.ai/init-root.yml`、根 `.gitignore` 受控 block 和根 Git policy
@@ -54,6 +55,14 @@
 - 生成或升级 `CLAUDE.md`、`AGENTS.md` 和 Copilot 项目级配置时，三者必须包含一致的 worktree 路径约束
 - `--dry-run` 只预览目录创建、忽略项和规则变更，不落盘
 - 只约束未来新 worktree；已有外部 worktree 不自动迁移或删除
+
+## Logs Bootstrap
+
+- 标准模式和 experimental execute 模式都必须在项目根目录创建或复用 `logs/`
+- 所有由初始化、hooks、脚本、测试、构建或后续 AI coding 生成的日志文件必须写入 `<project-root>/logs/`
+- 不得把新日志文件写入仓库根目录、`/docs` 或其他未约定目录
+- 初始化前已有的外部日志文件不自动移动或删除；只约束后续新日志
+- `--dry-run` 只预览目录创建和日志路径规则，不落盘、不移动文件
 
 ## Hook Delegation
 

@@ -81,6 +81,7 @@
 - 多文档工作项（>=3 份关联文档）统一聚合到 `docs/plan/<中文任务名>/`
 - 审计 / 性能 / 评估 / 复盘类报告统一写到 `docs/reports/<中文报告主题>/`
 - `CHANGELOG.md` 这类持续更新日志可保留在 `docs/reports/` 根下
+- 项目日志文件统一写入项目根目录 `logs/`；`CHANGELOG.md` 等文档型变更日志仍按文档分类规则归档
 
 ## GP-10 Incremental Upgrade On Re-run
 

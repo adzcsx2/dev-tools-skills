@@ -1,6 +1,6 @@
 ---
 name: "init"
-description: "Initialize AI project context for any codebase: detect the real stack, summarize the repo, generate or update CLAUDE.md, AGENTS.md (universal AI tool rules), Copilot project instructions, docs taxonomy, scoped rules, and final rule audit project hooks."
+description: "Initialize AI project context for any codebase: detect the real stack, summarize the repo, generate or update CLAUDE.md, AGENTS.md (universal AI tool rules), the project-root logs directory, Copilot project instructions, docs taxonomy, scoped rules, and final rule audit project hooks."
 argument-hint: "[optional focus] [--experiment [converge|sync]] [--dry-run]"
 agent: "agent"
 model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
@@ -29,6 +29,7 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - 生成或优化项目根目录的 CLAUDE.md
 - 生成或优化项目根目录的 AGENTS.md（通用 AI 工具规范，同时作为首选 Copilot 项目级配置）
 - 新项目只能创建 AGENTS.md，不得创建 AGENT.md；AGENT.md 仅用于旧项目迁移输入
+- 在当前项目根目录创建或复用 `logs/`；所有新生成的项目日志文件必须放到 `logs/`，不得散落在根目录或 `/docs`
 - 为 VS Code Copilot 增加项目级配置：优先更新 AGENTS.md；如果项目已有 .github/copilot-instructions.md 作为唯一配置，则只更新该文件
 - 不要同时维护 AGENTS.md 和 .github/copilot-instructions.md 两套项目级指令
 - 不再创建 `.ai/skills` 多端同步、configured mirrors 或工具镜像导出层
@@ -81,6 +82,7 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - 报告类文档（审计、性能、评估、复盘）默认先创建 `docs/reports/<中文主题>/` 主题目录，再在目录内创建中文命名的报告文件；不要把单个报告 `.md` 直接放在 `docs/reports/` 根下；持续更新日志如 `CHANGELOG.md` 可保留在 `docs/reports/` 根下
 - 生成的 CLAUDE.md 和 Copilot 项目级配置必须写入文档归档规则，确保后续 AI 不在根目录或 `/docs` 下乱建同义文档目录
 - 生成的 CLAUDE.md 和 AGENTS.md 必须显式写入：如果项目存在 final rule audit hook，最终回复前必须复审适用规则、已修改文件和最小验证结果；发现违反规则时先修复
+- 生成的 CLAUDE.md、AGENTS.md 和 Copilot 项目级配置必须显式写入：项目根目录 `logs/` 是所有新项目日志文件的唯一默认位置
 
 关于 AI vibe coding，必须写入这些规则：
 

@@ -1,6 +1,6 @@
 # dt:init
 
-统一跨技术栈项目初始化入口。现在采用“主 skill 编排 + references 细则 + capability 插件”结构：主 `SKILL.md` 负责按步骤执行，详细规则拆分在 `references/` 下，栈相关能力由注册表按真实证据选择。基于真实代码和配置，生成或优化 CLAUDE.md、AGENTS.md、Copilot 项目级指令，建立 `/docs` 分类规则和必要 scoped rules，并通过 `dt:install-project-hooks` 生成 Claude/Codex final rule audit 项目级 hook；检测到直接子 Git 仓库时，还会隔离子仓库、初始化根 Git，并按根 remote 实际状态创建本地提交或推送根仓库。输出简洁的代码库入门摘要。
+统一跨技术栈项目初始化入口。现在采用“主 skill 编排 + references 细则 + capability 插件”结构：主 `SKILL.md` 负责按步骤执行，详细规则拆分在 `references/` 下，栈相关能力由注册表按真实证据选择。基于真实代码和配置，生成或优化 CLAUDE.md、AGENTS.md、Copilot 项目级指令，创建项目根目录 `logs/`，建立 `/docs` 分类规则和必要 scoped rules，并通过 `dt:install-project-hooks` 生成 Claude/Codex final rule audit 项目级 hook；检测到直接子 Git 仓库时，还会隔离子仓库、初始化根 Git，并按根 remote 实际状态创建本地提交或推送根仓库。输出简洁的代码库入门摘要。
 
 ---
 
@@ -14,6 +14,7 @@
 - 生成或优化 CLAUDE.md、AGENTS.md 及 Copilot 可读的项目配置
 - 新项目只创建 `AGENTS.md`，不创建 `AGENT.md`；旧版 `AGENT.md` 仅用于迁移有效规则
 - 在项目根目录创建本地 `.worktree/` 并加入 `.gitignore`，同时要求后续所有新 Git worktree 统一放在 `.worktree/<worktree-name>` 下
+- 在项目根目录创建或复用 `logs/`，要求所有新生成的项目日志文件统一放在该目录
 - 不再创建 `.ai/skills` 多端同步、configured mirrors 或工具镜像导出层
 - 通过 `dt:install-project-hooks` 生成 Claude 项目 hook：`.claude/settings.json`、当前 OS 对应的 `.claude/hooks/final-rule-audit.{ps1|sh}`
 - 通过 `dt:install-project-hooks` 生成 Codex 项目 hook：`.codex/hooks.json`、当前 OS 对应的 `.codex/hooks/final-rule-audit.{ps1|sh}`
@@ -55,6 +56,7 @@
 - 所有文件生成后自动对产出的规则文件（CLAUDE.md、AGENTS.md、Copilot 配置）做完整性审查，检查必备内容是否覆盖、各文件是否一致、是否有遗漏的规则类别，发现 gap 自动补充修复
 - 在所有文件生成和 review 完成后，自动确保 `.codegraph/` 已加入项目的 `.gitignore`，防止 codegraph 索引目录被提交到版本控制
 - 非 `--dry-run` 模式会验证项目根 `.worktree/`、`/.worktree/` 忽略项和三类项目级 AI 规则中的 worktree 路径约束保持一致
+- 非 `--dry-run` 模式会验证项目根 `logs/` 已存在，且三类项目级 AI 规则中的日志路径约束保持一致
 - 检测到直接子 Git 仓库时，自动维护根 `.gitignore` 的 anchored child block 与 `.ai/init-root.yml`；根无 remote 时初始化并本地提交，根 remote 可唯一确定时安全同步、提交并推送根当前分支，初始化阶段不推子仓库
 
 ## 语言要求
