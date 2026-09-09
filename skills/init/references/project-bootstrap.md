@@ -7,13 +7,15 @@
 `dt:init` 只负责以下项目级初始化：
 
 - 生成或增量升级 `CLAUDE.md`
-- 生成或增量升级 `AGENT.md`
-- 生成或增量升级 Copilot 项目级配置（`AGENTS.md` 或 `.github/copilot-instructions.md` 二选一）
+- 生成或增量升级 `AGENTS.md`（通用 AI 规则，同时作为首选 Copilot 项目级配置）
+- 生成或增量升级 Copilot 项目级配置（优先使用 `AGENTS.md`；若项目已有 `.github/copilot-instructions.md` 作为唯一配置，则只更新该文件）
 - 建立 `/docs` 文档根目录和必要分类目录
 - 创建或复用项目根目录本地 `.worktree/`，并确保根 `.gitignore` 包含 `/.worktree/`
 - 仅在项目存在真实关注点或明确隔离价值时，建立 `docs/references/ai-rules/<中文主题>.md` scoped rules
 - 委托 `dt:install-project-hooks` 安装项目级 Claude/Codex hooks
 - 检测到直接子 Git 仓库时，按 `git-topology.md` 创建或更新 `.ai/init-root.yml`、根 `.gitignore` 受控 block 和根 Git policy
+
+新项目硬性规则：只能创建 `AGENTS.md`，不得创建 `AGENT.md`。旧项目若存在 `AGENT.md`，只读取其有效规则并迁移到 `AGENTS.md`，不再生成或继续维护旧文件。
 
 ## Removed Defaults
 
@@ -49,7 +51,7 @@
 
 - 标准模式和 experimental execute 模式都必须在项目根目录创建或复用 `.worktree/`
 - `.worktree/` 是本地 worktree 容器，不进入项目根 Git index；根 `.gitignore` 必须包含精确条目 `/.worktree/`
-- 生成或升级 `CLAUDE.md`、`AGENT.md` 和 Copilot 项目级配置时，三者必须包含一致的 worktree 路径约束
+- 生成或升级 `CLAUDE.md`、`AGENTS.md` 和 Copilot 项目级配置时，三者必须包含一致的 worktree 路径约束
 - `--dry-run` 只预览目录创建、忽略项和规则变更，不落盘
 - 只约束未来新 worktree；已有外部 worktree 不自动迁移或删除
 

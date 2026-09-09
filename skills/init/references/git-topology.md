@@ -68,7 +68,7 @@ remote 可唯一确定时记录 `root_remote`。根没有 remote 时删除陈旧
 
 ## Generated Root Rules
 
-`CLAUDE.md`、`AGENT.md` 与 Copilot 项目级配置必须按真实 policy 写入精简规则：
+`CLAUDE.md`、`AGENTS.md` 与 Copilot 项目级配置必须按真实 policy 写入精简规则：
 
 - 子仓库始终在各自目录独立同步、commit、push，根仓库不得暂存子仓库内容。
 - 根目录 `dt:push` 先按稳定路径顺序处理所有直接子 Git 仓库。

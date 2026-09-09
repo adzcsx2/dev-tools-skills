@@ -4,7 +4,7 @@
 
 ## Output Constraints
 
-生成的 AI 配置文件（`CLAUDE.md`、`AGENT.md`、Copilot 项目级配置）必须完整覆盖这些原则：
+生成的 AI 配置文件（`CLAUDE.md`、`AGENTS.md`、Copilot 项目级配置）必须完整覆盖这些原则：
 
 - GP-2 Single Sources of Truth
 - GP-3 Reuse-First
@@ -60,9 +60,9 @@
 
 若启用 experimental 模式，`CLAUDE.md` 必须基于变更后重新扫描的结果生成。
 
-## AGENT.md
+## AGENTS.md
 
-`AGENT.md` 是面向所有 AI 工具的通用规范文件，不包含平台特定语法。
+`AGENTS.md` 是面向所有 AI 工具的通用规范文件，同时可作为 Copilot 项目级配置；不包含平台特定语法。
 
 内容要求：
 
@@ -83,7 +83,11 @@
 9. Worktree 位置规则：项目根目录使用本地 `.worktree/` 作为唯一默认容器，所有新 worktree 放在其子目录中，且根 `.gitignore` 忽略 `/.worktree/`
 10. 多仓库根 Git（条件项）：子仓库独立提交/推送且被 root anchored ignore；所有子仓库成功后，root 按实时 remote 状态本地提交或同步并推送
 
-若启用 experimental 模式，`AGENT.md` 必须基于变更后重新扫描的结果生成。
+若启用 experimental 模式，`AGENTS.md` 必须基于变更后重新扫描的结果生成。
+
+兼容升级规则：如果项目已有旧版 `AGENT.md`，提取并合并仍然有效的规则到 `AGENTS.md`，不再生成或继续维护 `AGENT.md`。
+
+新项目硬性规则：输出文件只能是 `AGENTS.md`，不得创建 `AGENT.md`。
 
 ## Copilot Project Instructions
 

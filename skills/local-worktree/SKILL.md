@@ -11,7 +11,7 @@ origin: dev-tools-skills
 >
 > - 面向用户的回复、注释、提示信息必须使用中文
 > - AI 内部处理过程可以使用英文
-> - **所有生成的文档文件（CLAUDE.md、AGENT.md、README、脚本注释）必须使用英文**
+> - **所有生成的文档文件（CLAUDE.md、AGENTS.md、README、脚本注释）必须使用英文**
 > - 所有生成的文件必须使用 UTF-8 编码（无 BOM）
 >
 > ---
@@ -31,7 +31,7 @@ origin: dev-tools-skills
 
 1. 生成一个独立的 `local` 分支 worktree 目录（原仓库的同级目录），不污染原有工作树
 2. 在 worktree 内执行 `dt:init`，审计项目并重写 README
-3. 让所有初始化产物（`CLAUDE.md`、`AGENT.md`、`.ai/`、`.claude/`、`/docs/`、Copilot 配置）**只活在 local 分支**，不进入 main/dev/release
+3. 让所有初始化产物（`CLAUDE.md`、`AGENTS.md`、`.ai/`、`.claude/`、`/docs/`、Copilot 配置）**只活在 local 分支**，不进入 main/dev/release
 4. 合并业务代码时，**只带走真实源码白名单**，不带任何初始化文件
 5. 在 `CLAUDE.md` 写死「禁止 push 到远程」铁律，并生成 Claude PreToolUse hook 强制拦截 `git push`
 
@@ -131,7 +131,7 @@ git -C "<REPO_PATH>" worktree add "<WORKTREE_DIR>" -b "<BRANCH>"
 
 ```
 CLAUDE.md
-AGENT.md
+AGENT.md          # legacy init output; never merge AI context
 AGENTS.md
 .github/copilot-instructions.md
 .claude/
@@ -146,7 +146,7 @@ README_AI.md # 任何 AI 专用衍生文件
 
 ### Step 3. 在 worktree 内执行 dt:init
 
-- 在 `<WORKTREE_DIR>` 调用 `dt:init`（标准模式），生成 `CLAUDE.md`、`AGENT.md`、Copilot 配置、`/docs` 骨架，并通过 `dt:install-project-hooks` bootstrap final rule audit 项目 hook。
+- 在 `<WORKTREE_DIR>` 调用 `dt:init`（标准模式），生成 `CLAUDE.md`、`AGENTS.md`、Copilot 配置、`/docs` 骨架，并通过 `dt:install-project-hooks` bootstrap final rule audit 项目 hook。
 - init 完成后，**审计项目并重写 `README.md`**：基于真实代码事实重写项目说明、模块结构、构建命令、目录约定。README 在排除清单中，不同步回原始仓库，因此可包含 AI 沙盒专属说明。
 - 把「local worktree 专属约束」写进 `CLAUDE.md`（见 Step 4），而不是写进 README。
 
@@ -160,7 +160,7 @@ README_AI.md # 任何 AI 专用衍生文件
 - **ABSOLUTE RULE: Never push to remote on this branch.**
 - This `<BRANCH>` branch and worktree are for local AI-driven development only. All commits stay local.
 - A Claude PreToolUse hook (`.claude/hooks/prevent-push.sh`) blocks every `git push` command.
-- AI-context files (CLAUDE.md, AGENT.md, .claude/, .codegraph/, AI-only docs) must NEVER be merged into other branches.
+- AI-context files (CLAUDE.md, AGENTS.md, .claude/, .codegraph/, AI-only docs) must NEVER be merged into other branches.
 - To bring real source changes back, run `scripts/merge-from-local.sh` (whitelist-only cross-directory sync). It checks out whitelist files from this `<BRANCH>` branch into the original repo directory. Do NOT use `git merge <BRANCH>`.
 - Other branches (main, release, dev, feature/\*) are NOT subject to this restriction.
 ```

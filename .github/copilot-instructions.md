@@ -7,7 +7,7 @@ AI skills repository for Claude Code and VS Code Copilot. Skills are organized u
 ## Editing Rules
 
 - User-facing responses and comments should follow user's preferred language
-- **ALL generated documentation files (CLAUDE.md, AGENT.md, checklists) MUST be in English**
+- **ALL generated documentation files (CLAUDE.md, AGENTS.md, checklists) MUST be in English**
 - Keep SKILL.md files focused on actionable workflow rules
 - **SKILL.md frontmatter**: All string values containing colons must be double-quoted
 - Use kebab-case for directories and files

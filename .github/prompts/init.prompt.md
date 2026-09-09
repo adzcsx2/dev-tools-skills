@@ -1,6 +1,6 @@
 ---
 name: "init"
-description: "Initialize AI project context for any codebase: detect the real stack, summarize the repo, generate or update CLAUDE.md, AGENT.md (universal AI tool rules), Copilot project instructions, docs taxonomy, scoped rules, and final rule audit project hooks."
+description: "Initialize AI project context for any codebase: detect the real stack, summarize the repo, generate or update CLAUDE.md, AGENTS.md (universal AI tool rules), Copilot project instructions, docs taxonomy, scoped rules, and final rule audit project hooks."
 argument-hint: "[optional focus] [--experiment [converge|sync]] [--dry-run]"
 agent: "agent"
 model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
@@ -27,8 +27,9 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - 只根据真实文件、目录和配置做结论，不要套模板
 - 输出一份简洁的 onboarding 摘要，包含技术栈、关键入口、目录地图、主要约定和常用命令
 - 生成或优化项目根目录的 CLAUDE.md
-- 生成或优化项目根目录的 AGENT.md（通用 AI 工具规范）
-- 为 VS Code Copilot 增加项目级配置：如果项目已有 AGENTS.md 就更新它，否则创建或更新 .github/copilot-instructions.md
+- 生成或优化项目根目录的 AGENTS.md（通用 AI 工具规范，同时作为首选 Copilot 项目级配置）
+- 新项目只能创建 AGENTS.md，不得创建 AGENT.md；AGENT.md 仅用于旧项目迁移输入
+- 为 VS Code Copilot 增加项目级配置：优先更新 AGENTS.md；如果项目已有 .github/copilot-instructions.md 作为唯一配置，则只更新该文件
 - 不要同时维护 AGENTS.md 和 .github/copilot-instructions.md 两套项目级指令
 - 不再创建 `.ai/skills` 多端同步、configured mirrors 或工具镜像导出层
 - 读取并执行 `skills/install-project-hooks/SKILL.md`，为 Claude/Codex 生成 final rule audit 项目级 hook
@@ -37,11 +38,11 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - 不生成 `sync-project-skills.sh`，不注册 `PostToolUse` mirror refresh hook
 - 统一项目文档到 `/docs`，建立标准文档分类；已有语义等价目录时必须复用，不能重复创建同义目录
 - 默认遵循先搜索、先复用、最小改动、局部一致
-- 如果项目曾经执行过 init，必须把旧版 CLAUDE.md、AGENT.md、AGENTS.md 或 Copilot 指令增量升级到当前 init 标准，而不是只报告已存在
+- 如果项目曾经执行过 init，必须把旧版 CLAUDE.md、AGENT.md、AGENTS.md 或 Copilot 指令增量升级到当前 init 标准；将旧版 AGENT.md 的有效规则迁移到 AGENTS.md，而不是只报告已存在
 - 当前 init 标准只约束后续 AI coding 行为，不要求主动重构既有源码；只有后续需求触碰到相关文件时才按新规则执行
 - 生成的文档内容默认遵循用户或项目语言；用户未指定时使用中文
 - 人类阅读的文档标题、文件名、任务目录、报告主题、checklist 名称和 AI 规则主题文件默认使用中文语义命名
-- 工具约定入口文件名保持固定，例如 CLAUDE.md、AGENT.md、AGENTS.md、.github/copilot-instructions.md、README.md 和 CHANGELOG.md
+- 工具约定入口文件名保持固定，例如 CLAUDE.md、AGENTS.md、.github/copilot-instructions.md、README.md 和 CHANGELOG.md
 - 生成的 AI 规则必须面向 AI vibe coding：低 token、高密度、小文件、单职责、可检索
 - 生成的 AI 规则必须包含触碰文件原则、计划触发条件和最小验证规则
 
@@ -54,7 +55,7 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - Experimental 模式允许修改架构，包括源码移动重命名、模块拆分合并、构建配置调整、依赖组织整理和规则文件更新
 - 进入 experimental 模式后，必须先输出 dry-run 预览；如果带 `--dry-run`，只预览不落盘
 - Dry-run 至少包含：拟变更对象、依据、影响范围、风险、预期收益、最小验证项、回滚点
-- 执行时序必须是：先常规侦察，再判定 `converge` 或 `sync`，再 dry-run，执行结构改动后重新扫描，最后才更新 CLAUDE.md、AGENT.md 和 Copilot 项目级配置
+- 执行时序必须是：先常规侦察，再判定 `converge` 或 `sync`，再 dry-run，执行结构改动后重新扫描，最后才更新 CLAUDE.md、AGENTS.md 和 Copilot 项目级配置
 - Copilot 项目级配置仍然只能维护 AGENTS.md 或 .github/copilot-instructions.md 之一，不能同时维护两份
 - 所有项目级规则必须基于变更后重新扫描的结果生成，不能基于变更前状态写入
 - Experimental 模式不得顺带做无关业务功能改动
@@ -79,7 +80,7 @@ model: ["GPT-5 (copilot)", "Claude Sonnet 4.5 (copilot)"]
 - 多文档工作项默认聚合到 `docs/plan/<中文任务名>/`；只有项目已有英文 slug 规范或用户明确要求时才使用英文 kebab-case
 - 报告类文档（审计、性能、评估、复盘）默认先创建 `docs/reports/<中文主题>/` 主题目录，再在目录内创建中文命名的报告文件；不要把单个报告 `.md` 直接放在 `docs/reports/` 根下；持续更新日志如 `CHANGELOG.md` 可保留在 `docs/reports/` 根下
 - 生成的 CLAUDE.md 和 Copilot 项目级配置必须写入文档归档规则，确保后续 AI 不在根目录或 `/docs` 下乱建同义文档目录
-- 生成的 CLAUDE.md 和 AGENT.md 必须显式写入：如果项目存在 final rule audit hook，最终回复前必须复审适用规则、已修改文件和最小验证结果；发现违反规则时先修复
+- 生成的 CLAUDE.md 和 AGENTS.md 必须显式写入：如果项目存在 final rule audit hook，最终回复前必须复审适用规则、已修改文件和最小验证结果；发现违反规则时先修复
 
 关于 AI vibe coding，必须写入这些规则：
 

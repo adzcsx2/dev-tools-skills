@@ -1,13 +1,13 @@
 ---
 name: dt:init
-description: "Initialize AI project context for any codebase. Detect the real stack, generate or update CLAUDE.md, AGENT.md, Copilot instructions, docs taxonomy, scoped rules, project hooks, and multi-repository root Git topology with child isolation plus local-or-remote root commit policy."
+description: "Initialize AI project context for any codebase. Detect the real stack, generate or update CLAUDE.md, AGENTS.md, Copilot instructions, docs taxonomy, scoped rules, project hooks, and multi-repository root Git topology with child isolation plus local-or-remote root commit policy."
 argument-hint: "[optional focus] [--experiment [converge|sync]] [--dry-run]"
 origin: dev-tools-skills
 ---
 
 > Language Requirements
 >
-> - **ALL generated documentation content (CLAUDE.md, AGENT.md, checklists) MUST be in English**
+> - **ALL generated documentation content (CLAUDE.md, AGENTS.md, checklists) MUST be in English**
 > - Documentation file names and task/report topic directories under `/docs` MUST use Chinese names, while standard taxonomy directory names stay in English
 > - User-facing responses and comments should follow user's preferred language
 > - All generated files must use UTF-8 encoding
@@ -51,7 +51,7 @@ origin: dev-tools-skills
 1. 基于真实代码侦察仓库事实
 2. 按 reference 协议建立 `/docs`、项目级规则文件和必要的 scoped rules
 3. 通过 `dt:install-project-hooks` 在 Claude Code 与 Codex 项目里 bootstrap 项目级 final rule audit hook
-4. 增量升级已有 `CLAUDE.md`、`AGENT.md`、Copilot 配置，不无脑覆盖
+4. 增量升级已有 `CLAUDE.md`、`AGENTS.md`、旧版 `AGENT.md` 和 Copilot 配置，不无脑覆盖
 5. 生成 onboarding 摘要与最小验证结果
 6. 在项目根目录初始化本地 `.worktree/`，并把后续 Git worktree 的统一存放规则写入项目级 AI 规则
 7. 根据真实栈信号加载 `capabilities/registry.json` 中的初始化能力插件
@@ -65,8 +65,10 @@ origin: dev-tools-skills
 
 1. 会话内 onboarding 摘要
 2. 项目根目录 `CLAUDE.md`
-3. 项目根目录 `AGENT.md`
+3. 项目根目录 `AGENTS.md`（默认的通用 AI 规则，同时作为首选 Copilot 项目级配置；若项目已有 `.github/copilot-instructions.md` 且明确作为唯一配置，则只更新该文件，不另建 `AGENTS.md`）
 4. Copilot 可读取的项目级配置（`AGENTS.md` 或 `.github/copilot-instructions.md` 二选一）
+
+新项目硬性规则：只能创建 `AGENTS.md`，不得创建 `AGENT.md`。`AGENT.md` 仅作为旧项目迁移时的输入文件，不能作为新标准继续生成或维护。
 5. 项目级 Claude/Codex final rule audit hook（由 `dt:install-project-hooks` 生成）：
    - Claude：`.claude/settings.json`、当前 OS 对应的 `.claude/hooks/final-rule-audit.{ps1|sh}`
    - Codex：`.codex/hooks.json`、当前 OS 对应的 `.codex/hooks/final-rule-audit.{ps1|sh}`
@@ -101,7 +103,7 @@ origin: dev-tools-skills
 
 执行要求：
 
-- 未读取必需 reference 前，不得开始生成 `CLAUDE.md`、`AGENT.md`、Copilot 配置或调用 hook 安装
+- 未读取必需 reference 前，不得开始生成 `CLAUDE.md`、`AGENTS.md`、Copilot 配置或调用 hook 安装
 - `dt:init` 负责**编排顺序**，reference 负责**细节规则**
 - capability 注册表只负责发现与路由；命中的 capability `SKILL.md` 负责自身产物和验证，主 skill 不复制其细节
 - 不要在主 skill 里再把 reference 全文复述一遍
@@ -169,7 +171,7 @@ origin: dev-tools-skills
 
 - 非 `--dry-run` 模式下，在项目根目录创建或复用 `.worktree/`，不得在仓库根目录直接创建平级 worktree
 - 确保项目根 `.gitignore` 包含精确的根目录忽略项 `/.worktree/`；若 `.gitignore` 不存在则创建，保留所有既有内容
-- 后续生成或升级的 `CLAUDE.md`、`AGENT.md` 和 Copilot 项目级配置必须明确：所有新 Git worktree 统一放在 `<project-root>/.worktree/<worktree-name>`，不得默认放到项目根目录平级位置或其他外部目录
+- 后续生成或升级的 `CLAUDE.md`、`AGENTS.md` 和 Copilot 项目级配置必须明确：所有新 Git worktree 统一放在 `<project-root>/.worktree/<worktree-name>`，不得默认放到项目根目录平级位置或其他外部目录
 - 只约束后续新建 worktree；不得自动移动或删除初始化前已存在于其他位置的 worktree
 - `--dry-run` 模式只展示目录、忽略项和规则文件预期变更，不创建目录、不修改 `.gitignore`
 
@@ -195,7 +197,7 @@ origin: dev-tools-skills
 
 - 按 `references/output-files.md` 生成或增量升级：
   - `CLAUDE.md`
-  - `AGENT.md`
+  - `AGENTS.md`
   - Copilot 项目级配置
   - onboarding 摘要
   - 可选 checklist
@@ -226,7 +228,7 @@ origin: dev-tools-skills
 在所有文件生成和验证完成后，对产出的规则文件做一次完整性审查：
 
 - 检查 `CLAUDE.md` 是否完整覆盖了 `references/output-files.md` 要求的 21 项必备内容（其中 SR、Worktree 与多仓库 Git 条件项按本项目事实裁剪）
-- 检查 `AGENT.md` 是否完整覆盖了 10 项必备内容
+- 检查 `AGENTS.md` 是否完整覆盖了 10 项必备内容
 - 检查 Copilot 项目级配置是否涵盖精简版 GP-2 至 GP-9
 - 交叉检查各文件之间的一致性（单一事实来源声明、hook 安装规则、文档分类规则是否在各文件中一致）
 - 检查 capability 选择有真实证据、未误装到不适用项目，且主规则只保留短触发语句与细则索引
@@ -269,7 +271,7 @@ origin: dev-tools-skills
 
 ## Minimum Rules Generated Files Must Carry
 
-生成的 `CLAUDE.md`、`AGENT.md`、Copilot 项目级配置，至少必须体现这些约束：
+生成的 `CLAUDE.md`、`AGENTS.md`、Copilot 项目级配置，至少必须体现这些约束：
 
 - 如果项目存在 Claude/Codex final rule audit hook，则任务收尾前必须重新读取项目规则、审计已修改文件、发现违反规则时先修改再回复
 - 任务聚合文档使用 `docs/plan/<中文任务名>/`

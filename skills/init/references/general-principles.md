@@ -84,6 +84,6 @@
 
 ## GP-10 Incremental Upgrade On Re-run
 
-- 项目已有 `CLAUDE.md`、`AGENT.md` 或 Copilot 配置时，必须增量升级到当前 init 标准
+- 项目已有 `CLAUDE.md`、`AGENTS.md`、旧版 `AGENT.md` 或 Copilot 配置时，必须增量升级到当前 init 标准；旧版 `AGENT.md` 的有效规则迁移到 `AGENTS.md`
 - `"文件已存在"` 不是跳过升级的理由
 - 升级 AI 规则文件不等于主动重构源码
