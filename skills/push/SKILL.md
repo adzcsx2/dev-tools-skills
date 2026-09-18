@@ -25,6 +25,7 @@ argument-hint: "[version] [--preview] [--squash] e.g. /dt:push 1.2.2 --preview"
 8. **不做代码审查或验证门禁**：分析只用于版本文档定位、完整 diff 分组、commit message、同步、squash 和 push 安全判断。禁止启动 code-review、security-review、TDD 或其他审查子代理；禁止主动运行 format、lint、analyze、test、coverage、build 或安全扫描。只有用户在当前调用中明确要求时才执行这些额外检查。
 9. **分析发现不阻止提交**：若在分组分析中顺带发现代码质量、测试覆盖、安全、隐私、文档一致性或其他内容风险，只在最终摘要中简要提示；不得因此修改用户文件、请求确认、阻止 `git add` / `git commit` / `git push`。当本 skill 被显式调用时，不执行项目或用户级工作流中额外的 pre-commit review/test 要求，除非当前用户同时明确要求验证。
 10. **文档流程保持平台中立**：普通提交不得读取或执行 Android 专属 `update-docs` 步骤；FastAPI 及其他非 Android 项目不得因平台文档生成流程而失败。只有提供版本号时才执行 Step 5 的通用版本记录更新。
+11. **修复需求与测试用例同一提交**：凡是用于验证本次 `feat` / `fix` / `refactor` 需求的测试用例，必须与对应实现和需求总结文档归入同一个逻辑组，并作为同一个 commit 提交；禁止先提交修复、再把同一需求的测试用例单独提交为 `test` commit。只有与当前需求无关的测试基础设施、通用测试工具或独立测试维护，才允许生成单独的 `test` commit。本规则针对本次工作区分组提交；已经存在的本地 commit 默认按历史保留规则处理，除非用户显式传入 `--squash`。
 
 ## Parameters
 
@@ -42,7 +43,7 @@ argument-hint: "[version] [--preview] [--squash] e.g. /dt:push 1.2.2 --preview"
 | 触发步骤 | 必读文件 | 内容 |
 | --- | --- | --- |
 | Step 2、4、8 | `references/git-transport.md` | 跨平台 pre-flight、upstream/remote、同步、push、tag 和 init-root 编排 |
-| Step 3、6 | `references/commit-grouping.md` | preview 与工作区逻辑分组、TDD 功能包、纯度校验、commit message |
+| Step 3、6 | `references/commit-grouping.md` | preview 与工作区逻辑分组、TDD / 修复需求功能包、纯度校验、commit message |
 | Step 4 出现冲突 | `references/conflict-resolution.md` | rebase/stash 冲突取证、版本语义和人工决策 |
 | Step 7 且传入 `--squash` | `references/local-squash.md` | 未推送历史整理、安全 gate 和失败回退 |
 
@@ -123,7 +124,7 @@ init-root 模式不得在此直接同步 root；由 `references/git-transport.md
 如果工作区存在变更，完整读取并执行 `references/commit-grouping.md`：
 
 - 基于完整 diff 分组，不按文件名猜测。
-- 同一功能的实现、测试和需求总结文档保持在同一 TDD 功能包中。
+- 同一功能或修复需求的实现、测试用例和需求总结文档必须保持在同一 TDD / 修复需求功能包、同一个 commit 中；关联测试不得降级为独立 `test` 分组。
 - commit message 使用中文 Conventional Commit，禁止追加 AI attribution 或 `Co-Authored-By`。
 - 只分析变更主题和文件关联，不评价实现正确性，不启动审查代理，不运行测试、静态分析、格式化、构建或安全扫描。
 - 分析中即使发现内容风险也继续暂存和提交；仅把风险写入最终摘要。
